@@ -1150,6 +1150,48 @@ function calculateIRTAchievement(ldap, startDate, endDate, segment = null) {
   };
 }
 
+// NCC Achievement Alert計算（Rewardターゲット達成に必要なNCC件数）
+function calculateNCCAlert(achievedCases, totalCases, evaluationSegment) {
+  // 評価セグメントのRewardターゲット取得
+  const slaTargets = {
+    'Platinum': { reward: 98.0 },
+    'Titanium LCS': { reward: 97.0 },
+    'Gold LCS': { reward: 97.0 },
+    'Gold GCS': { reward: 96.0 },
+    'Silver': { reward: 91.0 },
+    'Bronze': { reward: 87.0 }
+  };
+
+  const rewardTarget = slaTargets[evaluationSegment]?.reward || 0;
+  const currentRate = totalCases > 0 ? (achievedCases / totalCases) * 100 : 0;
+
+  // すでにReward達成している場合
+  if (currentRate >= rewardTarget) {
+    return {
+      message: `✅ 現在 ${currentRate.toFixed(1)}%で、Rewardターゲット ${rewardTarget}%を達成しています！`,
+      casesNeeded: 0,
+      targetRate: rewardTarget,
+      currentRate: currentRate,
+      achieved: true
+    };
+  }
+
+  // 必要なNCC件数を計算
+  // 公式: (achievedCases + x) / (totalCases + x) = rewardTarget / 100
+  // 解くと: x = (rewardTarget * totalCases - achievedCases * 100) / (100 - rewardTarget)
+  const casesNeeded = Math.ceil(
+    (rewardTarget * totalCases - achievedCases * 100) / (100 - rewardTarget)
+  );
+
+  return {
+    message: `📊 現在 ${currentRate.toFixed(1)}%なので、個人/チーム全体であと${casesNeeded}件のNCC獲得(In-IRT)でSLA ${rewardTarget}%達成です`,
+    casesNeeded: casesNeeded,
+    targetRate: rewardTarget,
+    currentRate: currentRate,
+    achieved: false
+  };
+}
+
 // 除外ケース判定
 function isExcludedCase(caseData) {
   // Bug / L2 Consult / PayReq / Invoice Dispute / Workdriver / T&S Team
@@ -1187,6 +1229,33 @@ function isExcludedCase(caseData) {
 1. **Reward達成**: 達成率 ≥ Rewardターゲット → 緑色で強調表示
 2. **Reward未達・Penalty達成**: Penaltyターゲット ≤ 達成率 < Rewardターゲット → 黄色で注意表示
 3. **Penalty未達**: 達成率 < Penaltyターゲット → 赤色で警告表示
+
+**NCC Achievement Alert（常時表示）**:
+
+Analytics画面に常に表示されるリアルタイムアラート機能：
+
+```javascript
+// 使用例
+const irtResult = calculateIRTAchievement(ldap, startDate, endDate, segment);
+const segmentInfo = getEvaluationSegment(caseData);
+const alert = calculateNCCAlert(
+  irtResult.achievedCases,
+  irtResult.totalCases,
+  segmentInfo.evaluationSegment
+);
+
+// alert.message を画面上部に常時表示
+// 例: "📊 現在 94.2%なので、個人/チーム全体であと12件のNCC獲得(In-IRT)でSLA 96.0%達成です"
+```
+
+**表示仕様**:
+- **位置**: Analytics画面の最上部、目立つ位置に固定表示
+- **更新頻度**: ケース処理/ステータス変更時にリアルタイム更新
+- **表示色**:
+  - Reward達成時: 緑色背景 + ✅アイコン
+  - 未達成時: 青色背景 + 📊アイコン
+- **フォントサイズ**: 18px（通常テキストより大きく）
+- **アニメーション**: 新規NCC獲得時に軽くハイライト
 
 #### 4.4.3 統計分析機能の詳細
 
