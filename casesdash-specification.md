@@ -1071,9 +1071,98 @@ const AuditLogSpec = {
 - **カスタム期間**: 開始日と終了日を指定した任意期間
 
 **IRT (Internal Resolution Time)メトリック**（最重要指標 - 2025年Q4～）:
-- **IRT達成率**: 72時間以内解決率（SO期間を除外した実質対応時間）
+
+**📊 IRT達成率の計算方法:**
+
+```javascript
+IRT達成率 = (IRT <= 72時間のケース数) / (Solution Offeredケース総数) × 100
+
+【分母】Case Status = "Solution Offered" のケース
+  - 除外ケースは含めない（Bug、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Team）
+  - Final Assignee = 評価対象者のLdap（個人評価の場合）
+  - 評価セグメント = Final Segment × Sales Channel（チーム評価の場合）
+
+【分子】上記のうち IRT <= 72時間のケース
+
+【評価対象期間】指定された期間内にCase Status = "Solution Offered" になったケース
+```
+
+**GAS実装例:**
+```javascript
+function calculateIRTAchievement(ldap, startDate, endDate, segment = null) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ['OT Email', '3PO Email', 'OT Chat', '3PO Chat', 'OT Phone', '3PO Phone'];
+
+  let totalCases = 0;      // 分母
+  let achievedCases = 0;   // 分子
+
+  sheets.forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 2; i < data.length; i++) { // ヘッダースキップ
+      const row = data[i];
+      const caseData = parseRowData(row, sheetName);
+
+      // 1. Case Status = "Solution Offered" チェック
+      if (caseData.caseStatus !== 'Solution Offered') continue;
+
+      // 2. 期間内チェック
+      const closeDate = new Date(caseData.firstCloseDate);
+      if (closeDate < startDate || closeDate > endDate) continue;
+
+      // 3. 個人評価: Final Assignee チェック
+      if (ldap && caseData.finalAssignee !== ldap) continue;
+
+      // 4. チーム評価: セグメントチェック
+      if (segment) {
+        const evalSegment = getEvaluationSegment(caseData).evaluationSegment;
+        if (evalSegment !== segment) continue;
+      }
+
+      // 5. 除外ケースチェック
+      if (isExcludedCase(caseData)) continue;
+
+      // ここまで通過したケースは分母にカウント
+      totalCases++;
+
+      // 6. IRT <= 72時間チェック
+      const irtData = calculateIRT(caseData);
+      if (irtData.withinSLA) {
+        achievedCases++;
+      }
+    }
+  });
+
+  const achievementRate = totalCases > 0 ? (achievedCases / totalCases) * 100 : 0;
+
+  return {
+    achievementRate: achievementRate,
+    achievedCases: achievedCases,
+    totalCases: totalCases,
+    missedCases: totalCases - achievedCases
+  };
+}
+
+// 除外ケース判定
+function isExcludedCase(caseData) {
+  // Bug / L2 Consult / PayReq / Invoice Dispute / Workdriver / T&S Team
+  if (caseData.bugL2TSPayreq === 1) return true; // Bug / L2 / T&S / Payreq チェックボックス
+  // その他の除外条件...
+  return false;
+}
+```
+
+**個人評価レポートとチーム評価レポートの違い:**
+
+| 項目 | 個人評価 | チーム評価（セグメント別） |
+|------|---------|--------------------------|
+| フィルター条件 | Final Assignee = 自分のLdap | 評価セグメント（Final Segment × Sales Channel） |
+| 表示内容 | 個人のIRT達成率、処理件数 | セグメント別IRT達成率、Penalty/Reward判定 |
+| 目的 | 個人パフォーマンス把握 | チーム全体のSLA達成状況把握 |
+
 - **除外ケース管理**: Bug、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Teamの除外処理
-- **セグメント別分析**: Platinum/Titanium/Gold/Silver/Bronze別の達成率とターゲット比較
+- **セグメント別分析**: Platinum/Titanium LCS/Gold LCS/Gold GCS/Silver/Bronze別の達成率とターゲット比較
 - **チャネル別分析**: Email/Chat/Phone別の達成率
 - **IRT vs TRT比較**: SO期間の影響を可視化
 
@@ -1103,28 +1192,78 @@ NCC_CONDITIONS = {
 ```javascript
 function calculateIRT(caseData) {
   const caseOpenDateTime = new Date(caseData.caseOpenDate + ' ' + caseData.caseOpenTime);
-  const finalCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
-  const firstCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
 
-  // TRT = 最終クローズ - ケース作成
+  // 最終クローズ時刻の判定
+  // Case Status = "Finished" または "Solution Offered" の時点
+  let finalCloseDateTime;
+
+  if (caseData.caseStatus === 'Finished' || caseData.caseStatus === 'Solution Offered') {
+    // クローズ済みケース
+    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
+      // Reopen後にクローズした場合
+      finalCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
+    } else if (caseData.firstCloseDate && caseData.firstCloseTime) {
+      // 初回クローズのみの場合
+      finalCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+    }
+  } else {
+    // まだオープン中のケース（Assigned状態）
+    finalCloseDateTime = new Date(); // 現在時刻
+  }
+
+  // TRT = 最終クローズ（または現在時刻） - ケース作成
   const trt = (finalCloseDateTime - caseOpenDateTime) / (1000 * 60 * 60); // 時間単位
 
-  // SO期間を計算（複数回のReopenがある場合はSUM）
+  // SO期間を計算
   let soPeriod = 0;
-  if (caseData.reopenCloseDate) {
-    // Reopenがある場合
-    soPeriod = (finalCloseDateTime - firstCloseDateTime) / (1000 * 60 * 60);
+
+  if (caseData.firstCloseDate && caseData.firstCloseTime) {
+    const firstCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+
+    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
+      // Reopen後にクローズした場合: SO期間 = Reopen Close - 1st Close
+      const reopenCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
+      soPeriod = (reopenCloseDateTime - firstCloseDateTime) / (1000 * 60 * 60);
+    } else if (caseData.caseStatus === 'Solution Offered') {
+      // 現在SO status中: SO期間 = 現在時刻 - 1st Close
+      soPeriod = (new Date() - firstCloseDateTime) / (1000 * 60 * 60);
+    }
   }
 
   // IRT = TRT - SO期間
   const irt = trt - soPeriod;
 
+  // IRT Timer = 72時間からのカウントダウン（残り時間）
+  const irtRemaining = 72 - irt;
+
   return {
-    irt: irt,
-    trt: trt,
-    soPeriod: soPeriod,
-    withinSLA: irt <= 72 // 72時間以内かチェック
+    irt: irt,                          // 経過IRT（時間）
+    irtRemaining: irtRemaining,        // 残りIRT（時間）← これがIRT Timer表示値
+    irtRemainingFormatted: formatTime(irtRemaining), // HH:MM:SS形式
+    trt: trt,                          // 経過TRT（時間）
+    soPeriod: soPeriod,                // SO期間（時間）
+    withinSLA: irt <= 72,              // SLA達成判定
+    urgencyLevel: getUrgencyLevel(irtRemaining) // 緊急度レベル
   };
+}
+
+// 残り時間をHH:MM:SS形式にフォーマット
+function formatTime(hours) {
+  if (hours < 0) return "MISSED";
+
+  const h = Math.floor(hours);
+  const m = Math.floor((hours - h) * 60);
+  const s = Math.floor(((hours - h) * 60 - m) * 60);
+
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// 緊急度レベルの判定
+function getUrgencyLevel(irtRemaining) {
+  if (irtRemaining < 0) return 'missed';      // グレー（期限切れ）
+  if (irtRemaining <= 2) return 'critical';   // 赤（2時間以下）
+  if (irtRemaining <= 24) return 'warning';   // 黄（24時間以下）
+  return 'normal';                            // 緑（十分な時間）
 }
 ```
 
@@ -2221,6 +2360,70 @@ IRT = (最終クローズ時刻 - ケース作成時刻) - SUM(Reopen時刻 - So
 | Gold GCS | 3 days | 95.0% | 96.0% |
 | Silver | 3 days | 90.0% | 91.0% |
 | Bronze | 3 days | 86.0% | 87.0% |
+
+#### 6.1.4 セグメント判定ロジック（Final Segment × Sales Channel）
+
+**重要**: IRT評価に使用するセグメントは、スプレッドシート上の **Final Segment** と **Sales Channel** の値の組み合わせで判定されます。
+
+**判定式:**
+```javascript
+評価セグメント = Final Segment + " " + Sales Channel
+
+例：
+- Final Segment: "Gold" + Sales Channel: "LCS" → "Gold LCS"
+- Final Segment: "Gold" + Sales Channel: "GCS" → "Gold GCS"
+- Final Segment: "Titanium" + Sales Channel: "LCS" → "Titanium LCS"
+```
+
+**GAS実装例:**
+```javascript
+function getEvaluationSegment(caseData) {
+  const finalSegment = caseData.finalSegment; // Final Segment列の値
+  const salesChannel = caseData.salesChannel; // Sales Channel列の値
+
+  // セグメント判定
+  let evaluationSegment;
+
+  if (finalSegment === 'Platinum') {
+    evaluationSegment = 'Platinum';
+  } else if (finalSegment === 'Titanium' && salesChannel === 'LCS') {
+    evaluationSegment = 'Titanium LCS';
+  } else if (finalSegment === 'Gold' && salesChannel === 'LCS') {
+    evaluationSegment = 'Gold LCS';
+  } else if (finalSegment === 'Gold' && salesChannel === 'GCS') {
+    evaluationSegment = 'Gold GCS';
+  } else if (finalSegment === 'Silver') {
+    evaluationSegment = 'Silver';
+  } else if (finalSegment === 'Bronze') {
+    evaluationSegment = 'Bronze';
+  } else {
+    evaluationSegment = 'Unknown';
+  }
+
+  // SLAターゲット取得
+  const slaTargets = {
+    'Platinum': { penalty: 97.0, reward: 98.0 },
+    'Titanium LCS': { penalty: 96.0, reward: 97.0 },
+    'Gold LCS': { penalty: 96.0, reward: 97.0 },
+    'Gold GCS': { penalty: 95.0, reward: 96.0 },
+    'Silver': { penalty: 90.0, reward: 91.0 },
+    'Bronze': { penalty: 86.0, reward: 87.0 }
+  };
+
+  return {
+    evaluationSegment: evaluationSegment,
+    penaltyThreshold: slaTargets[evaluationSegment]?.penalty || 0,
+    rewardThreshold: slaTargets[evaluationSegment]?.reward || 0
+  };
+}
+```
+
+**セグメント別SLA差異の例:**
+```
+同じ "Gold" でも Sales Channel によって異なる:
+- Gold LCS: Penalty 96.0% / Reward 97.0%
+- Gold GCS: Penalty 95.0% / Reward 96.0%  ← 1%低い
+```
 
 ### 6.2 IRT算出対象から除外されるケース
 
