@@ -1239,6 +1239,9 @@ function calculateIRT(caseData) {
   // IRT = TRT - SO期間
   const irt = trt - soPeriod;
 
+  // TRT Timer = 72時間からのカウントダウン（残り時間）
+  const trtRemaining = 72 - trt;
+
   // IRT Timer = 72時間からのカウントダウン（残り時間）
   const irtRemaining = 72 - irt;
 
@@ -1247,6 +1250,8 @@ function calculateIRT(caseData) {
     irtRemaining: irtRemaining,        // 残りIRT（時間）← これがIRT Timer表示値
     irtRemainingFormatted: formatTime(irtRemaining), // HH:MM:SS形式
     trt: trt,                          // 経過TRT（時間）
+    trtRemaining: trtRemaining,        // 残りTRT（時間）← これがTRT Timer表示値
+    trtRemainingFormatted: formatTime(trtRemaining), // HH:MM:SS形式
     soPeriod: soPeriod,                // SO期間（時間）
     withinSLA: irt <= 72,              // SLA達成判定
     urgencyLevel: getUrgencyLevel(irtRemaining) // 緊急度レベル
