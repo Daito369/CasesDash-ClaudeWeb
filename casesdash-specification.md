@@ -1164,11 +1164,12 @@ function isExcludedCase(caseData) {
 | 項目 | 個人評価 | チーム評価（セグメント別） |
 |------|---------|--------------------------|
 | フィルター条件 | Final Assignee = 自分のLdap | 評価セグメント（Final Segment × Sales Channel） |
-| 表示内容 | 個人のIRT達成率、処理件数 | セグメント別IRT達成率、Penalty/Reward判定 |
-| 目的 | 個人パフォーマンス把握 | チーム全体のSLA達成状況把握 |
+| 表示内容 | 個人のIRT達成率、処理件数 | セグメント別IRT達成率、Reward目標達成判定 |
+| 目的 | 個人パフォーマンス把握 | チーム全体のSLA Reward達成状況把握 |
+| 評価基準 | Rewardターゲット到達を主目標 | Rewardターゲット到達を主目標 |
 
 - **除外ケース管理**: Bug、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Teamの除外処理
-- **セグメント別分析**: Platinum/Titanium LCS/Gold LCS/Gold GCS/Silver/Bronze別の達成率とターゲット比較
+- **セグメント別分析**: Platinum/Titanium LCS/Gold LCS/Gold GCS/Silver/Bronze別の達成率と**Rewardターゲット**比較
 - **チャネル別分析**: Email/Chat/Phone別の達成率
 - **IRT vs TRT比較**: SO期間の影響を可視化
 
@@ -1176,11 +1177,16 @@ function isExcludedCase(caseData) {
 - **Total Cases**: 総ケース数
 - **Solution Offered**: 解決提案済みケース数
 - **NCC (Non-Contact Complete)**: 算出条件に基づく自動計算
-- **SLA Achievement Rate**: SLA達成率（セグメント別ターゲットと比較）
+- **SLA Achievement Rate**: SLA達成率（セグメント別**Rewardターゲット**と比較、Penaltyは参考値として表示）
 - **Average IRT**: 平均IRT処理時間
 - **Average SO Duration**: 平均SO期間（顧客待ち時間）
 - **Reopen Rate**: 再オープン率
 - **First Response Time**: 初回応答時間
+
+**評価表示の優先順位**:
+1. **Reward達成**: 達成率 ≥ Rewardターゲット → 緑色で強調表示
+2. **Reward未達・Penalty達成**: Penaltyターゲット ≤ 達成率 < Rewardターゲット → 黄色で注意表示
+3. **Penalty未達**: 達成率 < Penaltyターゲット → 赤色で警告表示
 
 #### 4.4.3 統計分析機能の詳細
 
