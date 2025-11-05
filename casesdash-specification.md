@@ -1,0 +1,2087 @@
+# CasesDash - マルチシート対応 ケース管理システム（完全版仕様書）
+
+## 1. プロジェクト概要
+
+### 1.1 概要と目的
+
+CasesDashは、Google 広告サポートチームのケース管理を効率化するためのウェブベースのツールです。Google スプレッドシートと連携し、6つの異なるシート（OT Email, 3PO Email, OT Chat, 3PO Chat, OT Phone, 3PO Phone）にわたるケース割り当て、追跡、期限管理、統計分析を一元化します。
+
+**重要な制約**: GCPは使用できません。Google Apps Scriptベースでの実装となります。
+
+### 1.2 対象シートと構造
+
+本システムは以下の6つのシートに対応します：
+
+| シート名 | ケースタイプ | チャネル | ケースID開始列 | 特殊フィールド |
+| --- | --- | --- | --- | --- |
+| OT Email | OT | Email | C列 | AM Initiated, Sub Category, Issue Category |
+| 3PO Email | 3PO | Email | C列 | AM Initiated, Issue Category, Details |
+| OT Chat | OT | Chat | B列 | Sub Category, Issue Category |
+| 3PO Chat | 3PO | Chat | B列 | Issue Category, Details |
+| OT Phone | OT | Phone | B列 | Sub Category, Issue Category |
+| 3PO Phone | 3PO | Phone | B列 | Issue Category, Details |
+
+### 1.3 解決する主要課題
+
+- **複数シート対応の必要性**: 6つのシートに対応
+- **TRT(P95)メトリック管理**: Google メトリックのメイン指標の正確な計算と追跡
+- **除外ケース管理**: Bug Case、L2コンサル、IDT/Payreq、T&S Consultの適切な除外処理
+- **リアルタイム通知**: P95タイマー2時間以下での自動Google Chat、メール通知
+- **統合ユーザー管理**: 認証、プロファイル、権限管理の一元化
+
+## 2. 実際のスプレッドシート構造に基づく詳細マッピング
+
+### 2.1 OT Email シート構造（正確版）
+
+**ヘッダー構造（1行目+2行目の組み合わせ）:**
+
+```
+A: Date [日付形式: YYYY/MM/DD]
+B: Cases [関数で自動生成されるため空欄でOK]
+C: Case ID
+D: Case Open Date [日付形式: YYYY/MM/DD]
+E: Time (Case Open Time) [時間形式: HH:MM:SS]
+F: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+G: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+H: Sub Category [セレクトボックス：Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other]
+I: Issue Category [セレクトボックス：Search 配信関連, Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他]
+J: Triage [0/1のチェックボックス]
+K: AM Initiated [0/1のチェックボックス]
+L: Is 3.0 [0/1のチェックボックス]
+M: 1st Assignee [Ldap]
+N: TRT Timer [スプレッドシートの関数で自動計算]
+O: MCC [0/1のチェックボックス]
+P: Change to Child [0/1のチェックボックス]
+Q: Final Assignee [Ldap]
+R: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+S: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+T: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+U: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+V: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+W: Bug / L2 [0/1のチェックボックス]
+X: 1st Close Date [日付形式: YYYY/MM/DD]
+Y: 1st Close Time [時間形式: HH:MM:SS]
+Z: Reopen Close Date [日付形式: YYYY/MM/DD]
+AA: Reopen Close Time [時間形式: HH:MM:SS]
+AB: 空欄
+AC~AQ: 自動計算フィールド
+```
+
+### 2.2 3PO Email シート構造（正確版）
+
+```
+A: Date [日付形式: YYYY/MM/DD]
+B: Cases [関数で自動生成されるため空欄でOK]
+C: Case ID
+D: Case Open Date [日付形式: YYYY/MM/DD]
+E: Time (Case Open Time) [時間形式: HH:MM:SS]
+F: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+G: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+H: Triage [0/1のチェックボックス]
+I: AM Initiated [0/1のチェックボックス]
+J: Is 3.0 [0/1のチェックボックス]
+K: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trademarks issue, Under Review, Certificate, Suspend, AIV, CBT, LC creation, PP link, PP update, Payment user change, CL increase/decrease, IDT/ Bmod, LCS billing policy, Self-serve issue, Unidentified Charge, CBT Flow, GQ, OOS, Bulk CBT, Promotion code, Refund, Invoice issue, Account budget, Cost discrepancy, BOV]
+L: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
+M: 1st Assignee [Ldap]
+N: TRT Timer [スプレッドシートの関数で自動計算]
+O: MCC [0/1のチェックボックス]
+P: Change to Child [0/1のチェックボックス]
+Q: Final Assignee [Ldap]
+R: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+S: Sales Channel  [関数でSales Channelシートから自動反映した値が入る]
+T: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+U: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+V: non NCC  [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+W: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
+X: 1st Close Date [日付形式: YYYY/MM/DD]
+Y: 1st Close Time [時間形式: HH:MM:SS]
+Z: Reopen Close Date [日付形式: YYYY/MM/DD]
+AA: Reopen Close Time [時間形式: HH:MM:SS]
+AB: 空欄
+AC~AQ: 自動計算フィールド
+```
+
+### 2.3 OT Chat シート構造（正確版）
+
+```
+A: Cases [関数で自動生成されるため空欄でOK]
+B: Case ID
+C: Case Open Date [日付形式: YYYY/MM/DD]
+D: Time (Case Open Time) [時間形式: HH:MM:SS]
+E: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+F: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+G: Sub Category [セレクトボックス：Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other]
+H: Issue Category [セレクトボックス：Search 配信関連, Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他]
+I: Triage [0/1のチェックボックス]
+J: Is 3.0 [0/1のチェックボックス]
+K: 1st Assignee [Ldap]
+L: TRT Timer [スプレッドシートの関数で自動計算]
+M: MCC [0/1のチェックボックス]
+N: Change to Child [0/1のチェックボックス]
+O: Final Assignee [Ldap]
+P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+U: Bug / L2 [0/1のチェックボックス]
+V: 1st Close Date [日付形式: YYYY/MM/DD]
+W: 1st Close Time [時間形式: HH:MM:SS]
+X: Reopen Close Date [日付形式: YYYY/MM/DD]
+Y: Reopen Close Time [時間形式: HH:MM:SS]
+Z: 空欄
+AA~AO: 自動計算フィールド
+```
+
+### 2.4 3PO Chat シート構造（正確版）
+
+```
+A: Cases [関数で自動生成されるため空欄でOK]
+B: Case ID
+C: Case Open Date [日付形式: YYYY/MM/DD]
+D: Time (Case Open Time) [時間形式: HH:MM:SS]
+E: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+F: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+G: Triage [0/1のチェックボックス]
+H: Is 3.0 [0/1のチェックボックス]
+I: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trademarks issue, Under Review, Certificate, Suspend, AIV, CBT, LC creation, PP link, PP update, Payment user change, CL increase/decrease, IDT/ Bmod, LCS billing policy, Self-serve issue, Unidentified Charge, CBT Flow, GQ, OOS, Bulk CBT, Promotion code, Refund, Invoice issue, Account budget, Cost discrepancy, BOV]
+J: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
+K: 1st Assignee [Ldap]
+L: TRT Timer [スプレッドシートの関数で自動計算]
+M: MCC [0/1のチェックボックス]
+N: Change to Child [0/1のチェックボックス]
+O: Final Assignee [Ldap]
+P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+S: AM Transfer [セレクトボックス]
+T: non NCC [セレクトボックス]
+U: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
+V: 1st Close Date [日付形式: YYYY/MM/DD]
+W: 1st Close Time [時間形式: HH:MM:SS]
+X: Reopen Close Date [日付形式: YYYY/MM/DD]
+Y: Reopen Close Time [時間形式: HH:MM:SS]
+Z: 空欄
+AA~AO: 自動計算フィールド
+```
+
+### 2.5 OT Phone シート構造（正確版）
+
+```
+A: Cases [関数で自動生成されるため空欄でOK]
+B: Case ID
+C: Case Open Date [日付形式: YYYY/MM/DD]
+D: Time (Case Open Time) [時間形式: HH:MM:SS]
+E: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+F: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+G: Sub Category [セレクトボックス：Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other]
+H: Issue Category [セレクトボックス：Search 配信関連, Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他]
+I: Triage [0/1のチェックボックス]
+J: Is 3.0 [0/1のチェックボックス]
+K: 1st Assignee [Ldap]
+L: TRT Timer [スプレッドシートの関数で自動計算]
+M: MCC [0/1のチェックボックス]
+N: Change to Child [0/1のチェックボックス]
+O: Final Assignee [Ldap]
+P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+U: Bug / L2 [0/1のチェックボックス]
+V: 1st Close Date [日付形式: YYYY/MM/DD]
+W: 1st Close Time [時間形式: HH:MM:SS]
+X: Reopen Close Date [日付形式: YYYY/MM/DD]
+Y: Reopen Close Time [時間形式: HH:MM:SS]
+Z: 空欄
+AA~AO: 自動計算フィールド
+```
+
+### 2.6 3PO Phone シート構造（正確版）
+
+```
+A: Cases [関数で自動生成されるため空欄でOK]
+B: Case ID
+C: Case Open Date [日付形式: YYYY/MM/DD]
+D: Time (Case Open Time) [時間形式: HH:MM:SS]
+E: Incoming Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+F: Product Category [セレクトボックス: Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other]
+G: Triage [0/1のチェックボックス]
+H: Is 3.0 [0/1のチェックボックス]
+I: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trademarks issue, Under Review, Certificate, Suspend, AIV, CBT, LC creation, PP link, PP update, Payment user change, CL increase/decrease, IDT/ Bmod, LCS billing policy, Self-serve issue, Unidentified Charge, CBT Flow, GQ, OOS, Bulk CBT, Promotion code, Refund, Invoice issue, Account budget, Cost discrepancy, BOV]
+J: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
+K: 1st Assignee [Ldap]
+L: TRT Timer [スプレッドシートの関数で自動計算]
+M: MCC [0/1のチェックボックス]
+N: Change to Child [0/1のチェックボックス]
+O: Final Assignee [Ldap]
+P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+U: Bug / L2 T&S/ Payreq [0/1のチェックボックス]
+V: 1st Close Date [日付形式: YYYY/MM/DD]
+W: 1st Close Time [時間形式: HH:MM:SS]
+X: Reopen Close Date [日付形式: YYYY/MM/DD]
+Y: Reopen Close Time [時間形式: HH:MM:SS]
+Z: 空欄
+AA~AO: 自動計算フィールド
+```
+
+## 3. 正確な列マッピングシステム
+
+### 3.1 完全なシート別列マッピング定義
+
+```jsx
+
+javascript
+const SheetColumnMappings = {
+  "OT Email": {
+// 基本情報
+    date: "A",
+    caseLink: "B",// ハイパーリンク（自動生成）
+    caseId: "C",
+    caseOpenDate: "D",
+    caseOpenTime: "E",
+    incomingSegment: "F",
+    productCategory: "G",
+    subCategory: "H",// OT特有
+    issueCategory: "I",// OT特有
+
+// フラグ・チェックボックス
+    triage: "J",
+    amInitiated: "K",
+    is30: "L",
+
+// 担当者情報
+    firstAssignee: "M",
+
+// タイマー（自動計算）
+    trtTimer: "N",
+
+// アカウント情報
+    mcc: "O",
+    changeToChild: "P",
+
+// 最終担当者情報
+    finalAssignee: "Q",
+    finalSegment: "R",
+
+// チャネル・ステータス
+    salesChannel: "S",
+    caseStatus: "T",
+    amTransfer: "U",
+    nonNCC: "V",
+    bugL2: "W",
+
+// クローズ情報
+    firstCloseDate: "X",
+    firstCloseTime: "Y",
+    reopenCloseDate: "Z",
+    reopenCloseTime: "AA",
+
+// 自動計算フィールド
+    productCommerce: "AC",
+    assignWeek: "AD",
+    channel: "AE",
+    trtTarget: "AF",
+    trtDateTime: "AG",
+    agingTarget: "AH",
+    agingDateTime: "AI",
+    closeNCC: "AJ",
+    closeDate: "AK",
+    closeTime: "AL",
+    closeWeek: "AM",
+    trtFlag: "AN",
+    agingFlag: "AO",
+    reopenCloseFlag: "AP",
+    reassignFlag: "AQ"
+  },
+
+  "3PO Email": {
+// 基本情報
+    date: "A",
+    caseLink: "B",
+    caseId: "C",
+    caseOpenDate: "D",
+    caseOpenTime: "E",
+    incomingSegment: "F",
+    productCategory: "G",
+
+// フラグ・チェックボックス
+    triage: "H",
+    amInitiated: "I",
+    is30: "J",
+
+// 3PO特有フィールド
+    issueCategory: "K",
+    details: "L",
+
+// 担当者情報
+    firstAssignee: "M",
+
+// タイマー（自動計算）
+    trtTimer: "N",
+
+// アカウント情報
+    mcc: "O",
+    changeToChild: "P",
+
+// 最終担当者情報
+    finalAssignee: "Q",
+    finalSegment: "R",
+
+// チャネル・ステータス
+    salesChannel: "S",
+    caseStatus: "T",
+    amTransfer: "U",
+    nonNCC: "V",
+    bugL2TSPayreq: "W",// 3PO特有
+
+// クローズ情報
+    firstCloseDate: "X",
+    firstCloseTime: "Y",
+    reopenCloseDate: "Z",
+    reopenCloseTime: "AA",
+
+// 自動計算フィールド
+    assignWeek: "AD",
+    channel: "AE",
+    trtTarget: "AF",
+    trtDateTime: "AG",
+    agingTarget: "AH",
+    agingDateTime: "AI",
+    closeNCC: "AJ",
+    closeDate: "AK",
+    closeTime: "AL",
+    closeWeek: "AM",
+    trtFlag: "AN",
+    agingFlag: "AO",
+    reopenCloseFlag: "AP",
+    reassignFlag: "AQ"
+  },
+
+  "OT Chat": {
+// 基本情報
+    caseLink: "A",
+    caseId: "B",
+    caseOpenDate: "C",
+    caseOpenTime: "D",
+    incomingSegment: "E",
+    productCategory: "F",
+    subCategory: "G",// OT特有
+    issueCategory: "H",// OT特有
+
+// フラグ・チェックボックス
+    triage: "I",
+    is30: "J",
+
+// 担当者情報
+    firstAssignee: "K",
+
+// タイマー（自動計算）
+    trtTimer: "L",
+
+// アカウント情報
+    mcc: "M",
+    changeToChild: "N",
+
+// 最終担当者情報
+    finalAssignee: "O",
+    finalSegment: "P",
+
+// チャネル・ステータス
+    salesChannel: "Q",
+    caseStatus: "R",
+    amTransfer: "S",
+    nonNCC: "T",
+    bugL2: "U",
+
+// クローズ情報
+    firstCloseDate: "V",
+    firstCloseTime: "W",
+    reopenCloseDate: "X",
+    reopenCloseTime: "Y",
+
+// 自動計算フィールド
+    productCommerce: "AA",
+    assignWeek: "AB",
+    channel: "AC",
+    trtTarget: "AD",
+    trtDateTime: "AE",
+    agingTarget: "AF",
+    agingDateTime: "AG",
+    closeNCC: "AH",
+    closeDate: "AI",
+    closeTime: "AJ",
+    closeWeek: "AK",
+    trtFlag: "AL",
+    agingFlag: "AM",
+    reopenCloseFlag: "AN",
+    reassignFlag: "AO"
+  },
+
+  "3PO Chat": {
+// 基本情報
+    caseLink: "A",
+    caseId: "B",
+    caseOpenDate: "C",
+    caseOpenTime: "D",
+    incomingSegment: "E",
+    productCategory: "F",
+
+// フラグ・チェックボックス
+    triage: "G",
+    is30: "H",
+
+// 3PO特有フィールド
+    issueCategory: "I",
+    details: "J",
+
+// 担当者情報
+    firstAssignee: "K",
+
+// タイマー（自動計算）
+    trtTimer: "L",
+
+// アカウント情報
+    mcc: "M",
+    changeToChild: "N",
+
+// 最終担当者情報
+    finalAssignee: "O",
+    finalSegment: "P",
+
+// チャネル・ステータス
+    salesChannel: "Q",
+    caseStatus: "R",
+    amTransfer: "S",
+    nonNCC: "T",
+    bugL2TSPayreq: "U",// 3PO特有
+
+// クローズ情報
+    firstCloseDate: "V",
+    firstCloseTime: "W",
+    reopenCloseDate: "X",
+    reopenCloseTime: "Y",
+
+// 自動計算フィールド
+    assignWeek: "AB",
+    channel: "AC",
+    trtTarget: "AD",
+    trtDateTime: "AE",
+    agingTarget: "AF",
+    agingDateTime: "AG",
+    closeNCC: "AH",
+    closeDate: "AI",
+    closeTime: "AJ",
+    closeWeek: "AK",
+    trtFlag: "AL",
+    agingFlag: "AM",
+    reopenCloseFlag: "AN",
+    reassignFlag: "AO"
+  },
+
+  "OT Phone": {
+// OT Chatと同じ構造// channelフィールドの値のみ"Phone"
+    caseLink: "A",
+    caseId: "B",
+    caseOpenDate: "C",
+    caseOpenTime: "D",
+    incomingSegment: "E",
+    productCategory: "F",
+    subCategory: "G",
+    issueCategory: "H",
+    triage: "I",
+    is30: "J",
+    firstAssignee: "K",
+    trtTimer: "L",
+    mcc: "M",
+    changeToChild: "N",
+    finalAssignee: "O",
+    finalSegment: "P",
+    salesChannel: "Q",
+    caseStatus: "R",
+    amTransfer: "S",
+    nonNCC: "T",
+    bugL2: "U",
+    firstCloseDate: "V",
+    firstCloseTime: "W",
+    reopenCloseDate: "X",
+    reopenCloseTime: "Y",
+    productCommerce: "AA",
+    assignWeek: "AB",
+    channel: "AC",// 固定値: "Phone"
+    trtTarget: "AD",
+    trtDateTime: "AE",
+    agingTarget: "AF",
+    agingDateTime: "AG",
+    closeNCC: "AH",
+    closeDate: "AI",
+    closeTime: "AJ",
+    closeWeek: "AK",
+    trtFlag: "AL",
+    agingFlag: "AM",
+    reopenCloseFlag: "AN",
+    reassignFlag: "AO"
+  },
+
+  "3PO Phone": {
+// 3PO Chatと同じ構造// channelフィールドの値のみ"Phone"
+    caseLink: "A",
+    caseId: "B",
+    caseOpenDate: "C",
+    caseOpenTime: "D",
+    incomingSegment: "E",
+    productCategory: "F",
+    triage: "G",
+    is30: "H",
+    issueCategory: "I",
+    details: "J",
+    firstAssignee: "K",
+    trtTimer: "L",
+    mcc: "M",
+    changeToChild: "N",
+    finalAssignee: "O",
+    finalSegment: "P",
+    salesChannel: "Q",
+    caseStatus: "R",
+    amTransfer: "S",
+    nonNCC: "T",
+    bugL2TSPayreq: "U",
+    firstCloseDate: "V",
+    firstCloseTime: "W",
+    reopenCloseDate: "X",
+    reopenCloseTime: "Y",
+    assignWeek: "AB",
+    channel: "AC",// 固定値: "Phone"
+    trtTarget: "AD",
+    trtDateTime: "AE",
+    agingTarget: "AF",
+    agingDateTime: "AG",
+    closeNCC: "AH",
+    closeDate: "AI",
+    closeTime: "AJ",
+    closeWeek: "AK",
+    trtFlag: "AL",
+    agingFlag: "AM",
+    reopenCloseFlag: "AN",
+    reassignFlag: "AO"
+  }
+};
+
+```
+
+## 4. メインメニュー機能詳細仕様
+
+### 4.1 Dashboard（ダッシュボード）
+
+#### 4.1.1 概要と目的
+ダッシュボードは、担当中の全アクティブケースの一覧表示と管理を行うメイン画面です。
+ユーザーが最初にログインした際に表示され、日常的なケース管理業務の中心となります。
+
+#### 4.1.2 表示機能
+- **アクティブケース一覧**: Case Status が "Assigned" の自分が担当するケースのみ表示
+- **シート別カラーコーディング**: 6つのシート（OT Email, 3PO Email, OT Chat, 3PO Chat, OT Phone, 3PO Phone）を視覚的に区別
+- **リアルタイムタイマー表示**:
+  - **P95 Timer**: ケース解決期限までのカウントダウン（HH:MM:SS形式）
+  - **色分け警告システム**:
+    - 緑: 十分な時間がある状態
+    - 黄: 注意が必要な状態
+    - 赤: 緊急対応が必要な状態（2時間以下で点滅）
+    - グレー: 期限切れ（"Missed"表示）
+
+#### 4.1.3 インタラクション機能
+- **ケースカードクリック**: ケースの詳細情報をモーダルで表示
+- **Edit（編集）ボタン**: ケース情報の編集モーダルを開く
+- **Delete（削除）ボタン**: ケースを削除（確認ダイアログ付き）
+- **P95 Exclusions 切り替え**: トグルスイッチでP95 ExclusionsをON/OFF切り替え
+- **自動更新**: 1秒間隔でタイマー情報を更新
+
+#### 4.1.4 フィルタリング機能
+- **シート別フィルター**: 特定のシートのケースのみ表示
+- **チャネル別フィルター**: Email/Chat/Phone別でフィルタリング
+- **セグメント別フィルター**: Platinum/Titanium/Gold/Silver/Bronze別
+- **緊急度フィルター**: TRTタイマーの残り時間別
+
+### 4.2 My Cases（マイケース）
+
+#### 4.2.1 概要と目的
+自分が担当したすべてのケース（アクティブ・非アクティブ問わず）の総合管理画面です。
+**Final Assigneeが自分のLdapであるケースのみを表示**し、過去のケース履歴の確認や非アクティブケースの再アクティブ化を行います。
+
+#### 4.2.2 表示機能
+- **全ケース一覧**: 自分のLdapに関連するすべてのケース
+- **ステータス別タブ**: Assigned / Solution Offered / Finished 別の表示
+- **検索機能**: Case ID、顧客情報、キーワードでの検索
+- **ソート機能**: 日付、優先度、ステータス別のソート
+    - **Assignedタブでの優先度**：P95タイマーの残り時間順
+- **フィルター機能**: シート別、チャネル別、セグメント別のフィルター
+- **リアルタイム更新**: 新規ケース追加やステータス変更があった場合、1秒間隔で自動更新
+- **ページネーション**: 大量データの効率的な表示
+
+#### 4.2.3 ケース管理機能
+- **詳細表示**: ケースの全履歴と詳細情報
+- **再アクティブ化（Re-Open）**: Solution Offered/FinishedケースのRe-Open機能
+    - Case Status を"Solution Offered/Finished"から"Assigned"に変更したケースには、Re-Open Caseであることを識別する「RO」ラベルを付与
+- **一括操作**: 複数ケースの一括ステータス変更
+- **エクスポート**: CSV形式でのデータエクスポート
+
+## ダッシュボード表示仕様
+
+### ケースカード表示
+
+各ケースカードには以下の情報を表示：
+
+### 例
+```
+┌────────────────────────────────────────────────────────────┐
+│ [シートバッジ] [チャネルアイコン]                               │
+│ Case ID: X-XXXXXXXXXXXXX                                   │
+│ Assignee: username(Ldap)                                   │
+│ Segment: Gold | Category: Search                           │
+│ Status: Assigned 　　　　　　　　　                           │
+│ P95 Timer: 08:15:30                                        │
+│ P95 Exclusions:                                            │
+│[T&S（[IDT/Payreq]）] [L2][Bug]　（トグルONでP95から除外）       │
+│                                       [編集(歯車アイコン)]   │
+└────────────────────────────────────────────────────────────┘
+```
+
+[T&S 切替] 箇所は「Policy」の場合の仕様であり、「Billing」の場合は、Blocked by [IDT/Payreq]の切り替えでP95タイマーから除外
+Re-Open Caseの場合は、Case Statusが"Solution Offered/Finished"から"Assigned"に変更され、ケースカードに「RO」ラベルを付与
+
+### シート別カラーコーディング
+
+| シート | カラー | ボーダー |
+|--------|--------|----------|
+| OT Email | #4285F4 (Google Blue) | 実線 |
+| 3PO Email | #34A853 (Google Green) | 実線 |
+| OT Chat | #FBBC05 (Google Yellow) | 実線 |
+| 3PO Chat | #EA4335 (Google Red) | 実線 |
+| OT Phone | #8430CE (Google Purple) | 実線 |
+| 3PO Phone | #F57C00 (Google Orange) | 実線 |
+
+### リアルタイムタイマー仕様
+
+**P95タイマー:**
+- 標準: 72時間（3日）
+- 表示形式: HH:MM:SS
+- 期限切れ: "Missed"表示
+- P95除外対象：Excluded
+
+### 4.3 Create Case（ケース作成）
+
+#### 4.3.1 概要と目的
+新規ケースを作成するための専用フォーム画面です。
+シート選択により動的にフォームが変化し、適切なデータ入力を支援します。
+なるべくキーボード操作での効率的なケース管理を支援します。
+
+#### 4.3.2 シート選択機能
+- **動的フォーム生成**: 選択したシートに応じてフィールドが変化
+- **シート別必須項目**: 各シートの要求に応じた必須フィールド設定
+- **3PO特有フィールド**: 3POシート選択時に "Issue Category" と "Details" フィールドを表示
+- **チャネル別デフォルト**: 
+  - Email: "OT Email" または "3PO Email"
+  - Chat: "OT Chat" または "3PO Chat"
+  - Phone: "OT Phone" または "3PO Phone"
+
+#### 4.3.3 入力支援機能
+- **ドロップダウン選択**: Incoming Segment、Product Category、Issue Categoryの選択
+- **日付時間ピッカー**: Case Open Date/Timeの正確な入力
+- **自動入力**: ユーザー名（Ldap）、Case Open Date/Time（現在時刻）の自動入力設定
+- **リアルタイム検証**: 入力中のフィールド検証とエラー表示
+- **キーボードショートカット**: フォーム内のフィールド間移動をTabキーで行えるように設定
+- **必須フィールドとOptionalフィールドを区別して表示**:
+  - 必須フィールドは赤いアスタリスク（*）を表示
+  - Optionalフィールドはグレーアウト表示
+- **入力例の表示**: 各フィールドに入力例をツールチップで表示
+- **フィールドの自動フォーカス**: フォーム表示時に最初の必須フィールドに自動でフォーカスを当てる
+ 
+#### 4.3.4 TRT(P95)除外ケース設定
+除外対象ケースの設定機能（セグメントに応じて表示）：
+
+**全セグメント共通**:
+- Bug Case (Blocked by) フラグ
+- L2 Consulted フラグ
+
+**Billing セグメント特有**:
+- IDT Blocked by フラグ
+- Payreq Blocked by フラグ
+
+**Policy セグメント特有**:
+- T&S Consulted フラグ
+
+## 新規ケース追加フォーム仕様（シート別動的対応）
+
+### 4.4 Create Case フォームレイアウト
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ [Target Sheet *:セレクトボックス]                                     │
+│ [Case ID *] [Case Status *]                                        │
+│ [Case Open Date *] [Case Open Time *]                              │
+│ [Incoming Segment *]  [Final Segment *]                            │
+│ [1st Assignee *] [Final Assignee *]                                │
+│ 1：[Product Category *] [Sub Category *] [Issue Category *]        │
+│ 2：[Product Category *] [Issue Category *] [Details *]             │
+│                                                                    │
+│ Optional:                                                          │
+│ 1：[Bug / L2] 2：[Bug / L2 / T&S / Payreq]                          │
+│ [Triage] [AM Initiated] [Is 3.0] [MCC] [Change to Child]           │
+│ [AM Transfer] [non NCC]                                            │
+│ [1st Close Date] [1st Close Time]                                  │
+└────────────────────────────────────────────────────────────────────┘
+```
+### フォームフィールド説明
+- 1：OT Email, OT Chat, OT Phone シート用のフィールド
+  - [Product Category *] [Sub Category *] [Issue Category *] 
+  - [Bug / L2]
+- 2：3PO Email, 3PO Chat, 3PO Phone シート用のフィールド
+  - [Product Category *] [Issue Category *] [Details *]
+  - [Bug / L2 / T&S / Payreq]
+
+### 4.5 共通フィールド定義（全シート）
+
+| フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
+|-------------|-----------------|------------|-------------|------|
+| Case ID | 入力フォーム | X-XXXXXXXXXXXXX (Xは任意の数字) | - | ✓ |
+| Case Status | セレクトボックス | Assigned, Solution Offered, Finished | Assigned | ✓ |
+| Case Open Date | 日付入力 | YYYY/MM/DD | 今日 | ✓ |
+| Case Open Time | 時間入力 | HH:MM:SS | 現在時刻 | ✓ |
+| Incoming Segment | セレクトボックス | Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High | Gold | ✓ |
+| Final Segment | セレクトボックス | Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High | Incoming Segmentで選択したものを反映 | ✓ |
+| 1st Assignee | 入力フォーム | Ldap@Google.com | Ldap | ✓ |
+| Final Assignee | 入力フォーム | Ldap@Google.com | Ldap | ✓ |
+| Product Category | セレクトボックス | Search, Display, Video, Commerce, Apps, M&A, Policy, Billing, Other |  | ✓ |
+| Triage | チェックボックス | 0/1 | 0 | - |
+| AM Initiated | チェックボックス | 0/1 | 0 | - |
+| Is 3.0 | チェックボックス | 0/1 | 0 | - |
+| MCC | チェックボックス | 0/1 | 0 | - |
+| Change to Child | チェックボックス | 0/1 | 0 | - |
+| AM Transfer | セレクトボックス | Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other | - | - |
+| non NCC | セレクトボックス | Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM) | - | - |
+| 1st Close Date | 日付入力 | YYYY/MM/DD | 今日 | - |
+| 1st Close Time | 時間入力 | HH:MM:SS | 現在時刻 | - |
+
+### OTシート特有フィールド（OT Email, OT Chat, OT Phone）
+
+| フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
+|-------------|-----------------|------------|-------------|------|
+| Sub Category | セレクトボックス | Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other | - | - |
+| Issue Category | セレクトボックス | Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他 | - | - |
+
+#### 4.5.1 OTシートのSub Categoryに応じたIssue Categoryの選択肢
+- **Search**：Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他
+- **P-MAX**：P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他
+- **Display**：Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他
+- **Demand Gen**：Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他
+- **Video**：Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他
+- **Apps**：Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他
+- **M&A**：Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他
+- **Other**：パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他
+
+### 3POシート特有フィールド（3PO Email, 3PO Chat, 3PO Phone）
+
+| フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
+|-------------|-----------------|------------|-------------|------|
+| Issue Category | セレクトボックス | Review, TM form, Trademarks issue, Under Review, Certificate, Suspend, AIV, GQ, OOS, CBT, LC creation, PP link, PP update, Payment user change, CL increase/decrease, IDT/ Bmod, LCS billing policy, Self-serve issue, Unidentified Charge, CBT Flow, Bulk CBT, Promotion code, Refund, Invoice issue, Account budget, Cost discrepancy, BO | - | - |
+| Details | セレクトボックス（入力して部分一致検索あり） | 不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション | - | - |
+
+
+## データ追加・更新機能仕様（NEW）
+
+### 新規ケース追加処理フロー
+
+```javascript
+const CaseAdditionSpec = {
+  // 基本設定
+  insertPosition: "lastRow",              // 常に最終行に追加
+  skipHeaderRows: 2,                      // ヘッダー行をスキップ
+  duplicateCheck: true,                   // Case ID重複チェック
+  transactional: true,                    // トランザクション処理
+  
+  // 処理順序
+  processFlow: [
+    "validateInput",                      // 入力データ検証
+    "checkDuplicates",                   // 重複チェック
+    "calculateFields",                   // 自動計算フィールド
+    "insertData",                        // データ挿入
+    "updateFormulas",                    // 数式更新
+    "validateResult"                     // 結果検証
+  ]
+};
+```
+
+### データ挿入位置の決定ロジック
+
+```javascript
+function getInsertRowPosition(sheetName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const lastRow = sheet.getLastRow();
+  
+  // ヘッダー行（1-2行目）をスキップして最終行の次に追加
+  const insertRow = Math.max(lastRow + 1, 3); // 最低でも3行目から
+  
+  return {
+    insertRow: insertRow,
+    lastDataRow: lastRow,
+    hasData: lastRow >= 3
+  };
+}
+```
+
+### 重複チェック機能
+
+```javascript
+const DuplicateCheckSpec = {
+  // チェック対象
+  checkFields: ["caseId"],                // Case IDでの重複チェック
+  searchScope: "entireSheet",             // シート全体を検索
+  caseSensitive: false,                   // 大文字小文字を区別しない
+  
+  // エラー処理
+  onDuplicate: {
+    action: "reject",                     // 重複時は追加を拒否
+    showDialog: true,                     // エラーダイアログ表示
+    suggestAlternative: true              // 代替案を提示
+  },
+  
+  // パフォーマンス
+  batchCheck: true,                       // バッチ処理でチェック
+  cacheResults: true                      // 結果をキャッシュ
+};
+```
+
+### 自動計算フィールド処理
+
+```javascript
+const AutoCalculatedFields = {
+  // 即座に計算されるフィールド
+  immediate: [
+    {
+      field: "date",
+      formula: () => new Date().toLocaleDateString("ja-JP")
+    },
+    {
+      field: "caseLink",
+      formula: (caseId) => `=HYPERLINK("https://cases.connect.corp.google.com/#/case/${caseId}", "${caseId}")`
+    },
+    {
+      field: "assignWeek", 
+      formula: (openDate) => `=WEEKNUM("${openDate}")`
+    },
+    {
+      field: "channel",
+      value: (sheetName) => {
+        if (sheetName.includes("Email")) return "Email";
+        if (sheetName.includes("Chat")) return "Chat";
+        if (sheetName.includes("Phone")) return "Phone";
+      }
+    }
+  ],
+  
+  // リアルタイム計算フィールド（数式として設定）
+  realtime: [
+    {
+      field: "trtTimer",
+      formula: (openDate, openTime) => `=IF(AND(${openDate}<>"", ${openTime}<>""), NOW()-${openDate}-${openTime}, "")`
+    },
+    {
+      field: "agingTimer", 
+      formula: (openDate, openTime) => `=IF(AND(${openDate}<>"", ${openTime}<>""), NOW()-${openDate}-${openTime}, "")`
+    },
+    {
+      field: "trtTarget",
+      formula: (channel) => {
+        return channel === "Email" ? 
+          `=IF(${channel}="Email", 1.5, 0.33)` : // 36時間 or 8時間
+          `=IF(${channel}="Email", 1.5, 0.33)`;
+      }
+    },
+    {
+      field: "agingTarget",
+      formula: () => `=3` // 固定3日（72時間）
+    }
+  ]
+};
+```
+
+### データ整合性検証
+
+```javascript
+const DataValidationSpec = {
+  // 必須フィールド検証
+  requiredFields: {
+    all: ["caseId", "caseOpenDate", "caseOpenTime", "incomingSegment", "productCategory", "firstAssignee", "caseStatus"],
+    "3PO": ["issueCategory"] // 3POシートの追加必須フィールド
+  },
+  
+  // フォーマット検証
+  formatValidation: {
+    caseId: /^\d-\d{13}$/,                 // 任意の数字-で始まる13桁の数字
+    caseOpenDate: /^\d{4}\/\d{2}\/\d{2}$/, // YYYY/MM/DD
+    caseOpenTime: /^\d{2}:\d{2}:\d{2}$/,   // HH:MM:SS
+    firstAssignee: /^[a-zA-Z0-9._-]+$/     // LDAP ID形式
+  },
+  
+  // 値の範囲検証
+  valueValidation: {
+    incomingSegment: ["Gold", "Platinum", "Titanium", "Silver", "Bronze - Low", "Bronze - High"],
+    productCategory: ["Search", "Display", "Video", "Commerce", "Apps", "M&A", "Policy", "Billing", "Other"],
+    caseStatus: ["Assigned", "Solution Offered", "Finished"]
+  }
+};
+```
+
+### エラーハンドリング・ロールバック機能
+
+```javascript
+const ErrorHandlingSpec = {
+  // エラータイプ別処理
+  errorTypes: {
+    validation: {
+      action: "showErrors",               // エラー詳細を表示
+      allowPartialSave: false             // 部分保存は不可
+    },
+    duplicate: {
+      action: "showDialog",               // 確認ダイアログ
+      options: ["overwrite", "cancel", "edit"] // 選択肢提示
+    },
+    permission: {
+      action: "redirect",                 // 権限エラー時は適切な画面に誘導
+      message: "スプレッドシートへの書き込み権限がありません"
+    },
+    network: {
+      action: "retry",                    // ネットワークエラー時は再試行
+      maxRetries: 3,
+      backoffInterval: 1000               // 1秒間隔で再試行
+    }
+  },
+  
+  // ロールバック機能
+  rollback: {
+    enabled: true,                        // ロールバック有効
+    saveSnapshot: true,                   // 変更前スナップショット保存
+    timeoutMs: 30000,                     // 30秒でタイムアウト
+    
+    // ロールバック条件
+    conditions: [
+      "formulaError",                     // 数式エラー
+      "dataCorruption",                   // データ破損検出
+      "incompleteInsert"                  // 不完全な挿入
+    ]
+  }
+};
+```
+
+### バッチ処理・パフォーマンス最適化
+
+```javascript
+const PerformanceOptimization = {
+  // バッチ処理
+  batchOperations: {
+    enabled: true,
+    maxBatchSize: 100,                    // 最大100行まで一括処理
+    batchInterval: 500,                   // 500ms間隔
+    
+    // バッチ対象操作
+    operations: [
+      "dataInsertion",                    // データ挿入
+      "formulaUpdate",                    // 数式更新
+      "formatApply"                       // 書式適用
+    ]
+  },
+  
+  // キャッシュ戦略
+  caching: {
+    sheetData: {
+      ttl: 300000,                        // 5分間キャッシュ
+      maxSize: 1000                       // 最大1000行
+    },
+    validationResults: {
+      ttl: 600000,                        // 10分間キャッシュ
+      maxSize: 500
+    }
+  },
+  
+  // 非同期処理
+  async: {
+    enableAsync: true,                    // 非同期処理有効
+    progressCallback: true,               // 進捗コールバック
+    chunkSize: 50                         // 50行ずつ処理
+  }
+};
+```
+
+### 監査ログ・操作履歴
+
+```javascript
+const AuditLogSpec = {
+  // ログ対象操作
+  loggedOperations: [
+    "caseInsert",                         // ケース追加
+    "caseUpdate",                         // ケース更新
+    "caseDelete",                         // ケース削除
+    "statusChange",                       // ステータス変更
+    "assigneeChange"                      // 担当者変更
+  ],
+  
+  // ログ項目
+  logFields: {
+    timestamp: "操作日時",
+    userId: "操作者LDAP ID",
+    operation: "操作種別", 
+    sheetName: "対象シート",
+    caseId: "ケースID",
+    changedFields: "変更フィールド",
+    oldValues: "変更前値",
+    newValues: "変更後値",
+    ipAddress: "IPアドレス",
+    userAgent: "ユーザーエージェント"
+  },
+  
+  // ログ保存先
+  storage: {
+    location: "AuditLog",                 // 専用シート
+    retention: "12months",                // 12ヶ月保持
+    compression: true,                    // ログ圧縮
+    encryption: true                      // ログ暗号化
+  }
+};
+```
+
+#### 4.3.5 Live Mode対応
+- **別ウィンドウ表示**: ポップアップウィンドウでの独立動作
+- **リアルタイム同期**: メインダッシュボードとの自動同期
+- **ウィンドウサイズ記憶**: ユーザー設定のウィンドウサイズ保持
+
+### 4.4 Analytics（統計分析）
+
+#### 4.4.1 概要と目的
+チーム全体およびユーザー個人のパフォーマンス分析を行う統計機能です。Googleが要求するSLAメトリックの追跡と可視化を提供します。
+
+#### 4.4.2 メイン統計機能（showReports）
+
+**期間選択機能**:
+- **Daily**: 日次データの表示
+- **Weekly**: 週次データの表示
+- **Monthly**: 月次データの表示
+- **Quarterly**: 四半期データの表示
+- **カスタム期間**: 開始日と終了日を指定した任意期間
+
+**TRT(P95)メトリック**（最重要指標）:
+- **P95達成率**: 72時間以内解決率
+- **除外ケース管理**: Bug Case、L2コンサル、IDT/Payreq、T&Sコンサルトの除外処理
+- **セグメント別分析**: Platinum/Titanium/Gold/Silver/Bronze別の達成率
+- **チャネル別分析**: Email/Chat/Phone別の達成率
+
+**その他のメトリック**:
+- **Total Cases**: 総ケース数
+- **Solution Offered**: 解決提案済みケース数
+- **NCC (Non-Contact Complete)**: 算出条件に基づく自動計算
+- **SLA Achievement Rate**: SLA達成率
+- **Average Handling Time**: 平均処理時間
+
+#### 4.4.3 統計分析機能の詳細
+
+**NCC計算ロジック**:
+```javascript
+NCC_CONDITIONS = {
+  caseId_notEmpty: true,        // Case IDが空欄でない
+  caseStatus_notAssigned: true, // Case Statusが"Assigned"以外
+  nonNCC_empty: true,          // non NCC列が空欄
+  bug_unchecked: true          // Bug列にチェックが入っていない（値が0）
+};
+```
+
+**シート別分析**:
+- 6つのシート個別の統計
+- シート間の比較分析
+- チャネル横断分析
+
+**可視化機能**:
+- 折れ線グラフ（時系列トレンド）
+- 円グラフ（ステータス分布）
+- 棒グラフ（期間比較）
+- ヒートマップ（パフォーマンス分布）
+
+#### 4.4.4 Sentiment Score管理（showReports内オプション）
+
+**基本仕様**:
+- **評価範囲**: 1.0 - 10.0（0.5刻み）
+- **管理単位**: 月次
+- **編集権限**: 本人分のみ編集可能（当月のみ）
+- **表示権限**: 本人分のみ表示可能
+
+**UI設計**:
+```html
+<!-- Reports画面内のSentiment Score編集セクション -->
+<div class="sentiment-section" style="margin-top: 20px;">
+  <h4>Monthly Sentiment Score</h4>
+  <div class="sentiment-input">
+    <label>2025年5月のSentiment Score:</label>
+    <input type="number" min="1" max="10" step="0.5" value="5.0">
+    <button>Save</button>
+  </div>
+  <div class="sentiment-history">
+    <h5>過去のスコア履歴:</h5>
+    <ul>
+      <li>2025年4月: 7.5</li>
+      <li>2025年3月: 8.0</li>
+    </ul>
+  </div>
+</div>
+```
+
+### 4.5 Search（検索）
+
+#### 4.5.1 概要と目的
+全シートを対象とした統合検索機能です。Case IDによる即座検索と、詳細条件による絞り込み検索を提供します。
+
+#### 4.5.2 検索機能
+- **Case ID検索**: 即座検索（autocomplete対応）
+- **担当者検索**: Ldap名での検索
+- **日付範囲検索**: 期間指定での検索
+- **ステータス検索**: 複数ステータスでの絞り込み
+- **シート横断検索**: 全6シートを対象とした統合検索
+
+#### 4.5.3 検索結果表示
+- **結果リスト**: シート別カラーコーディング
+- **詳細表示**: 検索結果からの直接詳細表示
+- **編集機能**: 検索結果からの直接編集
+- **エクスポート**: 検索結果のCSVエクスポート
+
+### 4.6 Settings（設定）
+
+#### 4.6.1 概要と目的
+システム全体の設定とカスタマイズを行う管理画面です。
+スプレッドシート接続、ユーザー設定、システム設定を統合管理します。
+
+#### 4.6.2 スプレッドシート設定（現在初期設定画面（CasesDash Setup）が表示する仕様になってしまっているので廃止して、こちらで設定する仕様にしたい。）
+- **スプレッドシートID入力**: 接続対象スプレッドシートの指定
+- **接続テスト**: スプレッドシートとの接続確認
+- **シート検証**: 6つのシートの存在と構造確認
+- **権限確認**: 読み取り/書き込み権限の確認
+
+**スプレッドシート設定UI**:
+```html
+<div class="spreadsheet-settings">
+  <h3>Spreadsheet Configuration</h3>
+  <div class="input-group">
+    <label>Spreadsheet ID:</label>
+    <input type="text" id="spreadsheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
+    <button onclick="testConnection()">Test Connection</button>
+  </div>
+  <div class="status-display">
+    <div class="connection-status">Status: <span id="connection-status">Not Connected</span></div>
+    <div class="sheets-validation">
+      <h4>Sheet Validation:</h4>
+      <ul id="sheet-validation-list">
+        <li>OT Email: <span class="status pending">Checking...</span></li>
+        <li>3PO Email: <span class="status pending">Checking...</span></li>
+        <li>OT Chat: <span class="status pending">Checking...</span></li>
+        <li>3PO Chat: <span class="status pending">Checking...</span></li>
+        <li>OT Phone: <span class="status pending">Checking...</span></li>
+        <li>3PO Phone: <span class="status pending">Checking...</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+#### 4.6.3 UI設定
+- **テーマ切り替え**: ダークモード / ライトモード
+- **表示言語**: UI言語の選択（日本語/英語）
+- **タイムゾーン**: 時間表示のタイムゾーン設定
+- **通知設定**: Google Chat通知の有効/無効
+
+#### 4.6.4 チーム設定
+- **チームリーダー設定**: P95アラート通知先の設定（PL/TL,JTL,QM,WFM）
+- **Google Chat アプリ**: 通知先チャットルーム（https://mail.google.com/chat/u/0/#chat/space/AAQA-2MRZWU）の設定（注：Google で新しい Chat Webhook を作成することはポリシーで許可されていません。Google 社員は、Webhook の代わりに Google Chat アプリを使用します。）
+- **通知条件**: アラート送信条件の詳細設定
+
+
+### 4.7 User Profile（ユーザープロファイル）
+
+#### 4.7.1 概要と目的
+ユーザー認証とプロファイル管理を行う機能です。Google認証による安全なログインと、個人設定の管理を提供します。
+
+#### 4.7.2 認証機能
+- **Google OAuth認証**: セキュアなGoogleアカウント認証
+- **Ldap情報取得**: 社内Ldap情報の自動取得
+- **権限レベル管理**: 一般ユーザー/チームリーダー/管理者の権限分離（チームリーダー/管理者はUI側で設定するのではなく、バックエンド側で登録したメールアドレスに基づいて自動で判断し、）
+- **セッション管理**: 自動ログアウトとセッション継続
+
+#### 4.7.3 プロファイル表示
+```html
+<div class="user-profile-modal">
+  <h3>User Profile</h3>
+  <div class="profile-info">
+    <div class="avatar">
+      <img src="user-avatar-url" alt="User Avatar">
+    </div>
+    <div class="user-details">
+      <p><strong>Name:</strong> <span id="user-name">tanaka</span></p>
+      <p><strong>LDAP:</strong> <span id="user-ldap">tanaka@google.com</span></p>
+      <p><strong>Team:</strong> <span id="user-team">Support Team A</span></p>
+      <p><strong>Role:</strong> <span id="user-role">Team Member</span></p>
+      <p><strong>Join Date:</strong> <span id="join-date">2024-01-15</span></p>
+    </div>
+  </div>
+  <div class="personal-settings">
+    <h4>Personal Settings</h4>
+    <div class="setting-item">
+      <label>Language Preference:</label>
+      <select id="language-select">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <label>Timezone:</label>
+      <select id="timezone-select">
+        <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+        <option value="UTC">UTC</option>
+      </select>
+    </div>
+  </div>
+</div>
+```
+
+## 検索・フィルター機能
+
+### 基本検索
+
+- **全シート統合検索**: すべてのシートを対象
+- **シート指定検索**: 特定シートのみ
+- **ケースID検索**: 即座に該当ケースを表示
+- **担当者検索**: Ldapによる検索
+- **ステータス検索**: ケースステータス別
+
+### 高度なフィルター
+
+| フィルター項目 | タイプ | 選択肢 |
+|---------------|-------|--------|
+| Sheet | マルチセレクト | 6つのシート |
+| Channel | マルチセレクト | Email, Chat, Phone |
+| Case Type | マルチセレクト | OT, 3PO |
+| Segment | マルチセレクト | Platinum, Titanium, Gold, Silver, Bronze |
+| Category | マルチセレクト | Search, Display, Video等 |
+| Case Status | マルチセレクト | Assigned, Solution Offered, Finished |
+| SLA Status | マルチセレクト | 正常, 警告（3時間未満）, 違反 |
+
+
+### 5.1 統計分析機能のアクセス制御仕様
+
+#### 5.1.1 ユーザー別データ表示権限
+
+```javascript
+const UserDataAccessControl = {
+  // 基本原則：本人データのみ表示
+  dataVisibility: {
+    ownData: "full",           // 本人データ：全項目表示可能
+    othersData: "restricted",  // 他者データ：制限あり
+    aggregatedData: "allowed"  // 集計データ：匿名化された全体統計のみ
+  },
+  
+  // 表示可能データの詳細
+  allowedViews: {
+    selfOnly: [
+      "Cases by Assignee (Own)",
+      "NCC by Assignee (Own)", 
+      "SLA Achievement by Assignee (Own)",
+      "Personal Performance Trend",
+      "Own Monthly Sentiment Score"
+    ],
+    
+    aggregatedOnly: [
+      "Team Average Performance",
+      "Overall SLA Achievement Rate",
+      "Total Cases Distribution",
+      "Channel Usage Statistics"
+    ],
+    
+    restricted: [
+      "Individual Performance Comparison", // 管理者権限のみ
+      "Other Users' Case Details",        // アクセス不可
+      "Personal Sentiment Scores"         // 本人のみ
+    ]
+  }
+};
+```
+
+#### 5.1.2 権限レベル別機能制限
+
+| 権限レベル | 本人データ | 他者個人データ | 集計データ | Sentiment編集 |
+|------------|------------|---------------|------------|---------------|
+| **一般ユーザー** | ✅ 全表示 | ❌ 非表示 | ✅ 匿名集計のみ | ✅ 本人分のみ |
+| **チームリーダー** | ✅ 全表示 | ✅ チームメンバーのみ | ✅ チーム集計 | ✅ チームメンバー分 |
+| **管理者** | ✅ 全表示 | ✅ 全ユーザー | ✅ 全集計 | ✅ 全ユーザー分 |
+
+## 6. TRT(P95)メトリック管理システム
+
+### 6.1 TRT(P95)の定義と重要性
+
+TRT(P95)は、Googleから要求される最重要指標で、ケースの95%を72時間以内に解決することを目標とします。
+
+### 6.2 TRT(P95)算出対象から除外されるケース
+
+#### 6.2.1 全セグメント共通の除外条件
+- **Bug Case (Blocked by)**: システムバグにより進行が阻まれているケース
+- **L2 Consulted**: L2に相談が必要なケース
+
+#### 6.2.2 セグメント固有の除外条件
+
+**Billing セグメント**:
+- **Payreq**: Payment request processing issues
+
+**Policy セグメント**:
+- **T&S**: Trust and Safty team consultation required
+
+### 6.3 除外ケース設定UI
+
+#### 6.3.1 Create New Case フォーム内の除外設定
+```html
+<div class="exclusion-settings">
+  <h4>TRT(P95) Exclusion Settings</h4>
+  
+  <!-- 全セグメント共通 -->
+  <div class="common-exclusions">
+    <label>
+      <input type="checkbox" name="bugBlocked" value="1">
+      Bug Case (Blocked by)
+    </label>
+    <label>
+      <input type="checkbox" name="l2Consulted" value="1">
+      L2 Consulted
+    </label>
+  </div>
+  
+  <!-- Billing セグメント専用 -->
+  <div class="billing-exclusions" style="display: none;">
+    <h5>Billing Specific Exclusions:</h5>
+    <label>
+      <input type="checkbox" name="idtBlocked" value="1">
+      IDT Blocked by
+    </label>
+    <label>
+      <input type="checkbox" name="payreqBlocked" value="1">
+      Payreq Blocked by
+    </label>
+  </div>
+  
+  <!-- Policy セグメント専用 -->
+  <div class="policy-exclusions" style="display: none;">
+    <h5>Policy Specific Exclusions:</h5>
+    <label>
+      <input type="checkbox" name="tsConsulted" value="1">
+    </label>
+  </div>
+</div>
+```
+
+#### 6.3.2 Case Edit モーダル内の除外設定
+```html
+<div class="case-edit-exclusions">
+  <h4>Update Exclusion Status</h4>
+  <div class="exclusion-grid">
+    <div class="exclusion-item">
+      <label>Bug Case (Blocked by):</label>
+      <input type="checkbox" id="edit-bug-blocked">
+    </div>
+    <div class="exclusion-item">
+      <label>L2 Consulted:</label>
+      <input type="checkbox" id="edit-l2-consulted">
+    </div>
+    <div class="exclusion-item billing-only">
+      <label>IDT Blocked by:</label>
+      <input type="checkbox" id="edit-idt-blocked">
+    </div>
+    <div class="exclusion-item billing-only">
+      <label>Payreq Blocked by:</label>
+      <input type="checkbox" id="edit-payreq-blocked">
+    </div>
+    <div class="exclusion-item policy-only">
+      <label>T&S Consulted:</label>
+      <input type="checkbox" id="edit-ts-consulted">
+    </div>
+  </div>
+</div>
+```
+
+## 7. Google Chat通知システム
+
+### 7.1 概要と目的
+P95タイマーが2時間以下になったケースについて、該当ユーザーのチームリーダーに自動的にGoogle Chat通知を送信します。
+
+### 7.2 通知トリガー条件
+- P95タイマーが2時間（7200秒）以下になった時点
+- TRT(P95)算出対象外ケースは通知対象外
+- Case Status が "Assigned" のケースのみ
+- 既に通知済みのケースは重複通知しない
+
+### 7.3 通知内容
+```javascript
+const createChatNotification = (caseData) => {
+  return {
+    text: `⚠️ TRT(P95) Alert`,
+    cards: [{
+      header: {
+        title: "TRT(P95) Timer Warning",
+        subtitle: "Immediate attention required",
+        imageUrl: "https://developers.google.com/chat/images/quickstart-app-avatar.png"
+      },
+      sections: [{
+        widgets: [
+          {
+            keyValue: {
+              topLabel: "LDAP",
+              content: caseData.finalAssignee
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Case ID",
+              content: caseData.caseId
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Remaining Time",
+              content: caseData.p95Timer
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Message",
+              content: "⚠️ TRT(P95) timer has fallen below 2 hours. Immediate action required."
+            }
+          }
+        ]
+      }]
+    }]
+  };
+};
+```
+
+### 7.4 通知設定管理
+```html
+実装時に自分で考えてください
+```
+
+## 8. Live Mode機能仕様
+
+### 8.1 基本仕様
+
+Live Modeは、メインアプリケーションとは独立したポップアップウィンドウで動作する軽量版のケース管理システム（Create Case機能）です。
+
+```javascript
+const LiveModeSpec = {
+  window: {
+    type: "popup",
+    resizable: true,
+    defaultSize: { width: 1200, height: 800 },
+    minSize: { width: 800, height: 600 }
+  },
+  content: {
+    tabs: ["Dashboard", "Add New Case"],
+    autoRefresh: 30000, // 30秒間隔
+    realTimeUpdates: true
+  },
+  features: [
+    "Window size persistence",
+    "Tab state persistence", 
+    "Mode toggle (Live/Standard)",
+    "Notification system"
+  ]
+};
+```
+
+### 8.2 実装仕様
+
+```javascript
+const LiveModeImplementation = {
+  windowCreation: {
+    method: "window.open()",
+    features: "resizable=yes,scrollbars=yes,status=yes",
+    communication: "postMessage API"
+  },
+  layout: {
+    header: "minimal with mode indicator",
+    tabs: ["Dashboard", "Add New Case"],
+    content: "responsive to window size"
+  },
+  features: {
+    autoRefresh: "30 second intervals",
+    realTimeTimers: "1 second updates",
+    notifications: "browser notifications API",
+    persistence: "window state in localStorage"
+  }
+};
+```
+
+### 8.3 Live Mode UI構造
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CasesDash - Live Mode</title>
+  <style>
+    .live-mode-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: 'Google Sans', Arial, sans-serif;
+    }
+    .live-header {
+      background: #1976d2;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .live-tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+    }
+    .live-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="live-mode-container">
+    <div class="live-header">
+      <h1>CasesDash - Live Mode</h1>
+      <div class="live-controls">
+        <span id="last-update">Last update: --:--:--</span>
+        <button onclick="window.close()">Close</button>
+      </div>
+    </div>
+    <div class="live-tabs">
+      <button class="tab-button active" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab-button" onclick="showTab('create')">Add New Case</button>
+    </div>
+    <div class="live-content">
+      <div id="dashboard-tab" class="tab-content active">
+        <!-- Dashboard content -->
+      </div>
+      <div id="create-tab" class="tab-content">
+        <!-- Create case form -->
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+```
+
+## 9. UI表示言語統一仕様
+
+### 9.1 UI表記の基本方針
+
+すべてのメインメニュー機能（統計分析、検索・フィルター、ケース管理等）において、UI項目はスプレッドシートのヘッダーと完全一致する英語表記を使用します。これにより、ユーザーがスプレッドシートとUIの間で混乱することなく、直感的な操作が可能になります。
+
+### 9.2 主要UI表記（英語統一）
+
+**基本指標（英語表記）:**
+- Total Cases
+- Solution Offered
+- NCC
+- SLA Achievement Rate
+- Average Handling Time
+
+**共通フィールド（英語表記）:**
+
+| スプレッドシートヘッダー | UI表示 | 説明 |
+|------------------------|--------|------|
+| Case ID | Case ID | ケース識別子 |
+| Case Open Date | Case Open Date | ケース開始日 |
+| Time | Case Open Time | ケース開始時刻 |
+| Incoming Segment | Incoming Segment | 顧客セグメント |
+| Product Category | Product Category | 製品カテゴリ |
+| Triage | Triage | トリアージフラグ |
+| Prefer Either | Prefer Either | どちらでも可フラグ |
+| Is 3.0 | Is 3.0 | 3.0対応フラグ |
+| 1st Assignee | 1st Assignee | 初回担当者 |
+| Case Status | Case Status | ケースステータス |
+
+
+
+**選択肢（英語表記）:**
+
+**Incoming Segment選択肢:**
+- Platinum
+- Titanium  
+- Gold
+- Silver
+- Bronze - Low
+- Bronze - High
+
+**Product Category選択肢:**
+- Search
+- Display
+- Video
+- Commerce
+- Apps
+- M&A
+- Policy
+- Billing
+- Other
+
+**Case Status選択肢:**
+- Assigned
+- Solution Offered
+- Finished
+
+**Issue Category選択肢（3PO）:**
+- CBT invo-invo
+- CBT invo-auto
+- CBT (self to self)
+- LC creation
+- PP link
+- PP update
+- IDT/ Bmod
+- LCS billing policy
+- self serve issue
+- Unidentified Charge
+- CBT Flow
+- GQ
+- OOS
+- Bulk CBT
+- CBT ext request
+- MMS billing policy
+- Promotion code
+- Refund
+- Review
+- TM form
+- Trademarks issue
+- Under Review
+- Certificate
+- Suspend
+- AIV
+- Complaint
+
+## 10. 技術実装と構成
+
+### 10.1 フロントエンド構成
+
+#### コア技術スタック
+- **HTML5**: セマンティックマークアップとアクセシビリティ対応
+- **CSS3**: Grid Layout, Flexbox, CSS Variables, Animations
+- **JavaScript (ES6+)**: Modern JavaScript features, Async/Await, Modules
+
+#### UIライブラリ
+- **Material Design Components for Web**: 
+  - MDC Tab Bar, Dialog, Select, TextField, Button, Checkbox
+  - Material Icons & Symbols
+- **Chart.js**: 統計データ可視化
+- **Flatpickr**: 日付時間選択
+- **Google Fonts**: Google Sans, Roboto
+
+#### 状態管理
+```javascript
+// シンプルな状態管理システム
+class AppState {
+  constructor() {
+    this.state = {
+      user: null,
+      cases: [],
+      selectedSheet: null,
+      filters: {},
+      settings: {}
+    };
+    this.listeners = [];
+  }
+  
+  setState(newState) {
+    this.state = { ...this.state, ...newState };
+    this.notifyListeners();
+  }
+  
+  subscribe(listener) {
+    this.listeners.push(listener);
+  }
+  
+  notifyListeners() {
+    this.listeners.forEach(listener => listener(this.state));
+  }
+}
+```
+
+### 10.2 バックエンド（Google Apps Script）
+
+#### メイン構成
+```javascript
+// Code.gs - メインエントリーポイント
+function doGet() {
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('CasesDash - Multi-Sheet Case Management System')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+// スプレッドシート操作関数
+function getSpreadsheetData(sheetName, range) {
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!spreadsheetId) {
+    throw new Error('Spreadsheet ID not configured');
+  }
+  
+  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    throw new Error(`Sheet "${sheetName}" not found`);
+  }
+  
+  return sheet.getRange(range).getValues();
+}
+```
+
+#### ユーザー認証システム
+```javascript
+// UserAuth.gs
+function getCurrentUser() {
+  const user = Session.getActiveUser();
+  const email = user.getEmail();
+  
+  if (!email.includes('@google.com')) {
+    throw new Error('Access restricted to Google employees only');
+  }
+  
+  return {
+    email: email,
+    ldap: email.split('@')[0],
+    name: user.getName(),
+    role: getUserRole(email)
+  };
+}
+
+function getUserRole(email) {
+  // プロパティサービスから役割情報を取得
+  const teamLeaders = PropertiesService.getScriptProperties()
+    .getProperty('TEAM_LEADERS')?.split(',') || [];
+  const admins = PropertiesService.getScriptProperties()
+    .getProperty('ADMINS')?.split(',') || [];
+  
+  if (admins.includes(email)) return 'admin';
+  if (teamLeaders.includes(email)) return 'team_leader';
+  return 'user';
+}
+```
+
+#### 通知システム
+```javascript
+// NotificationSystem.gs
+function sendChatNotification(caseData, webhookUrl) {
+  const payload = {
+    text: "⚠️ TRT(P95) Alert",
+    cards: [{
+      header: {
+        title: "TRT(P95) Timer Warning",
+        subtitle: "Immediate attention required"
+      },
+      sections: [{
+        widgets: [
+          {
+            keyValue: {
+              topLabel: "LDAP",
+              content: caseData.finalAssignee
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Case ID", 
+              content: caseData.caseId
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Message",
+              content: "⚠️ TRT(P95) timer has fallen below 2 hours. Immediate action required."
+            }
+          }
+        ]
+      }]
+    }]
+  };
+  
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    payload: JSON.stringify(payload)
+  };
+  
+  try {
+    UrlFetchApp.fetch(webhookUrl, options);
+    Logger.log(`Notification sent for case ${caseData.caseId}`);
+  } catch (error) {
+    Logger.log(`Failed to send notification: ${error.toString()}`);
+  }
+}
+```
+
+### 10.3 データストレージ
+
+#### スプレッドシート構造
+- **プライマリデータ**: 6つのシートでのケースデータ
+- **設定情報**: Properties Service での設定保存
+- **キャッシュ**: CacheService での一時データ保存
+
+#### 設定管理
+```javascript
+// Settings.gs
+function saveSettings(settings) {
+  const properties = PropertiesService.getScriptProperties();
+  Object.keys(settings).forEach(key => {
+    properties.setProperty(key, JSON.stringify(settings[key]));
+  });
+}
+
+function getSettings() {
+  const properties = PropertiesService.getScriptProperties();
+  return {
+    spreadsheetId: properties.getProperty('SPREADSHEET_ID'),
+    teamLeaderWebhook: properties.getProperty('TEAM_LEADER_WEBHOOK'),
+    theme: properties.getProperty('THEME') || 'light',
+    language: properties.getProperty('LANGUAGE') || 'en'
+  };
+}
+```
+
+## 11. セキュリティとコンプライアンス
+
+### 11.1 認証・認可
+- **Google OAuth**: セキュアなGoogle認証
+- **ドメイン制限**: @google.comドメインのみアクセス許可（past.and.future37@gmail.comだけユーザーが会社以外で実装する際にログインできるようにしたい）
+- **役割ベースアクセス制御**: user/team_leader/admin の権限分離
+
+### 11.2 データプライバシー
+- **個人データ保護**: 本人データのみ表示原則
+- **匿名化統計**: チーム集計での個人情報匿名化
+- **アクセスログ**: 機密データアクセスの記録
+
+### 11.3 エラーハンドリング
+```javascript
+// ErrorHandler.js
+class ErrorHandler {
+  static handle(error, context) {
+    const errorInfo = {
+      message: error.message,
+      stack: error.stack,
+      context: context,
+      timestamp: new Date().toISOString(),
+      user: Session.getActiveUser().getEmail()
+    };
+    
+    // ログ記録
+    Logger.log(JSON.stringify(errorInfo));
+    
+    // ユーザーフレンドリーなエラーメッセージを表示
+    this.showUserError(error);
+  }
+  
+  static showUserError(error) {
+    const userMessage = this.getUserFriendlyMessage(error);
+    // UIにエラーメッセージを表示
+    document.getElementById('error-display').textContent = userMessage;
+  }
+  
+  static getUserFriendlyMessage(error) {
+    if (error.message.includes('Spreadsheet ID not configured')) {
+      return 'スプレッドシートが設定されていません。設定画面から設定してください。';
+    }
+    if (error.message.includes('Sheet not found')) {
+      return '指定されたシートが見つかりません。スプレッドシートの構造を確認してください。';
+    }
+    return '予期しないエラーが発生しました。しばらく待ってから再試行してください。';
+  }
+}
+```
+
+## 12. パフォーマンス最適化
+
+### 12.1 読み込み速度最適化
+- **遅延読み込み**: 必要な時点でのデータ取得
+- **キャッシュ戦略**: 頻繁にアクセスするデータのキャッシュ
+- **バッチ処理**: 複数のスプレッドシート操作の一括実行
+
+### 12.2 リアルタイム更新
+```javascript
+// RealtimeUpdater.js
+class RealtimeUpdater {
+  constructor() {
+    this.updateInterval = null;
+    this.isUpdating = false;
+  }
+  
+  start() {
+    this.updateInterval = setInterval(() => {
+      this.updateTimers();
+    }, 1000); // 1秒間隔
+  }
+  
+  stop() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+  
+  updateTimers() {
+    if (this.isUpdating) return;
+    
+    this.isUpdating = true;
+    
+    const caseElements = document.querySelectorAll('.case-card');
+    caseElements.forEach(element => {
+      const trtTimer = element.querySelector('.trt-timer');
+      const p95Timer = element.querySelector('.p95-timer');
+      
+      if (trtTimer) {
+        this.updateTimer(trtTimer);
+      }
+      if (p95Timer) {
+        this.updateTimer(p95Timer);
+      }
+    });
+    
+    this.isUpdating = false;
+  }
+  
+  updateTimer(timerElement) {
+    const deadline = new Date(timerElement.dataset.deadline);
+    const now = new Date();
+    const diff = deadline - now;
+    
+    if (diff <= 0) {
+      timerElement.textContent = 'Missed';
+      timerElement.className = 'timer missed';
+    } else {
+      const timeString = this.formatTime(diff);
+      timerElement.textContent = timeString;
+      timerElement.className = this.getTimerClass(diff);
+    }
+  }
+  
+  formatTime(milliseconds) {
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  
+  getTimerClass(milliseconds) {
+    const hours = milliseconds / (1000 * 60 * 60);
+    if (hours <= 2) return 'timer critical';
+    if (hours <= 8) return 'timer warning';
+    return 'timer normal';
+  }
+}
+```
+
+## 13. 今後の開発ロードマップ
+
+### 13.1 フェーズ1: 基盤強化（2週間）
+- [ ] ユーザー認証システムの実装
+- [ ] スプレッドシート接続機能の修正
+- [ ] 基本的なケース作成機能の実装
+- [ ] ダークモード/ライトモード切り替えの実装
+
+### 13.2 フェーズ2: 核心機能（3週間）
+- [ ] TRT(P95)除外ケース管理機能
+- [ ] Google Chat通知システム
+- [ ] Live Mode機能の実装
+- [ ] Analytics レポート機能の強化
+
+### 13.3 フェーズ3: 統計とUI強化（2週間）
+- [ ] Sentiment Score管理のReports内組み込み
+- [ ] 期間選択機能の実装
+- [ ] UI/UXの洗練
+- [ ] レスポンシブデザインの最適化
+
+### 13.4 フェーズ4: テストと最適化（1週間）
+- [ ] 全機能の統合テスト
+- [ ] パフォーマンス最適化
+- [ ] セキュリティ検証
+- [ ] ユーザー受け入れテスト
+
+## 14. 付録
+
+### 14.1 用語集
+
+- **SLA (Service Level Agreement)**: サービス品質保証のための応答時間枠
+- **TRT (Turnaround Time)**: ケース解決目標時間
+- **P95**: ケースの95%を72時間以内に解決する目標指標
+- **T&S Consulted**: Trust and Safty consultation flag
+- **NCC**: Non-Contact Complete（通常のクローズフロー以外）
+- **AM Transfer**: Account Manager移管フラグ
+- **Ldap**: 社内ユーザー識別子（Ldap@google.com）
+- **Live Mode**: ポップアップウィンドウでの独立動作モード
+
+### 14.2 設定ファイル例
+
+```javascript
+// config.js
+const CONFIG = {
+  SPREADSHEET: {
+    SHEETS: [
+      'OT Email', '3PO Email', 'OT Chat', 
+      '3PO Chat', 'OT Phone', '3PO Phone'
+    ],
+    DATA_START_ROW: 3
+  },
+  TIMERS: {
+    UPDATE_INTERVAL: 1000, // 1秒
+    CRITICAL_THRESHOLD: 2 * 60 * 60 * 1000, // 2時間
+    WARNING_THRESHOLD: 8 * 60 * 60 * 1000   // 8時間
+  },
+  SLA: {
+    EMAIL: {
+      PLATINUM: 24,
+      TITANIUM: 36,
+      GOLD: 36
+    },
+    CHAT: {
+      PLATINUM: 6,
+      TITANIUM: 8,
+      GOLD: 8
+    },
+    PHONE: {
+      PLATINUM: 6,
+      TITANIUM: 8,
+      GOLD: 8
+    }
+  },
+  NOTIFICATIONS: {
+    GOOGLE_CHAT: {
+      ENABLED: true,
+      RETRY_COUNT: 3
+    }
+  }
+};
+```
+
+---
+
+**技術仕様**: Google Apps Script (ES6+), Material Design Components, Google Spreadsheets  
+**対象シート**: 6シート完全対応  
+**セキュリティ**: プライバシー保護対応、Google OAuth認証  
+**パフォーマンス**: サブ2秒レスポンス目標、リアルタイム更新対応  
+**通知**: Google Chat API連携  
+**アクセシビリティ**: WCAG 2.1 AA準拠
+
+**最終更新**: 2025年5月25日  
+**バージョン**: 2.0.0（マルチシート対応版）
