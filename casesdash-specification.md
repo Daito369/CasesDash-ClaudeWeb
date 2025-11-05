@@ -1200,11 +1200,11 @@ function calculateIRT(caseData) {
   const caseOpenDateTime = new Date(caseData.caseOpenDate + ' ' + caseData.caseOpenTime);
 
   // 最終クローズ時刻の判定
-  // Case Status = "Finished" または "Solution Offered" の時点
+  // Case Status = "Solution Offered" の時点のみ
   let finalCloseDateTime;
 
-  if (caseData.caseStatus === 'Finished' || caseData.caseStatus === 'Solution Offered') {
-    // クローズ済みケース
+  if (caseData.caseStatus === 'Solution Offered') {
+    // クローズ済みケース (Solution Offeredのみ)
     if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
       // Reopen後にクローズした場合
       finalCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
@@ -1213,7 +1213,7 @@ function calculateIRT(caseData) {
       finalCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
     }
   } else {
-    // まだオープン中のケース（Assigned状態）
+    // Solution Offered以外のケース（Assigned, Finishedなど）
     finalCloseDateTime = new Date(); // 現在時刻
   }
 
