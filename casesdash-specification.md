@@ -50,21 +50,22 @@ K: AM Initiated [0/1のチェックボックス]
 L: Is 3.0 [0/1のチェックボックス]
 M: 1st Assignee [Ldap]
 N: TRT Timer [スプレッドシートの関数で自動計算]
-O: MCC [0/1のチェックボックス]
-P: Change to Child [0/1のチェックボックス]
-Q: Final Assignee [Ldap]
-R: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-S: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
-T: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-U: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
-V: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
-W: Bug / L2 [0/1のチェックボックス]
-X: 1st Close Date [日付形式: YYYY/MM/DD]
-Y: 1st Close Time [時間形式: HH:MM:SS]
-Z: Reopen Close Date [日付形式: YYYY/MM/DD]
-AA: Reopen Close Time [時間形式: HH:MM:SS]
-AB: 空欄
-AC~AQ: 自動計算フィールド
+O: IRT Timer [スプレッドシートの関数で自動計算]
+P: MCC [0/1のチェックボックス]
+Q: Change to Child [0/1のチェックボックス]
+R: Final Assignee [Ldap]
+S: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+T: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+U: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+V: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+W: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+X: Bug / L2 [0/1のチェックボックス]
+Y: 1st Close Date [日付形式: YYYY/MM/DD]
+Z: 1st Close Time [時間形式: HH:MM:SS]
+AA: Reopen Close Date [日付形式: YYYY/MM/DD]
+AB: Reopen Close Time [時間形式: HH:MM:SS]
+AC: 空欄
+AD~AR: 自動計算フィールド
 ```
 
 ### 2.2 3PO Email シート構造（正確版）
@@ -84,21 +85,22 @@ K: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trade
 L: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
 M: 1st Assignee [Ldap]
 N: TRT Timer [スプレッドシートの関数で自動計算]
-O: MCC [0/1のチェックボックス]
-P: Change to Child [0/1のチェックボックス]
-Q: Final Assignee [Ldap]
-R: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-S: Sales Channel  [関数でSales Channelシートから自動反映した値が入る]
-T: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-U: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
-V: non NCC  [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
-W: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
-X: 1st Close Date [日付形式: YYYY/MM/DD]
-Y: 1st Close Time [時間形式: HH:MM:SS]
-Z: Reopen Close Date [日付形式: YYYY/MM/DD]
-AA: Reopen Close Time [時間形式: HH:MM:SS]
-AB: 空欄
-AC~AQ: 自動計算フィールド
+O: IRT Timer [スプレッドシートの関数で自動計算]
+P: MCC [0/1のチェックボックス]
+Q: Change to Child [0/1のチェックボックス]
+R: Final Assignee [Ldap]
+S: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+T: Sales Channel  [関数でSales Channelシートから自動反映した値が入る]
+U: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+V: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+W: non NCC  [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+X: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
+Y: 1st Close Date [日付形式: YYYY/MM/DD]
+Z: 1st Close Time [時間形式: HH:MM:SS]
+AA: Reopen Close Date [日付形式: YYYY/MM/DD]
+AB: Reopen Close Time [時間形式: HH:MM:SS]
+AC: 空欄
+AD~AR: 自動計算フィールド
 ```
 
 ### 2.3 OT Chat シート構造（正確版）
@@ -116,21 +118,22 @@ I: Triage [0/1のチェックボックス]
 J: Is 3.0 [0/1のチェックボックス]
 K: 1st Assignee [Ldap]
 L: TRT Timer [スプレッドシートの関数で自動計算]
-M: MCC [0/1のチェックボックス]
-N: Change to Child [0/1のチェックボックス]
-O: Final Assignee [Ldap]
-P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
-R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
-T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
-U: Bug / L2 [0/1のチェックボックス]
-V: 1st Close Date [日付形式: YYYY/MM/DD]
-W: 1st Close Time [時間形式: HH:MM:SS]
-X: Reopen Close Date [日付形式: YYYY/MM/DD]
-Y: Reopen Close Time [時間形式: HH:MM:SS]
-Z: 空欄
-AA~AO: 自動計算フィールド
+M: IRT Timer [スプレッドシートの関数で自動計算]
+N: MCC [0/1のチェックボックス]
+O: Change to Child [0/1のチェックボックス]
+P: Final Assignee [Ldap]
+Q: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+R: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+S: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+T: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+U: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+V: Bug / L2 [0/1のチェックボックス]
+W: 1st Close Date [日付形式: YYYY/MM/DD]
+X: 1st Close Time [時間形式: HH:MM:SS]
+Y: Reopen Close Date [日付形式: YYYY/MM/DD]
+Z: Reopen Close Time [時間形式: HH:MM:SS]
+AA: 空欄
+AB~AP: 自動計算フィールド
 ```
 
 ### 2.4 3PO Chat シート構造（正確版）
@@ -148,21 +151,22 @@ I: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trade
 J: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
 K: 1st Assignee [Ldap]
 L: TRT Timer [スプレッドシートの関数で自動計算]
-M: MCC [0/1のチェックボックス]
-N: Change to Child [0/1のチェックボックス]
-O: Final Assignee [Ldap]
-P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
-R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-S: AM Transfer [セレクトボックス]
-T: non NCC [セレクトボックス]
-U: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
-V: 1st Close Date [日付形式: YYYY/MM/DD]
-W: 1st Close Time [時間形式: HH:MM:SS]
-X: Reopen Close Date [日付形式: YYYY/MM/DD]
-Y: Reopen Close Time [時間形式: HH:MM:SS]
-Z: 空欄
-AA~AO: 自動計算フィールド
+M: IRT Timer [スプレッドシートの関数で自動計算]
+N: MCC [0/1のチェックボックス]
+O: Change to Child [0/1のチェックボックス]
+P: Final Assignee [Ldap]
+Q: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+R: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+S: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+T: AM Transfer [セレクトボックス]
+U: non NCC [セレクトボックス]
+V: Bug / L2 / T&S/ Payreq [0/1のチェックボックス]
+W: 1st Close Date [日付形式: YYYY/MM/DD]
+X: 1st Close Time [時間形式: HH:MM:SS]
+Y: Reopen Close Date [日付形式: YYYY/MM/DD]
+Z: Reopen Close Time [時間形式: HH:MM:SS]
+AA: 空欄
+AB~AP: 自動計算フィールド
 ```
 
 ### 2.5 OT Phone シート構造（正確版）
@@ -180,21 +184,22 @@ I: Triage [0/1のチェックボックス]
 J: Is 3.0 [0/1のチェックボックス]
 K: 1st Assignee [Ldap]
 L: TRT Timer [スプレッドシートの関数で自動計算]
-M: MCC [0/1のチェックボックス]
-N: Change to Child [0/1のチェックボックス]
-O: Final Assignee [Ldap]
-P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
-R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
-T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
-U: Bug / L2 [0/1のチェックボックス]
-V: 1st Close Date [日付形式: YYYY/MM/DD]
-W: 1st Close Time [時間形式: HH:MM:SS]
-X: Reopen Close Date [日付形式: YYYY/MM/DD]
-Y: Reopen Close Time [時間形式: HH:MM:SS]
-Z: 空欄
-AA~AO: 自動計算フィールド
+M: IRT Timer [スプレッドシートの関数で自動計算]
+N: MCC [0/1のチェックボックス]
+O: Change to Child [0/1のチェックボックス]
+P: Final Assignee [Ldap]
+Q: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+R: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+S: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+T: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+U: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+V: Bug / L2 [0/1のチェックボックス]
+W: 1st Close Date [日付形式: YYYY/MM/DD]
+X: 1st Close Time [時間形式: HH:MM:SS]
+Y: Reopen Close Date [日付形式: YYYY/MM/DD]
+Z: Reopen Close Time [時間形式: HH:MM:SS]
+AA: 空欄
+AB~AP: 自動計算フィールド
 ```
 
 ### 2.6 3PO Phone シート構造（正確版）
@@ -212,21 +217,22 @@ I: Issue Category [3PO特有 - セレクトボックス：Review, TM form, Trade
 J: Details [3PO特有 - セレクトボックス：不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション]
 K: 1st Assignee [Ldap]
 L: TRT Timer [スプレッドシートの関数で自動計算]
-M: MCC [0/1のチェックボックス]
-N: Change to Child [0/1のチェックボックス]
-O: Final Assignee [Ldap]
-P: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
-Q: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
-R: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
-S: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
-T: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
-U: Bug / L2 T&S/ Payreq [0/1のチェックボックス]
-V: 1st Close Date [日付形式: YYYY/MM/DD]
-W: 1st Close Time [時間形式: HH:MM:SS]
-X: Reopen Close Date [日付形式: YYYY/MM/DD]
-Y: Reopen Close Time [時間形式: HH:MM:SS]
-Z: 空欄
-AA~AO: 自動計算フィールド
+M: IRT Timer [スプレッドシートの関数で自動計算]
+N: MCC [0/1のチェックボックス]
+O: Change to Child [0/1のチェックボックス]
+P: Final Assignee [Ldap]
+Q: Final Segment [セレクトボックス: Platinum, Titanium, Gold, Silver, Bronze - Low, Bronze - High]
+R: Sales Channel [関数でSales Channelシートから自動反映した値が入る]
+S: Case Status [セレクトボックス: Assigned, Solution Offered, Finished]
+T: AM Transfer [セレクトボックス：Request to AM contact, Optimize request, β product inquiry, Trouble shooting scope but we don't have access to the resource, Tag team request (LCS customer), Data analysis, Allowlist request, Other]
+U: non NCC [セレクトボックス：Duplicate, Discard, Transfer to Platinum, Transfer to S/B, Transfer to TDCX, Transfer to 3PO, Transfer to OT, Transfer to EN Team, Transfer to GMB Team, Transfer to Other Team (not AM)]
+V: Bug / L2 T&S/ Payreq [0/1のチェックボックス]
+W: 1st Close Date [日付形式: YYYY/MM/DD]
+X: 1st Close Time [時間形式: HH:MM:SS]
+Y: Reopen Close Date [日付形式: YYYY/MM/DD]
+Z: Reopen Close Time [時間形式: HH:MM:SS]
+AA: 空欄
+AB~AP: 自動計算フィールド
 ```
 
 ## 3. 正確な列マッピングシステム
