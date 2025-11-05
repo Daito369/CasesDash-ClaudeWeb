@@ -24,9 +24,9 @@ CasesDashは、Google 広告サポートチームのケース管理を効率化�
 ### 1.3 解決する主要課題
 
 - **複数シート対応の必要性**: 6つのシートに対応
-- **TRT(P95)メトリック管理**: Google メトリックのメイン指標の正確な計算と追跡
-- **除外ケース管理**: Bug Case、L2コンサル、IDT/Payreq、T&S Consultの適切な除外処理
-- **リアルタイム通知**: P95タイマー2時間以下での自動Google Chat、メール通知
+- **IRT (Internal Resolution Time)メトリック管理**: 2025年Q4（11/1）より導入されたGoogle メトリックのメイン指標の正確な計算と追跡
+- **除外ケース管理**: Bug Case、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Teamの適切な除外処理
+- **リアルタイム通知**: IRTタイマー2時間以下での自動Google Chat、メール通知
 - **統合ユーザー管理**: 認証、プロファイル、権限管理の一元化
 
 ## 2. 実際のスプレッドシート構造に基づく詳細マッピング
@@ -1070,18 +1070,111 @@ const AuditLogSpec = {
 - **Quarterly**: 四半期データの表示
 - **カスタム期間**: 開始日と終了日を指定した任意期間
 
-**TRT(P95)メトリック**（最重要指標）:
-- **P95達成率**: 72時間以内解決率
-- **除外ケース管理**: Bug Case、L2コンサル、IDT/Payreq、T&Sコンサルトの除外処理
-- **セグメント別分析**: Platinum/Titanium/Gold/Silver/Bronze別の達成率
+**IRT (Internal Resolution Time)メトリック**（最重要指標 - 2025年Q4～）:
+
+**📊 IRT達成率の計算方法:**
+
+```javascript
+IRT達成率 = (IRT <= 72時間のケース数) / (Solution Offeredケース総数) × 100
+
+【分母】Case Status = "Solution Offered" のケース
+  - 除外ケースは含めない（Bug、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Team）
+  - Final Assignee = 評価対象者のLdap（個人評価の場合）
+  - 評価セグメント = Final Segment × Sales Channel（チーム評価の場合）
+
+【分子】上記のうち IRT <= 72時間のケース
+
+【評価対象期間】指定された期間内にCase Status = "Solution Offered" になったケース
+```
+
+**GAS実装例:**
+```javascript
+function calculateIRTAchievement(ldap, startDate, endDate, segment = null) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ['OT Email', '3PO Email', 'OT Chat', '3PO Chat', 'OT Phone', '3PO Phone'];
+
+  let totalCases = 0;      // 分母
+  let achievedCases = 0;   // 分子
+
+  sheets.forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 2; i < data.length; i++) { // ヘッダースキップ
+      const row = data[i];
+      const caseData = parseRowData(row, sheetName);
+
+      // 1. Case Status = "Solution Offered" チェック
+      if (caseData.caseStatus !== 'Solution Offered') continue;
+
+      // 2. 期間内チェック
+      const closeDate = new Date(caseData.firstCloseDate);
+      if (closeDate < startDate || closeDate > endDate) continue;
+
+      // 3. 個人評価: Final Assignee チェック
+      if (ldap && caseData.finalAssignee !== ldap) continue;
+
+      // 4. チーム評価: セグメントチェック
+      if (segment) {
+        const evalSegment = getEvaluationSegment(caseData).evaluationSegment;
+        if (evalSegment !== segment) continue;
+      }
+
+      // 5. 除外ケースチェック
+      if (isExcludedCase(caseData)) continue;
+
+      // ここまで通過したケースは分母にカウント
+      totalCases++;
+
+      // 6. IRT <= 72時間チェック
+      const irtData = calculateIRT(caseData);
+      if (irtData.withinSLA) {
+        achievedCases++;
+      }
+    }
+  });
+
+  const achievementRate = totalCases > 0 ? (achievedCases / totalCases) * 100 : 0;
+
+  return {
+    achievementRate: achievementRate,
+    achievedCases: achievedCases,
+    totalCases: totalCases,
+    missedCases: totalCases - achievedCases
+  };
+}
+
+// 除外ケース判定
+function isExcludedCase(caseData) {
+  // Bug / L2 Consult / PayReq / Invoice Dispute / Workdriver / T&S Team
+  if (caseData.bugL2TSPayreq === 1) return true; // Bug / L2 / T&S / Payreq チェックボックス
+  // その他の除外条件...
+  return false;
+}
+```
+
+**個人評価レポートとチーム評価レポートの違い:**
+
+| 項目 | 個人評価 | チーム評価（セグメント別） |
+|------|---------|--------------------------|
+| フィルター条件 | Final Assignee = 自分のLdap | 評価セグメント（Final Segment × Sales Channel） |
+| 表示内容 | 個人のIRT達成率、処理件数 | セグメント別IRT達成率、Penalty/Reward判定 |
+| 目的 | 個人パフォーマンス把握 | チーム全体のSLA達成状況把握 |
+
+- **除外ケース管理**: Bug、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Teamの除外処理
+- **セグメント別分析**: Platinum/Titanium LCS/Gold LCS/Gold GCS/Silver/Bronze別の達成率とターゲット比較
 - **チャネル別分析**: Email/Chat/Phone別の達成率
+- **IRT vs TRT比較**: SO期間の影響を可視化
 
 **その他のメトリック**:
 - **Total Cases**: 総ケース数
 - **Solution Offered**: 解決提案済みケース数
 - **NCC (Non-Contact Complete)**: 算出条件に基づく自動計算
-- **SLA Achievement Rate**: SLA達成率
-- **Average Handling Time**: 平均処理時間
+- **SLA Achievement Rate**: SLA達成率（セグメント別ターゲットと比較）
+- **Average IRT**: 平均IRT処理時間
+- **Average SO Duration**: 平均SO期間（顧客待ち時間）
+- **Reopen Rate**: 再オープン率
+- **First Response Time**: 初回応答時間
 
 #### 4.4.3 統計分析機能の詳細
 
@@ -1095,16 +1188,225 @@ NCC_CONDITIONS = {
 };
 ```
 
+**IRT計算ロジック (GAS実装)**:
+```javascript
+function calculateIRT(caseData) {
+  const caseOpenDateTime = new Date(caseData.caseOpenDate + ' ' + caseData.caseOpenTime);
+
+  // 最終クローズ時刻の判定
+  // Case Status = "Finished" または "Solution Offered" の時点
+  let finalCloseDateTime;
+
+  if (caseData.caseStatus === 'Finished' || caseData.caseStatus === 'Solution Offered') {
+    // クローズ済みケース
+    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
+      // Reopen後にクローズした場合
+      finalCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
+    } else if (caseData.firstCloseDate && caseData.firstCloseTime) {
+      // 初回クローズのみの場合
+      finalCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+    }
+  } else {
+    // まだオープン中のケース（Assigned状態）
+    finalCloseDateTime = new Date(); // 現在時刻
+  }
+
+  // TRT = 最終クローズ（または現在時刻） - ケース作成
+  const trt = (finalCloseDateTime - caseOpenDateTime) / (1000 * 60 * 60); // 時間単位
+
+  // SO期間を計算
+  let soPeriod = 0;
+
+  if (caseData.firstCloseDate && caseData.firstCloseTime) {
+    const firstCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+
+    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
+      // Reopen後にクローズした場合: SO期間 = Reopen Close - 1st Close
+      const reopenCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
+      soPeriod = (reopenCloseDateTime - firstCloseDateTime) / (1000 * 60 * 60);
+    } else if (caseData.caseStatus === 'Solution Offered') {
+      // 現在SO status中: SO期間 = 現在時刻 - 1st Close
+      soPeriod = (new Date() - firstCloseDateTime) / (1000 * 60 * 60);
+    }
+  }
+
+  // IRT = TRT - SO期間
+  const irt = trt - soPeriod;
+
+  // IRT Timer = 72時間からのカウントダウン（残り時間）
+  const irtRemaining = 72 - irt;
+
+  return {
+    irt: irt,                          // 経過IRT（時間）
+    irtRemaining: irtRemaining,        // 残りIRT（時間）← これがIRT Timer表示値
+    irtRemainingFormatted: formatTime(irtRemaining), // HH:MM:SS形式
+    trt: trt,                          // 経過TRT（時間）
+    soPeriod: soPeriod,                // SO期間（時間）
+    withinSLA: irt <= 72,              // SLA達成判定
+    urgencyLevel: getUrgencyLevel(irtRemaining) // 緊急度レベル
+  };
+}
+
+// 残り時間をHH:MM:SS形式にフォーマット
+function formatTime(hours) {
+  if (hours < 0) return "MISSED";
+
+  const h = Math.floor(hours);
+  const m = Math.floor((hours - h) * 60);
+  const s = Math.floor(((hours - h) * 60 - m) * 60);
+
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// 緊急度レベルの判定
+function getUrgencyLevel(irtRemaining) {
+  if (irtRemaining < 0) return 'missed';      // グレー（期限切れ）
+  if (irtRemaining <= 2) return 'critical';   // 赤（2時間以下）
+  if (irtRemaining <= 24) return 'warning';   // 黄（24時間以下）
+  return 'normal';                            // 緑（十分な時間）
+}
+```
+
 **シート別分析**:
 - 6つのシート個別の統計
 - シート間の比較分析
 - チャネル横断分析
+- OT vs 3PO パフォーマンス比較
 
-**可視化機能**:
-- 折れ線グラフ（時系列トレンド）
-- 円グラフ（ステータス分布）
-- 棒グラフ（期間比較）
-- ヒートマップ（パフォーマンス分布）
+**可視化機能（最先端チャートライブラリ活用）**:
+
+🎨 **推奨チャートライブラリ（2025年最新トレンド）**:
+
+1. **Google Charts**（ネイティブ統合）
+   - GAS完全統合、無料、レスポンシブ対応
+   - スプレッドシートデータへの直接アクセス
+
+2. **ApexCharts**（モダン・インタラクティブ）
+   - リアルタイムデータ更新対応
+   - 滑らかなアニメーション
+   - ズーム・パン機能
+   - モバイルフレンドリー
+
+3. **ECharts**（大規模データ対応）
+   - 高パフォーマンス（数千ポイント対応）
+   - 高度な可視化（ヒートマップ・平行座標）
+   - 組み込みパフォーマンス最適化
+
+**実装チャート一覧**:
+
+📊 **1. リアルタイムIRTトレンドチャート**（ApexCharts Area Chart）
+- 時系列でのIRT推移を可視化
+- 72時間SLAラインの表示
+- セグメント別の色分け
+- ズーム・パン対応
+
+📈 **2. セグメント別パフォーマンスヒートマップ**（ECharts Heatmap）
+- 曜日 × セグメント の達成率マトリクス
+- 色グラデーションで一目で把握
+- インタラクティブなツールチップ
+
+🥧 **3. 製品カテゴリ分布**（Google Charts Donut Chart）
+- Search/Display/Video/Apps等の割合
+- アニメーション付き
+- レスポンシブデザイン
+
+📊 **4. チャネル別比較**（ApexCharts Mixed Chart）
+- Email/Chat/Phone の件数（棒グラフ）
+- IRT達成率（折れ線グラフ）
+- 2軸表示で相関関係を可視化
+
+🕷️ **5. チームパフォーマンスレーダーチャート**（ApexCharts Radar）
+- IRT達成率、NCC率、品質スコア等を多角的に評価
+- 複数チームの比較表示
+
+📉 **6. IRT vs TRT 比較チャート**（ApexCharts Line Chart）
+- IRTとTRTの差分を可視化
+- SO期間の影響を明確化
+
+💹 **7. リアルタイムKPIカード**
+- IRT達成率、平均IRT、SLA達成率等
+- スパークライン付き
+- 前週比・前月比の変化表示
+
+**実装サンプル（GAS HTML Service）**:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- ApexCharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <!-- Google Charts API -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <!-- ECharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <style>
+    .analytics-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .chart-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transition: transform 0.3s;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .kpi-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .kpi-value {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="analytics-dashboard">
+    <!-- KPI Cards -->
+    <div class="kpi-card">
+      <div class="kpi-label">IRT Achievement</div>
+      <div class="kpi-value" id="irtAchievement">96.5%</div>
+      <div class="kpi-trend">↑ 2.3% from last week</div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-card"><div id="irtTrendChart"></div></div>
+    <div class="chart-card"><div id="segmentHeatmap"></div></div>
+    <div class="chart-card"><div id="productPieChart"></div></div>
+    <div class="chart-card"><div id="channelBarChart"></div></div>
+    <div class="chart-card"><div id="teamRadarChart"></div></div>
+  </div>
+
+  <script>
+    // GASからデータを取得
+    google.script.run
+      .withSuccessHandler(renderCharts)
+      .getAnalyticsData();
+
+    function renderCharts(data) {
+      // ApexCharts, Google Charts, EChartsを使用して描画
+      // 詳細な実装はセクション4.4.5参照
+    }
+  </script>
+</body>
+</html>
+```
 
 #### 4.4.4 Sentiment Score管理（showReports内オプション）
 
@@ -1132,6 +1434,707 @@ NCC_CONDITIONS = {
     </ul>
   </div>
 </div>
+```
+
+#### 4.4.5 最先端チャート詳細実装（GAS対応）
+
+このセクションでは、Analytics機能で使用する各チャートの詳細な実装例を提供します。全てGoogle Apps Script（HTML Service）で動作します。
+
+**📊 1. リアルタイムIRTトレンドチャート（ApexCharts）**
+
+```javascript
+// GAS側: データ取得関数
+function getIRTTrendData(startDate, endDate) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ['OT Email', '3PO Email', 'OT Chat', '3PO Chat', 'OT Phone', '3PO Phone'];
+
+  let trendData = [];
+
+  sheets.forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    const data = sheet.getDataRange().getValues();
+
+    // IRT計算とデータ集約
+    // ...実装詳細
+  });
+
+  return trendData;
+}
+
+// HTML Service側: チャート描画
+const irtTrendOptions = {
+  chart: {
+    type: 'area',
+    height: 350,
+    animations: {
+      enabled: true,
+      easing: 'easeinout',
+      speed: 800,
+      dynamicAnimation: {
+        enabled: true,
+        speed: 350
+      }
+    },
+    toolbar: {
+      show: true,
+      tools: {
+        download: true,
+        selection: true,
+        zoom: true,
+        zoomin: true,
+        zoomout: true,
+        pan: true,
+        reset: true
+      }
+    }
+  },
+  series: [{
+    name: 'Average IRT',
+    data: [] // GASから取得したデータ
+  }],
+  dataLabels: {
+    enabled: false
+  },
+  stroke: {
+    curve: 'smooth',
+    width: 3
+  },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.7,
+      opacityTo: 0.3,
+      stops: [0, 90, 100]
+    }
+  },
+  xaxis: {
+    type: 'datetime',
+    labels: {
+      datetimeFormatter: {
+        year: 'yyyy',
+        month: "MMM 'yy",
+        day: 'dd MMM',
+        hour: 'HH:mm'
+      }
+    }
+  },
+  yaxis: {
+    title: {
+      text: 'IRT (hours)'
+    },
+    max: 72,
+    labels: {
+      formatter: function(val) {
+        return val.toFixed(1) + 'h';
+      }
+    }
+  },
+  annotations: {
+    yaxis: [{
+      y: 72,
+      borderColor: '#FF4560',
+      label: {
+        borderColor: '#FF4560',
+        style: {
+          color: '#fff',
+          background: '#FF4560'
+        },
+        text: 'SLA Target (72h)'
+      }
+    }]
+  },
+  tooltip: {
+    shared: true,
+    x: {
+      format: 'dd MMM yyyy'
+    }
+  },
+  colors: ['#667eea']
+};
+
+const irtTrendChart = new ApexCharts(
+  document.querySelector("#irtTrendChart"),
+  irtTrendOptions
+);
+irtTrendChart.render();
+```
+
+**📈 2. セグメント別パフォーマンスヒートマップ（ECharts）**
+
+```javascript
+// GAS側: ヒートマップデータ生成
+function getSegmentHeatmapData() {
+  const segments = ['Platinum', 'Titanium', 'Gold', 'Silver', 'Bronze'];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  let heatmapData = [];
+
+  // 各セグメント×曜日の達成率を計算
+  segments.forEach((segment, segmentIdx) => {
+    days.forEach((day, dayIdx) => {
+      const achievement = calculateSegmentDayAchievement(segment, day);
+      heatmapData.push([dayIdx, segmentIdx, achievement]);
+    });
+  });
+
+  return heatmapData;
+}
+
+// HTML Service側: EChartsヒートマップ
+const heatmapDom = document.getElementById('segmentHeatmap');
+const heatmapChart = echarts.init(heatmapDom);
+
+const heatmapOption = {
+  title: {
+    text: 'Segment Performance by Day of Week',
+    left: 'center'
+  },
+  tooltip: {
+    position: 'top',
+    formatter: function(params) {
+      return `${days[params.value[0]]} - ${segments[params.value[1]]}<br/>Achievement: ${params.value[2]}%`;
+    }
+  },
+  grid: {
+    height: '60%',
+    top: '15%'
+  },
+  xAxis: {
+    type: 'category',
+    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    splitArea: {
+      show: true
+    }
+  },
+  yAxis: {
+    type: 'category',
+    data: ['Platinum', 'Titanium', 'Gold', 'Silver', 'Bronze'],
+    splitArea: {
+      show: true
+    }
+  },
+  visualMap: {
+    min: 80,
+    max: 100,
+    calculable: true,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: '10%',
+    inRange: {
+      color: ['#d73027', '#fc8d59', '#fee08b', '#d9ef8b', '#91cf60', '#1a9850']
+    }
+  },
+  series: [{
+    name: 'IRT Achievement',
+    type: 'heatmap',
+    data: [], // GASから取得
+    label: {
+      show: true,
+      formatter: function(params) {
+        return params.value[2] + '%';
+      }
+    },
+    emphasis: {
+      itemStyle: {
+        shadowBlur: 10,
+        shadowColor: 'rgba(0, 0, 0, 0.5)'
+      }
+    }
+  }]
+};
+
+heatmapChart.setOption(heatmapOption);
+
+// レスポンシブ対応
+window.addEventListener('resize', function() {
+  heatmapChart.resize();
+});
+```
+
+**🥧 3. 製品カテゴリ分布（Google Charts）**
+
+```javascript
+// GAS側: 製品カテゴリ集計
+function getProductCategoryData() {
+  const categories = {};
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 全シートから製品カテゴリを集計
+  // ...実装詳細
+
+  return Object.entries(categories);
+}
+
+// HTML Service側: Google Charts Donut
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawProductPieChart);
+
+function drawProductPieChart() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      const chartData = new google.visualization.DataTable();
+      chartData.addColumn('string', 'Product');
+      chartData.addColumn('number', 'Cases');
+      chartData.addRows(data);
+
+      const options = {
+        title: 'Product Category Distribution',
+        pieHole: 0.4,
+        colors: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'],
+        legend: {
+          position: 'bottom',
+          alignment: 'center'
+        },
+        chartArea: {
+          width: '90%',
+          height: '75%'
+        },
+        animation: {
+          startup: true,
+          duration: 1000,
+          easing: 'out'
+        },
+        tooltip: {
+          text: 'percentage'
+        }
+      };
+
+      const chart = new google.visualization.PieChart(
+        document.getElementById('productPieChart')
+      );
+      chart.draw(chartData, options);
+    })
+    .getProductCategoryData();
+}
+```
+
+**📊 4. チャネル別比較（ApexCharts Mixed Chart）**
+
+```javascript
+const channelOptions = {
+  chart: {
+    type: 'line',
+    height: 350,
+    stacked: false
+  },
+  series: [{
+    name: 'Email Cases',
+    type: 'column',
+    data: [] // GASから取得
+  }, {
+    name: 'Chat Cases',
+    type: 'column',
+    data: []
+  }, {
+    name: 'Phone Cases',
+    type: 'column',
+    data: []
+  }, {
+    name: 'IRT Achievement %',
+    type: 'line',
+    data: []
+  }],
+  stroke: {
+    width: [0, 0, 0, 4],
+    curve: 'smooth'
+  },
+  plotOptions: {
+    bar: {
+      columnWidth: '50%'
+    }
+  },
+  fill: {
+    opacity: [0.85, 0.85, 0.85, 1],
+    gradient: {
+      inverseColors: false,
+      shade: 'light',
+      type: "vertical",
+      opacityFrom: 0.85,
+      opacityTo: 0.55,
+      stops: [0, 100, 100, 100]
+    }
+  },
+  labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+  markers: {
+    size: 0
+  },
+  xaxis: {
+    type: 'category'
+  },
+  yaxis: [{
+    title: {
+      text: 'Number of Cases'
+    },
+    seriesName: 'Email Cases'
+  }, {
+    opposite: true,
+    title: {
+      text: 'Achievement %'
+    },
+    seriesName: 'IRT Achievement %',
+    min: 80,
+    max: 100
+  }],
+  tooltip: {
+    shared: true,
+    intersect: false,
+    y: {
+      formatter: function (y, { seriesIndex }) {
+        if (seriesIndex === 3) {
+          return y.toFixed(1) + "%";
+        }
+        return y + " cases";
+      }
+    }
+  },
+  colors: ['#667eea', '#764ba2', '#f093fb', '#00E396']
+};
+```
+
+**🕷️ 5. チームパフォーマンスレーダーチャート（ApexCharts）**
+
+```javascript
+const radarOptions = {
+  chart: {
+    type: 'radar',
+    height: 400,
+    dropShadow: {
+      enabled: true,
+      blur: 1,
+      left: 1,
+      top: 1
+    }
+  },
+  series: [{
+    name: 'Team A',
+    data: [80, 90, 70, 85, 95, 88]
+  }, {
+    name: 'Team B',
+    data: [85, 75, 90, 80, 70, 82]
+  }],
+  title: {
+    text: 'Team Performance Comparison',
+    align: 'center'
+  },
+  labels: [
+    'IRT Achievement',
+    'NCC Rate',
+    'Response Time',
+    'Quality Score',
+    'Customer Satisfaction',
+    'Reopen Rate'
+  ],
+  plotOptions: {
+    radar: {
+      size: 140,
+      polygons: {
+        strokeColors: '#e9e9e9',
+        strokeWidth: 1,
+        fill: {
+          colors: ['#f8f8f8', '#fff']
+        }
+      }
+    }
+  },
+  colors: ['#667eea', '#764ba2'],
+  markers: {
+    size: 4,
+    colors: ['#fff'],
+    strokeColor: ['#667eea', '#764ba2'],
+    strokeWidth: 2
+  },
+  tooltip: {
+    y: {
+      formatter: function(val) {
+        return val.toFixed(1) + '%';
+      }
+    }
+  },
+  yaxis: {
+    tickAmount: 5,
+    min: 0,
+    max: 100
+  }
+};
+```
+
+**💹 6. リアルタイムKPIカード with Sparklines**
+
+```html
+<div class="kpi-grid">
+  <div class="kpi-card animated">
+    <div class="kpi-icon">🎯</div>
+    <div class="kpi-label">IRT Achievement</div>
+    <div class="kpi-value gradient-text" id="irtAchievement">96.8%</div>
+    <div id="irtSparkline" class="sparkline"></div>
+    <div class="kpi-change positive">
+      <span class="arrow">↑</span>
+      <span class="value">2.3%</span>
+      <span class="period">vs last week</span>
+    </div>
+  </div>
+
+  <div class="kpi-card animated">
+    <div class="kpi-icon">⚡</div>
+    <div class="kpi-label">Avg IRT</div>
+    <div class="kpi-value gradient-text" id="avgIRT">34.2h</div>
+    <div id="avgIrtSparkline" class="sparkline"></div>
+    <div class="kpi-change negative">
+      <span class="arrow">↓</span>
+      <span class="value">4.8h</span>
+      <span class="period">vs last week</span>
+    </div>
+  </div>
+
+  <div class="kpi-card animated">
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-label">Total Cases</div>
+    <div class="kpi-value gradient-text" id="totalCases">1,247</div>
+    <div id="totalSparkline" class="sparkline"></div>
+    <div class="kpi-change positive">
+      <span class="arrow">↑</span>
+      <span class="value">127</span>
+      <span class="period">vs last week</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  }
+
+  .kpi-card.animated {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .kpi-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .kpi-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sparkline {
+    height: 40px;
+    margin: 12px 0;
+  }
+
+  .kpi-change {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .kpi-change.positive {
+    color: #10b981;
+  }
+
+  .kpi-change.negative {
+    color: #ef4444;
+  }
+
+  .kpi-change .arrow {
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .kpi-change .value {
+    font-weight: 600;
+  }
+
+  .kpi-change .period {
+    color: #999;
+    font-size: 12px;
+  }
+</style>
+
+<script>
+// ApexCharts Sparkline
+const sparklineOptions = {
+  chart: {
+    type: 'area',
+    height: 40,
+    sparkline: {
+      enabled: true
+    }
+  },
+  stroke: {
+    curve: 'smooth',
+    width: 2
+  },
+  fill: {
+    opacity: 0.3,
+  },
+  colors: ['#667eea'],
+  tooltip: {
+    fixed: {
+      enabled: false
+    },
+    x: {
+      show: false
+    },
+    y: {
+      title: {
+        formatter: function() {
+          return '';
+        }
+      }
+    }
+  }
+};
+
+// Sparkline描画
+const irtSparkline = new ApexCharts(
+  document.querySelector("#irtSparkline"),
+  {
+    ...sparklineOptions,
+    series: [{
+      data: [85, 88, 92, 89, 94, 96, 96.8]
+    }]
+  }
+);
+irtSparkline.render();
+</script>
+```
+
+**🔄 7. リアルタイム自動更新機能**
+
+```javascript
+// GAS側: 定期データ更新
+let updateInterval;
+
+function startRealtimeUpdates(intervalSeconds = 30) {
+  updateInterval = setInterval(() => {
+    google.script.run
+      .withSuccessHandler(updateAllCharts)
+      .getLatestAnalyticsData();
+  }, intervalSeconds * 1000);
+}
+
+function stopRealtimeUpdates() {
+  clearInterval(updateInterval);
+}
+
+function updateAllCharts(data) {
+  // 全チャートを最新データで更新
+  irtTrendChart.updateSeries([{
+    data: data.irtTrend
+  }]);
+
+  heatmapChart.setOption({
+    series: [{
+      data: data.heatmap
+    }]
+  });
+
+  // KPIカードの値も更新（アニメーション付き）
+  animateValue('irtAchievement', data.irtAchievement);
+  animateValue('avgIRT', data.avgIRT);
+  animateValue('totalCases', data.totalCases);
+}
+
+// 数値アニメーション
+function animateValue(id, endValue, duration = 1000) {
+  const element = document.getElementById(id);
+  const startValue = parseFloat(element.textContent) || 0;
+  const startTime = Date.now();
+
+  function update() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    const current = startValue + (endValue - startValue) * easeOutCubic(progress);
+    element.textContent = current.toFixed(1);
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+```
+
+**📤 8. データエクスポート機能**
+
+```javascript
+// GAS側: エクスポート機能
+function exportAnalyticsToPDF() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const charts = ss.getSheets()[0].getCharts();
+
+  const pdfBlobs = charts.map(chart => {
+    return chart.getAs('image/png');
+  });
+
+  // PDFに変換してGoogle Driveに保存
+  const pdfFile = DriveApp.createFile(
+    'Analytics_Report_' + new Date().toISOString() + '.pdf'
+  );
+
+  return pdfFile.getUrl();
+}
+
+// HTML Service側: エクスポートボタン
+function handleExport() {
+  google.script.run
+    .withSuccessHandler(function(url) {
+      window.open(url, '_blank');
+    })
+    .exportAnalyticsToPDF();
+}
 ```
 
 ### 4.5 Search（検索）
@@ -1319,64 +2322,171 @@ const UserDataAccessControl = {
 | **チームリーダー** | ✅ 全表示 | ✅ チームメンバーのみ | ✅ チーム集計 | ✅ チームメンバー分 |
 | **管理者** | ✅ 全表示 | ✅ 全ユーザー | ✅ 全集計 | ✅ 全ユーザー分 |
 
-## 6. TRT(P95)メトリック管理システム
+## 6. IRT (Internal Resolution Time) メトリック管理システム
 
-### 6.1 TRT(P95)の定義と重要性
+### 6.1 IRTの定義と重要性（2025年Q4～）
 
-TRT(P95)は、Googleから要求される最重要指標で、ケースの95%を72時間以内に解決することを目標とします。
+**重要変更: 2025年11月1日（Q4）より、TRT (Total Resolution Time) から IRT (Internal Resolution Time) に変更**
 
-### 6.2 TRT(P95)算出対象から除外されるケース
+#### 6.1.1 IRTとは
+
+IRTは、Googleから要求される最重要指標で、**TRTから「SO (Solution Offered) statusだった時間」を除外**した、実質的な内部対応時間を測定します。
+
+**IRT計算式:**
+```
+IRT = (最終クローズ時刻 - ケース作成時刻) - SUM(Reopen時刻 - Solution Offered時刻)
+```
+
+**具体例:**
+- TRT（従来の総解決時間）: 72時間
+- SO期間（タイマー停止時間）: 44時間
+- **算出されるIRT**: 72時間 - 44時間 = **28時間**
+
+#### 6.1.2 IRTの利点
+
+- **顧客起因の待ち時間を除外**: 顧客からの返信待ち（NeedInfo）や、Reopen待ち時間がカウントされない
+- **純粋な内部対応時間の測定**: エージェント・チームの実際の処理時間を正確に評価
+- **SLA達成の公平性向上**: 顧客側の遅延によるSLAミスが防げる
+
+#### 6.1.3 SLAターゲット（Q4 2025）
+
+**重要: IRT目標は全セグメントで3日間（72時間）に統一**
+
+| セグメント | IRT目標 | Penalty (<) | Reward (>) |
+|-----------|---------|-------------|------------|
+| Platinum | 3 days | 97.0% | 98.0% |
+| Titanium LCS | 3 days | 96.0% | 97.0% |
+| Gold LCS | 3 days | 96.0% | 97.0% |
+| Gold GCS | 3 days | 95.0% | 96.0% |
+| Silver | 3 days | 90.0% | 91.0% |
+| Bronze | 3 days | 86.0% | 87.0% |
+
+#### 6.1.4 セグメント判定ロジック（Final Segment × Sales Channel）
+
+**重要**: IRT評価に使用するセグメントは、スプレッドシート上の **Final Segment** と **Sales Channel** の値の組み合わせで判定されます。
+
+**判定式:**
+```javascript
+評価セグメント = Final Segment + " " + Sales Channel
+
+例：
+- Final Segment: "Gold" + Sales Channel: "LCS" → "Gold LCS"
+- Final Segment: "Gold" + Sales Channel: "GCS" → "Gold GCS"
+- Final Segment: "Titanium" + Sales Channel: "LCS" → "Titanium LCS"
+```
+
+**GAS実装例:**
+```javascript
+function getEvaluationSegment(caseData) {
+  const finalSegment = caseData.finalSegment; // Final Segment列の値
+  const salesChannel = caseData.salesChannel; // Sales Channel列の値
+
+  // セグメント判定
+  let evaluationSegment;
+
+  if (finalSegment === 'Platinum') {
+    evaluationSegment = 'Platinum';
+  } else if (finalSegment === 'Titanium' && salesChannel === 'LCS') {
+    evaluationSegment = 'Titanium LCS';
+  } else if (finalSegment === 'Gold' && salesChannel === 'LCS') {
+    evaluationSegment = 'Gold LCS';
+  } else if (finalSegment === 'Gold' && salesChannel === 'GCS') {
+    evaluationSegment = 'Gold GCS';
+  } else if (finalSegment === 'Silver') {
+    evaluationSegment = 'Silver';
+  } else if (finalSegment === 'Bronze') {
+    evaluationSegment = 'Bronze';
+  } else {
+    evaluationSegment = 'Unknown';
+  }
+
+  // SLAターゲット取得
+  const slaTargets = {
+    'Platinum': { penalty: 97.0, reward: 98.0 },
+    'Titanium LCS': { penalty: 96.0, reward: 97.0 },
+    'Gold LCS': { penalty: 96.0, reward: 97.0 },
+    'Gold GCS': { penalty: 95.0, reward: 96.0 },
+    'Silver': { penalty: 90.0, reward: 91.0 },
+    'Bronze': { penalty: 86.0, reward: 87.0 }
+  };
+
+  return {
+    evaluationSegment: evaluationSegment,
+    penaltyThreshold: slaTargets[evaluationSegment]?.penalty || 0,
+    rewardThreshold: slaTargets[evaluationSegment]?.reward || 0
+  };
+}
+```
+
+**セグメント別SLA差異の例:**
+```
+同じ "Gold" でも Sales Channel によって異なる:
+- Gold LCS: Penalty 96.0% / Reward 97.0%
+- Gold GCS: Penalty 95.0% / Reward 96.0%  ← 1%低い
+```
+
+### 6.2 IRT算出対象から除外されるケース
 
 #### 6.2.1 全セグメント共通の除外条件
-- **Bug Case (Blocked by)**: システムバグにより進行が阻まれているケース
-- **L2 Consulted**: L2に相談が必要なケース
 
-#### 6.2.2 セグメント固有の除外条件
+1. **Bug**: ケースを「Bug」としてBlocked Byしたもの
+2. **L2 Consult**: サポートチーム（L1）から L2 へ**Directで**エスカレーションされたケース
+3. **PayReq (Payment Request)**: 「Payment Request ID」が発行され、Blocked byしたもの
+4. **Invoice Dispute**: 「Invoice Dispute ID」が発行され、Blocked byしたもの
+5. **Workdriver**: Neo Taxonomyの最後のWorkdriverが「Troubleshooting」**以外**に設定されたもの（例: Implementation など）
+6. **T&S Team**: T&S (Trust & Safety) Teamにエスカレーションされたケース
 
-**Billing セグメント**:
-- **Payreq**: Payment request processing issues
+#### 6.2.2 IRT算出に**含まれる**ケース（除外対象外）
 
-**Policy セグメント**:
-- **T&S**: Trust and Safty team consultation required
+⚠️ **重要**: 以下は除外対象に**なりません**
+- L1S および L1R へのエスカレーション
+- pSME へのエスカレーション
+- L1S に上げた後、その L1S が L2 にエスカレーションしたケース
 
 ### 6.3 除外ケース設定UI
 
 #### 6.3.1 Create New Case フォーム内の除外設定
 ```html
 <div class="exclusion-settings">
-  <h4>TRT(P95) Exclusion Settings</h4>
-  
+  <h4>IRT Exclusion Settings</h4>
+
   <!-- 全セグメント共通 -->
   <div class="common-exclusions">
+    <h5>Common Exclusions:</h5>
     <label>
       <input type="checkbox" name="bugBlocked" value="1">
-      Bug Case (Blocked by)
+      Bug (Blocked by)
     </label>
     <label>
-      <input type="checkbox" name="l2Consulted" value="1">
-      L2 Consulted
-    </label>
-  </div>
-  
-  <!-- Billing セグメント専用 -->
-  <div class="billing-exclusions" style="display: none;">
-    <h5>Billing Specific Exclusions:</h5>
-    <label>
-      <input type="checkbox" name="idtBlocked" value="1">
-      IDT Blocked by
+      <input type="checkbox" name="l2Consult" value="1">
+      L2 Consult (Direct Escalation)
     </label>
     <label>
       <input type="checkbox" name="payreqBlocked" value="1">
-      Payreq Blocked by
+      PayReq (Payment Request)
+    </label>
+    <label>
+      <input type="checkbox" name="invoiceDisputeBlocked" value="1">
+      Invoice Dispute
+    </label>
+    <label>
+      <input type="checkbox" name="workdriverNonTS" value="1">
+      Workdriver (Non-Troubleshooting)
+    </label>
+    <label>
+      <input type="checkbox" name="tsTeam" value="1">
+      T&S Team Escalation
     </label>
   </div>
-  
-  <!-- Policy セグメント専用 -->
-  <div class="policy-exclusions" style="display: none;">
-    <h5>Policy Specific Exclusions:</h5>
-    <label>
-      <input type="checkbox" name="tsConsulted" value="1">
-    </label>
+
+  <!-- 注意事項 -->
+  <div class="exclusion-notes">
+    <p><strong>⚠️ 注意:</strong> 以下はIRT算出に<strong>含まれます</strong>（除外されません）</p>
+    <ul>
+      <li>L1S / L1R エスカレーション</li>
+      <li>pSME エスカレーション</li>
+      <li>L1S経由のL2エスカレーション</li>
+    </ul>
   </div>
 </div>
 ```
@@ -1384,27 +2494,31 @@ TRT(P95)は、Googleから要求される最重要指標で、ケースの95%を
 #### 6.3.2 Case Edit モーダル内の除外設定
 ```html
 <div class="case-edit-exclusions">
-  <h4>Update Exclusion Status</h4>
+  <h4>Update IRT Exclusion Status</h4>
   <div class="exclusion-grid">
     <div class="exclusion-item">
-      <label>Bug Case (Blocked by):</label>
+      <label>Bug (Blocked by):</label>
       <input type="checkbox" id="edit-bug-blocked">
     </div>
     <div class="exclusion-item">
-      <label>L2 Consulted:</label>
-      <input type="checkbox" id="edit-l2-consulted">
+      <label>L2 Consult (Direct):</label>
+      <input type="checkbox" id="edit-l2-consult">
     </div>
-    <div class="exclusion-item billing-only">
-      <label>IDT Blocked by:</label>
-      <input type="checkbox" id="edit-idt-blocked">
-    </div>
-    <div class="exclusion-item billing-only">
-      <label>Payreq Blocked by:</label>
+    <div class="exclusion-item">
+      <label>PayReq:</label>
       <input type="checkbox" id="edit-payreq-blocked">
     </div>
-    <div class="exclusion-item policy-only">
-      <label>T&S Consulted:</label>
-      <input type="checkbox" id="edit-ts-consulted">
+    <div class="exclusion-item">
+      <label>Invoice Dispute:</label>
+      <input type="checkbox" id="edit-invoice-dispute">
+    </div>
+    <div class="exclusion-item">
+      <label>Workdriver (Non-TS):</label>
+      <input type="checkbox" id="edit-workdriver-nts">
+    </div>
+    <div class="exclusion-item">
+      <label>T&S Team:</label>
+      <input type="checkbox" id="edit-ts-team">
     </div>
   </div>
 </div>
@@ -1413,22 +2527,23 @@ TRT(P95)は、Googleから要求される最重要指標で、ケースの95%を
 ## 7. Google Chat通知システム
 
 ### 7.1 概要と目的
-P95タイマーが2時間以下になったケースについて、該当ユーザーのチームリーダーに自動的にGoogle Chat通知を送信します。
+IRTタイマーが2時間以下になったケースについて、該当ユーザーのチームリーダーに自動的にGoogle Chat通知を送信します。
 
 ### 7.2 通知トリガー条件
-- P95タイマーが2時間（7200秒）以下になった時点
-- TRT(P95)算出対象外ケースは通知対象外
+- IRTタイマーが2時間（7200秒）以下になった時点
+- IRT算出対象外ケース（除外ケース）は通知対象外
 - Case Status が "Assigned" のケースのみ
 - 既に通知済みのケースは重複通知しない
+- **注意**: SO (Solution Offered) status中はタイマー停止中のため通知されない
 
 ### 7.3 通知内容
 ```javascript
 const createChatNotification = (caseData) => {
   return {
-    text: `⚠️ TRT(P95) Alert`,
+    text: `⚠️ IRT Alert`,
     cards: [{
       header: {
-        title: "TRT(P95) Timer Warning",
+        title: "IRT Timer Warning",
         subtitle: "Immediate attention required",
         imageUrl: "https://developers.google.com/chat/images/quickstart-app-avatar.png"
       },
@@ -1448,14 +2563,26 @@ const createChatNotification = (caseData) => {
           },
           {
             keyValue: {
-              topLabel: "Remaining Time",
-              content: caseData.p95Timer
+              topLabel: "Segment",
+              content: caseData.segment
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "IRT Remaining Time",
+              content: caseData.irtTimer
+            }
+          },
+          {
+            keyValue: {
+              topLabel: "Case Status",
+              content: caseData.caseStatus
             }
           },
           {
             keyValue: {
               topLabel: "Message",
-              content: "⚠️ TRT(P95) timer has fallen below 2 hours. Immediate action required."
+              content: "⚠️ IRT timer has fallen below 2 hours. Immediate action required."
             }
           }
         ]
