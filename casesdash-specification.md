@@ -705,7 +705,7 @@ Re-Open Caseの場合は、Case Statusが"Solution Offered/Finished"から"Assig
 - **入力例の表示**: 各フィールドに入力例をツールチップで表示
 - **フィールドの自動フォーカス**: フォーム表示時に最初の必須フィールドに自動でフォーカスを当てる
  
-#### 4.3.4 TRT(P95)除外ケース設定
+#### 4.3.4 IRT除外ケース設定
 除外対象ケースの設定機能（セグメントに応じて表示）：
 
 **全セグメント共通**:
@@ -2917,10 +2917,10 @@ function getUserRole(email) {
 // NotificationSystem.gs
 function sendChatNotification(caseData, webhookUrl) {
   const payload = {
-    text: "⚠️ TRT(P95) Alert",
+    text: "⚠️ IRT Alert",
     cards: [{
       header: {
-        title: "TRT(P95) Timer Warning",
+        title: "IRT Timer Warning",
         subtitle: "Immediate attention required"
       },
       sections: [{
@@ -2940,7 +2940,7 @@ function sendChatNotification(caseData, webhookUrl) {
           {
             keyValue: {
               topLabel: "Message",
-              content: "⚠️ TRT(P95) timer has fallen below 2 hours. Immediate action required."
+              content: "⚠️ IRT timer has fallen below 2 hours. Immediate action required."
             }
           }
         ]
@@ -3134,7 +3134,7 @@ class RealtimeUpdater {
 - [ ] ダークモード/ライトモード切り替えの実装
 
 ### 13.2 フェーズ2: 核心機能（3週間）
-- [ ] TRT(P95)除外ケース管理機能
+- [ ] IRT除外ケース管理機能
 - [ ] Google Chat通知システム
 - [ ] Live Mode機能の実装
 - [ ] Analytics レポート機能の強化
