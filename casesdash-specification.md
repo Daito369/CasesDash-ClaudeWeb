@@ -8,9 +8,13 @@ CasesDashは、Google 広告サポートチームのケース管理を効率化�
 
 **重要な制約**: GCPは使用できません。Google Apps Scriptベースでの実装となります。
 
+**2025年Q4重要変更**: 2025年11月1日より、SLAメトリックが**TRT (Total Resolution Time)** から **IRT (Internal Resolution Time)** に変更されました。本システムはIRTの正確な計測とリアルタイム追跡に対応しています。
+
 ### 1.2 対象シートと構造
 
-本システムは以下の6つのシートに対応します：
+本システムは以下の7つのシート（6つのケース管理シート + 1つのIRT計測シート）に対応します：
+
+#### **ケース管理シート（6シート）**
 
 | シート名 | ケースタイプ | チャネル | ケースID開始列 | 特殊フィールド |
 | --- | --- | --- | --- | --- |
@@ -20,6 +24,18 @@ CasesDashは、Google 広告サポートチームのケース管理を効率化�
 | 3PO Chat | 3PO | Chat | B列 | Issue Category, Details |
 | OT Phone | OT | Phone | B列 | Sub Category, Issue Category |
 | 3PO Phone | 3PO | Phone | B列 | Issue Category, Details |
+
+#### **IRT計測専用シート（1シート）**
+
+| シート名 | 用途 | データソース | 更新頻度 |
+| --- | --- | --- | --- |
+| IRT RAW data | IRT計測・ReOpen履歴管理 | 6シート + UI操作 | リアルタイム + 1時間ごと |
+
+#### **設定管理シート（1シート）**
+
+| シート名 | 用途 | 内容 |
+| --- | --- | --- |
+| Configuration | 四半期管理・過去データ参照 | 過去四半期のスプレッドシートID、IRT開始日設定
 
 ### 1.3 解決する主要課題
 
@@ -235,6 +251,170 @@ AA: 空欄
 AB~AP: 自動計算フィールド
 ```
 
+### 2.7 IRT RAW data シート構造（IRT計測専用）
+
+**重要**: このシートは、2025年Q4（11/1）以降のIRT (Internal Resolution Time) 計測を正確に行うための専用シートです。既存の6シートではReOpen履歴を完全に管理できないため、本シートでReOpenの全履歴とIRT計算結果を保存します。
+
+**ヘッダー構造:**
+
+```
+A: Case ID [一意識別子]
+B: Source Sheet [元のシート名: "OT Email", "3PO Email"等]
+C: Case Open DateTime [日時: YYYY/MM/DD HH:MM:SS形式]
+D: First SO DateTime [初回Solution Offered日時: YYYY/MM/DD HH:MM:SS]
+E: Status History JSON [JSON文字列: 全ステータス変更履歴]
+F: ReOpen History JSON [JSON文字列: 全ReOpen履歴]
+G: Current Status [現在のCase Status: Assigned / Solution Offered / Finished]
+H: ReOpen Count [ReOpen回数: 数値]
+I: Total SO Period Hours [合計SO期間: 時間数]
+J: IRT Hours [計算されたIRT: 時間数]
+K: IRT Remaining Hours [IRT残り時間: 時間数（72時間から減算）]
+L: Within SLA [SLA達成判定: TRUE / FALSE]
+M: Urgency Level [緊急度: normal / warning / critical / missed]
+N: Final Assignee [最終担当者Ldap]
+O: Final Segment [最終セグメント]
+P: Sales Channel [Sales Channel]
+Q: Evaluation Segment [評価セグメント: Final Segment × Sales Channel]
+R: Is Excluded [除外判定: TRUE / FALSE]
+S: Exclusion Reason [除外理由: Bug / L2 Consult / PayReq等]
+T: Last Updated [最終更新日時: YYYY/MM/DD HH:MM:SS]
+U: Product Category [製品カテゴリ: 分析用]
+V: Non NCC [non NCC値: 空欄 or 理由]
+W: Bug L2 Flag [Bug/L2フラグ: 0 or 1]
+```
+
+**JSON形式の詳細:**
+
+**Status History JSON (E列):**
+```json
+{
+  "history": [
+    {"datetime": "2025/11/06 10:00:00", "status": "Assigned", "changedBy": "user1@google.com"},
+    {"datetime": "2025/11/07 14:30:00", "status": "Solution Offered", "changedBy": "user1@google.com"},
+    {"datetime": "2025/11/08 09:15:00", "status": "Assigned", "changedBy": "user1@google.com"},
+    {"datetime": "2025/11/09 16:45:00", "status": "Finished", "changedBy": "user1@google.com"}
+  ]
+}
+```
+
+**ReOpen History JSON (F列):**
+```json
+{
+  "reopens": [
+    {
+      "reopenNumber": 1,
+      "soDateTime": "2025/11/07 14:30:00",
+      "reopenDateTime": "2025/11/08 09:15:00",
+      "soPeriodHours": 18.75,
+      "reopenedBy": "user1@google.com"
+    },
+    {
+      "reopenNumber": 2,
+      "soDateTime": "2025/11/09 11:20:00",
+      "reopenDateTime": "2025/11/10 08:30:00",
+      "soPeriodHours": 21.17,
+      "reopenedBy": "user1@google.com"
+    }
+  ],
+  "totalReopens": 2,
+  "totalSOPeriodHours": 39.92
+}
+```
+
+**データ同期仕様:**
+
+1. **ケース作成時** (Create Case実行時)
+   - 6シートのいずれかにケースが作成された時点でIRT RAW dataシートに新規行を追加
+   - 初期値: Case ID、Source Sheet、Case Open DateTime、Current Status = "Assigned"
+
+2. **ケースステータス変更時** (Case Status更新時)
+   - Status History JSONに新規エントリを追加
+   - Current Statusを更新
+   - ステータスが"Solution Offered"になった場合: First SO DateTimeを記録（初回のみ）
+   - ステータスが"Assigned"に戻った場合（ReOpen）: ReOpen History JSONに新規エントリを追加
+
+3. **1時間ごとの自動同期** (Time-driven Trigger)
+   - 6シートの全ケースをスキャン
+   - IRT RAW dataシートに存在しないケースを追加
+   - 既存ケースのステータス差分を検出して同期
+
+4. **リアルタイム計算** (UI表示時)
+   - IRT Remaining Hoursをクライアントサイドで1秒ごとに再計算
+   - 緊急度（Urgency Level）の動的判定
+
+### 2.8 Configuration シート構造（設定管理）
+
+**用途**: 四半期ごとのスプレッドシートID管理と、IRT計測の開始日設定を行います。
+
+**ヘッダー構造:**
+
+```
+A: Quarter [四半期: "2025-Q1", "2025-Q2"等]
+B: Spreadsheet ID [スプレッドシートID]
+C: Start Date [開始日: YYYY/MM/DD]
+D: End Date [終了日: YYYY/MM/DD]
+E: IRT Enabled [IRT計測有効: TRUE / FALSE]
+F: Notes [備考]
+```
+
+**データ例:**
+
+```
+| Quarter   | Spreadsheet ID                          | Start Date  | End Date    | IRT Enabled | Notes                     |
+|-----------|-----------------------------------------|-------------|-------------|-------------|---------------------------|
+| 2025-Q1   | 1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0 | 2025/01/01  | 2025/03/31  | FALSE       | TRTメトリック使用         |
+| 2025-Q2   | 2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1 | 2025/04/01  | 2025/06/30  | FALSE       | TRTメトリック使用         |
+| 2025-Q3   | 3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2 | 2025/07/01  | 2025/09/30  | FALSE       | TRTメトリック使用         |
+| 2025-Q4   | current                                 | 2025/10/01  | 2025/12/31  | TRUE        | IRTメトリック開始（11/1～）|
+| 2026-Q1   | (未定)                                   | 2026/01/01  | 2026/03/31  | TRUE        | IRTメトリック継続         |
+```
+
+**使用方法:**
+
+1. **Analytics機能での期間選択時:**
+   - Q4のみ選択: 現在のスプレッドシート（"current"）からデータ取得
+   - Q3-Q4選択: Q3のSpreadsheet IDを使用して`SpreadsheetApp.openById()`で過去データ取得 + Q4データをマージ
+   - **IRT分析**: IRT Enabled = TRUEの四半期のみを統合分析（2025Q4以降）
+
+2. **データ参照ロジック:**
+```javascript
+function getDataForQuarters(quarters) {
+  const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Configuration');
+  const configData = configSheet.getDataRange().getValues();
+
+  let allData = [];
+
+  quarters.forEach(quarter => {
+    const config = configData.find(row => row[0] === quarter);
+    if (config) {
+      const spreadsheetId = config[1];
+      const ss = spreadsheetId === 'current'
+        ? SpreadsheetApp.getActiveSpreadsheet()
+        : SpreadsheetApp.openById(spreadsheetId);
+
+      // データ取得処理
+      const data = fetchDataFromSpreadsheet(ss);
+      allData = allData.concat(data);
+    }
+  });
+
+  return allData;
+}
+```
+
+3. **IRT統合分析:**
+```javascript
+function getIRTDataOnly() {
+  const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Configuration');
+  const configData = configSheet.getDataRange().getValues();
+
+  // IRT Enabled = TRUEの四半期のみをフィルタリング（2025Q4以降）
+  const irtQuarters = configData.filter(row => row[4] === true);
+
+  return getDataForQuarters(irtQuarters.map(row => row[0]));
+}
+```
+
 ## 3. 正確な列マッピングシステム
 
 ### 3.1 完全なシート別列マッピング定義
@@ -265,27 +445,28 @@ const SheetColumnMappings = {
 
 // タイマー（自動計算）
     trtTimer: "N",
+    irtTimer: "O",  // ← IRT Timer追加（2025Q4～）
 
 // アカウント情報
-    mcc: "O",
-    changeToChild: "P",
+    mcc: "P",      // ← 修正（OからPへ）
+    changeToChild: "Q",  // ← 修正（PからQへ）
 
 // 最終担当者情報
-    finalAssignee: "Q",
-    finalSegment: "R",
+    finalAssignee: "R",  // ← 修正（QからRへ）
+    finalSegment: "S",   // ← 修正（RからSへ）
 
 // チャネル・ステータス
-    salesChannel: "S",
-    caseStatus: "T",
-    amTransfer: "U",
-    nonNCC: "V",
-    bugL2: "W",
+    salesChannel: "T",   // ← 修正（SからTへ）
+    caseStatus: "U",     // ← 修正（TからUへ）
+    amTransfer: "V",     // ← 修正（UからVへ）
+    nonNCC: "W",         // ← 修正（VからWへ）
+    bugL2: "X",          // ← 修正（WからXへ）
 
 // クローズ情報
-    firstCloseDate: "X",
-    firstCloseTime: "Y",
-    reopenCloseDate: "Z",
-    reopenCloseTime: "AA",
+    firstCloseDate: "Y",      // ← 修正（XからYへ）
+    firstCloseTime: "Z",      // ← 修正（YからZへ）
+    reopenCloseDate: "AA",    // ← 修正（ZからAAへ）
+    reopenCloseTime: "AB",    // ← 修正（AAからABへ）
 
 // 自動計算フィールド
     productCommerce: "AC",
@@ -329,27 +510,28 @@ const SheetColumnMappings = {
 
 // タイマー（自動計算）
     trtTimer: "N",
+    irtTimer: "O",  // ← IRT Timer追加（2025Q4～）
 
 // アカウント情報
-    mcc: "O",
-    changeToChild: "P",
+    mcc: "P",      // ← 修正（OからPへ）
+    changeToChild: "Q",  // ← 修正（PからQへ）
 
 // 最終担当者情報
-    finalAssignee: "Q",
-    finalSegment: "R",
+    finalAssignee: "R",  // ← 修正（QからRへ）
+    finalSegment: "S",   // ← 修正（RからSへ）
 
 // チャネル・ステータス
-    salesChannel: "S",
-    caseStatus: "T",
-    amTransfer: "U",
-    nonNCC: "V",
-    bugL2TSPayreq: "W",// 3PO特有
+    salesChannel: "T",   // ← 修正（SからTへ）
+    caseStatus: "U",     // ← 修正（TからUへ）
+    amTransfer: "V",     // ← 修正（UからVへ）
+    nonNCC: "W",         // ← 修正（VからWへ）
+    bugL2TSPayreq: "X",  // ← 修正（WからXへ）// 3PO特有
 
 // クローズ情報
-    firstCloseDate: "X",
-    firstCloseTime: "Y",
-    reopenCloseDate: "Z",
-    reopenCloseTime: "AA",
+    firstCloseDate: "Y",      // ← 修正（XからYへ）
+    firstCloseTime: "Z",      // ← 修正（YからZへ）
+    reopenCloseDate: "AA",    // ← 修正（ZからAAへ）
+    reopenCloseTime: "AB",    // ← 修正（AAからABへ）
 
 // 自動計算フィールド
     assignWeek: "AD",
@@ -388,27 +570,28 @@ const SheetColumnMappings = {
 
 // タイマー（自動計算）
     trtTimer: "L",
+    irtTimer: "M",  // ← IRT Timer追加（2025Q4～）
 
 // アカウント情報
-    mcc: "M",
-    changeToChild: "N",
+    mcc: "N",       // ← 修正（MからNへ）
+    changeToChild: "O",  // ← 修正（NからOへ）
 
 // 最終担当者情報
-    finalAssignee: "O",
-    finalSegment: "P",
+    finalAssignee: "P",  // ← 修正（OからPへ）
+    finalSegment: "Q",   // ← 修正（PからQへ）
 
 // チャネル・ステータス
-    salesChannel: "Q",
-    caseStatus: "R",
-    amTransfer: "S",
-    nonNCC: "T",
-    bugL2: "U",
+    salesChannel: "R",   // ← 修正（QからRへ）
+    caseStatus: "S",     // ← 修正（RからSへ）
+    amTransfer: "T",     // ← 修正（SからTへ）
+    nonNCC: "U",         // ← 修正（TからUへ）
+    bugL2: "V",          // ← 修正（UからVへ）
 
 // クローズ情報
-    firstCloseDate: "V",
-    firstCloseTime: "W",
-    reopenCloseDate: "X",
-    reopenCloseTime: "Y",
+    firstCloseDate: "W",      // ← 修正（VからWへ）
+    firstCloseTime: "X",      // ← 修正（WからXへ）
+    reopenCloseDate: "Y",     // ← 修正（XからYへ）
+    reopenCloseTime: "Z",     // ← 修正（YからZへ）
 
 // 自動計算フィールド
     productCommerce: "AA",
@@ -450,27 +633,28 @@ const SheetColumnMappings = {
 
 // タイマー（自動計算）
     trtTimer: "L",
+    irtTimer: "M",  // ← IRT Timer追加（2025Q4～）
 
 // アカウント情報
-    mcc: "M",
-    changeToChild: "N",
+    mcc: "N",       // ← 修正（MからNへ）
+    changeToChild: "O",  // ← 修正（NからOへ）
 
 // 最終担当者情報
-    finalAssignee: "O",
-    finalSegment: "P",
+    finalAssignee: "P",  // ← 修正（OからPへ）
+    finalSegment: "Q",   // ← 修正（PからQへ）
 
 // チャネル・ステータス
-    salesChannel: "Q",
-    caseStatus: "R",
-    amTransfer: "S",
-    nonNCC: "T",
-    bugL2TSPayreq: "U",// 3PO特有
+    salesChannel: "R",   // ← 修正（QからRへ）
+    caseStatus: "S",     // ← 修正（RからSへ）
+    amTransfer: "T",     // ← 修正（SからTへ）
+    nonNCC: "U",         // ← 修正（TからUへ）
+    bugL2TSPayreq: "V",  // ← 修正（UからVへ）// 3PO特有
 
 // クローズ情報
-    firstCloseDate: "V",
-    firstCloseTime: "W",
-    reopenCloseDate: "X",
-    reopenCloseTime: "Y",
+    firstCloseDate: "W",      // ← 修正（VからWへ）
+    firstCloseTime: "X",      // ← 修正（WからXへ）
+    reopenCloseDate: "Y",     // ← 修正（XからYへ）
+    reopenCloseTime: "Z",     // ← 修正（YからZへ）
 
 // 自動計算フィールド
     assignWeek: "AB",
@@ -503,19 +687,20 @@ const SheetColumnMappings = {
     is30: "J",
     firstAssignee: "K",
     trtTimer: "L",
-    mcc: "M",
-    changeToChild: "N",
-    finalAssignee: "O",
-    finalSegment: "P",
-    salesChannel: "Q",
-    caseStatus: "R",
-    amTransfer: "S",
-    nonNCC: "T",
-    bugL2: "U",
-    firstCloseDate: "V",
-    firstCloseTime: "W",
-    reopenCloseDate: "X",
-    reopenCloseTime: "Y",
+    irtTimer: "M",  // ← IRT Timer追加（2025Q4～）
+    mcc: "N",       // ← 修正（MからNへ）
+    changeToChild: "O",  // ← 修正（NからOへ）
+    finalAssignee: "P",  // ← 修正（OからPへ）
+    finalSegment: "Q",   // ← 修正（PからQへ）
+    salesChannel: "R",   // ← 修正（QからRへ）
+    caseStatus: "S",     // ← 修正（RからSへ）
+    amTransfer: "T",     // ← 修正（SからTへ）
+    nonNCC: "U",         // ← 修正（TからUへ）
+    bugL2: "V",          // ← 修正（UからVへ）
+    firstCloseDate: "W",      // ← 修正（VからWへ）
+    firstCloseTime: "X",      // ← 修正（WからXへ）
+    reopenCloseDate: "Y",     // ← 修正（XからYへ）
+    reopenCloseTime: "Z",     // ← 修正（YからZへ）
     productCommerce: "AA",
     assignWeek: "AB",
     channel: "AC",// 固定値: "Phone"
@@ -547,19 +732,20 @@ const SheetColumnMappings = {
     details: "J",
     firstAssignee: "K",
     trtTimer: "L",
-    mcc: "M",
-    changeToChild: "N",
-    finalAssignee: "O",
-    finalSegment: "P",
-    salesChannel: "Q",
-    caseStatus: "R",
-    amTransfer: "S",
-    nonNCC: "T",
-    bugL2TSPayreq: "U",
-    firstCloseDate: "V",
-    firstCloseTime: "W",
-    reopenCloseDate: "X",
-    reopenCloseTime: "Y",
+    irtTimer: "M",  // ← IRT Timer追加（2025Q4～）
+    mcc: "N",       // ← 修正（MからNへ）
+    changeToChild: "O",  // ← 修正（NからOへ）
+    finalAssignee: "P",  // ← 修正（OからPへ）
+    finalSegment: "Q",   // ← 修正（PからQへ）
+    salesChannel: "R",   // ← 修正（QからRへ）
+    caseStatus: "S",     // ← 修正（RからSへ）
+    amTransfer: "T",     // ← 修正（SからTへ）
+    nonNCC: "U",         // ← 修正（TからUへ）
+    bugL2TSPayreq: "V",  // ← 修正（UからVへ）
+    firstCloseDate: "W",      // ← 修正（VからWへ）
+    firstCloseTime: "X",      // ← 修正（WからXへ）
+    reopenCloseDate: "Y",     // ← 修正（XからYへ）
+    reopenCloseTime: "Z",     // ← 修正（YからZへ）
     assignWeek: "AB",
     channel: "AC",// 固定値: "Phone"
     trtTarget: "AD",
@@ -584,55 +770,216 @@ const SheetColumnMappings = {
 ### 4.1 Dashboard（ダッシュボード）
 
 #### 4.1.1 概要と目的
-ダッシュボードは、担当中の全アクティブケースの一覧表示と管理を行うメイン画面です。
-ユーザーが最初にログインした際に表示され、日常的なケース管理業務の中心となります。
+ダッシュボードは、自分が担当する全ケースの検索・閲覧・管理を行うメイン画面です。
+Case Statusタブで「Assigned（アクティブ）」「Solution Offered」「Finished」「All」を切り替えて表示でき、過去ケースの検索やReOpen操作も可能です。
 
-#### 4.1.2 表示機能
-- **アクティブケース一覧**: Case Status が "Assigned" の自分が担当するケースのみ表示
-- **シート別カラーコーディング**: 6つのシート（OT Email, 3PO Email, OT Chat, 3PO Chat, OT Phone, 3PO Phone）を視覚的に区別
-- **リアルタイムタイマー表示**:
-  - **P95 Timer**: ケース解決期限までのカウントダウン（HH:MM:SS形式）
-  - **色分け警告システム**:
-    - 緑: 十分な時間がある状態
-    - 黄: 注意が必要な状態
-    - 赤: 緊急対応が必要な状態（2時間以下で点滅）
-    - グレー: 期限切れ（"Missed"表示）
+#### 4.1.2 検索・フィルター機能（画面上部）
 
-#### 4.1.3 インタラクション機能
-- **ケースカードクリック**: ケースの詳細情報をモーダルで表示
-- **Edit（編集）ボタン**: ケース情報の編集モーダルを開く
-- **Delete（削除）ボタン**: ケースを削除（確認ダイアログ付き）
-- **P95 Exclusions 切り替え**: トグルスイッチでP95 ExclusionsをON/OFF切り替え
-- **自動更新**: 1秒間隔でタイマー情報を更新
+**検索バー:**
+- **Case ID検索**: 主要な検索機能。Case IDを入力して特定のケースを検索
+- **検索対象**: Final Assigneeが自分のLdapであるすべてのケース（全ステータス、全シート）
+- **リアルタイム検索**: 入力中に候補を表示
+- **完全一致・部分一致**: 両方に対応
 
-#### 4.1.4 フィルタリング機能
-- **シート別フィルター**: 特定のシートのケースのみ表示
-- **チャネル別フィルター**: Email/Chat/Phone別でフィルタリング
-- **セグメント別フィルター**: Platinum/Titanium/Gold/Silver/Bronze別
-- **緊急度フィルター**: TRTタイマーの残り時間別
+**フィルターオプション（検索バーと同じ行に配置）:**
+
+1. **Sheet Type（複数選択可）:**
+   - OT Email
+   - 3PO Email
+   - OT Chat
+   - 3PO Chat
+   - OT Phone
+   - 3PO Phone
+   - デフォルト: 全シート選択
+
+2. **Date Range:**
+   - Quarterly（四半期）: 2025-Q4、2025-Q3等
+   - Monthly（月次）: 2025-11、2025-10等
+   - Weekly（週次）: Week 45、Week 44等
+   - Daily（日次）: 2025/11/06、2025/11/05等
+   - デフォルト: 当月（Monthly）
+
+3. **Segment Filter:**
+   - Platinum
+   - Titanium LCS
+   - Gold LCS
+   - Gold GCS
+   - Silver
+   - Bronze
+   - デフォルト: 全セグメント
+
+#### 4.1.3 Case Statusタブ（検索バー直下）
+
+タブで以下の4つのステータスを切り替え表示：
+
+| タブ | 表示内容 | 主な用途 |
+|------|---------|---------|
+| **Assigned** | Case Status = "Assigned"のケース | アクティブケースの管理 |
+| **Solution Offered** | Case Status = "Solution Offered"のケース | 顧客返信待ちケースの確認・ReOpen |
+| **Finished** | Case Status = "Finished"のケース | 完了ケースの確認・ReOpen |
+| **All** | すべてのステータスのケース | 全体俯瞰 |
+
+**デフォルト表示**: Assignedタブ
+
+#### 4.1.4 リアルタイムタイマー表示
+
+- **IRT Timer**: Internal Resolution Time の残り時間をHH:MM:SS形式でカウントダウン表示
+- **クライアントサイド計算**: JavaScriptで1秒ごとに更新（サーバー負荷なし）
+- **色分け警告システム**:
+  - 🟢 緑（normal）: 残り24時間以上
+  - 🟡 黄（warning）: 残り2～24時間
+  - 🔴 赤（critical）: 残り2時間以下（点滅アニメーション）
+  - ⚫ グレー（missed）: 期限切れ（"MISSED"表示）
+
+#### 4.1.5 ケースカード表示
+
+各ケースカードには以下の情報を表示：
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ [シートバッジ:OT Email] [チャネルアイコン:📧]                │
+│ Case ID: X-XXXXXXXXXXXXX                                   │
+│ Assignee: username(Ldap)                                   │
+│ Segment: Gold LCS | Category: Search                       │
+│ Status: Assigned 　　　　　　　　　                          │
+│ IRT Timer: 08:15:30 🟢                                     │
+│ Exclusions: [Bug✓] [L2] [T&S] [PayReq]                    │
+│                                      [ReOpen][Edit][Delete]│
+└────────────────────────────────────────────────────────────┘
+```
+
+**シート別カラーコーディング:**
+
+| シート | カラー | アイコン |
+|--------|--------|----------|
+| OT Email | #4285F4 (Google Blue) | 📧 |
+| 3PO Email | #34A853 (Google Green) | 📧 |
+| OT Chat | #FBBC05 (Google Yellow) | 💬 |
+| 3PO Chat | #EA4335 (Google Red) | 💬 |
+| OT Phone | #8430CE (Google Purple) | 📞 |
+| 3PO Phone | #F57C00 (Google Orange) | 📞 |
+
+#### 4.1.6 インタラクション機能
+
+**ケースカード操作:**
+- **カードクリック**: ケースの詳細情報をモーダルで表示
+- **Editボタン**: ケース情報の編集モーダルを開く
+- **Deleteボタン**: ケースを削除（確認ダイアログ付き）
+- **ReOpenボタン**: Solution Offered/Finishedステータスのケースに表示。クリックでReOpenモーダルを開く
+
+**ReOpen機能詳細:**
+
+1. **表示条件**: Case Status = "Solution Offered" または "Finished"
+2. **ReOpenボタンクリック**: モーダルダイアログが表示
+3. **モーダル内容**:
+   ```
+   ┌────────────────────────────────────┐
+   │ ReOpen Case: X-XXXXXXXXXXXXX       │
+   ├────────────────────────────────────┤
+   │ ReOpen Date: [2025/11/06] (今日)   │
+   │ ReOpen Time: [14:30:00] (現在時刻) │
+   │                                    │
+   │       [Cancel]  [Confirm ReOpen]   │
+   └────────────────────────────────────┘
+   ```
+4. **Confirm ReOpenクリック時の処理**:
+   - Case Statusを「Assigned」に変更
+   - IRT RAW dataシートのReOpen History JSONに新規エントリを追加
+   - Status History JSONに新規エントリを追加
+   - IRTタイマー再開
+   - 元の6シートのCase Status列も「Assigned」に更新
+   - ReOpen後は自動的にAssignedタブに表示
+
+**IRT Exclusions切り替え:**
+- 各Exclusionチェックボックスをクリックで ON/OFF 切り替え
+- チェック ON: IRT SLA計算から除外（グレーアウト表示）
+- リアルタイムでIRT RAW dataシートに反映
+
+**自動更新:**
+- タイマー: 1秒間隔で更新（クライアントサイド）
+- ケースリスト: 1分間隔で自動リフレッシュ
 
 ### 4.2 My Cases（マイケース）
 
 #### 4.2.1 概要と目的
-自分が担当したすべてのケース（アクティブ・非アクティブ問わず）の総合管理画面です。
-**Final Assigneeが自分のLdapであるケースのみを表示**し、過去のケース履歴の確認や非アクティブケースの再アクティブ化を行います。
+現在アクティブな自分のケース（Assigned状態）のみを集中的に管理する画面です。
+日常的なケース処理業務に特化し、シンプルで高速なインターフェースを提供します。
+
+**重要**: Solution OfferedやFinishedステータスのケースは表示されません。これらのケースの確認・ReOpenは**Dashboardの検索機能**をご利用ください。
 
 #### 4.2.2 表示機能
-- **全ケース一覧**: 自分のLdapに関連するすべてのケース
-- **ステータス別タブ**: Assigned / Solution Offered / Finished 別の表示
-- **検索機能**: Case ID、顧客情報、キーワードでの検索
-- **ソート機能**: 日付、優先度、ステータス別のソート
-    - **Assignedタブでの優先度**：P95タイマーの残り時間順
-- **フィルター機能**: シート別、チャネル別、セグメント別のフィルター
-- **リアルタイム更新**: 新規ケース追加やステータス変更があった場合、1秒間隔で自動更新
-- **ページネーション**: 大量データの効率的な表示
 
-#### 4.2.3 ケース管理機能
-- **詳細表示**: ケースの全履歴と詳細情報
-- **再アクティブ化（Re-Open）**: Solution Offered/FinishedケースのRe-Open機能
-    - Case Status を"Solution Offered/Finished"から"Assigned"に変更したケースには、Re-Open Caseであることを識別する「RO」ラベルを付与
-- **一括操作**: 複数ケースの一括ステータス変更
-- **エクスポート**: CSV形式でのデータエクスポート
+**表示対象:**
+- **Case Status = "Assigned"** のケースのみ
+- **Final Assignee = 自分のLdap** であるケース
+- **全6シート**からのケースを統合表示
+
+**ソート機能:**
+- **デフォルト**: IRT Timerの残り時間順（緊急度順）
+  - 残り時間が少ないケースほど上位に表示
+- **その他のソート**:
+  - Case Open Date（新しい順/古い順）
+  - Segment（Platinum → Bronze順）
+  - Sheet Type（OT Email → 3PO Phone順）
+
+**フィルター機能:**
+- **シート別**: 特定のシートのケースのみ表示
+- **セグメント別**: Platinum/Titanium LCS/Gold LCS等でフィルタリング
+- **製品カテゴリ別**: Search/Display/Video等でフィルタリング
+- **緊急度別**:
+  - Critical（残り2時間以下）
+  - Warning（残り2～24時間）
+  - Normal（残り24時間以上）
+
+**リアルタイム更新:**
+- **IRTタイマー**: 1秒ごとに更新（クライアントサイド）
+- **ケースリスト**: 1分ごとに自動リフレッシュ
+- **新規ケース**: 自動的にリストに追加
+
+#### 4.2.3 ケースカード表示
+
+Dashboardと同じカード形式で表示：
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ [OT Email 📧] [🔴 Critical: 01:45:30 remaining]            │
+│ Case ID: X-XXXXXXXXXXXXX                                   │
+│ Segment: Platinum | Product: Search | Sub: P-MAX          │
+│ Opened: 2025/11/04 10:30  (2日前)                          │
+│ Exclusions: [Bug] [L2] [T&S✓] [PayReq]                    │
+│                                           [Edit] [Details] │
+└────────────────────────────────────────────────────────────┘
+```
+
+**緊急度による視覚的区別:**
+- 🔴 Critical: 赤色背景 + 点滅アニメーション
+- 🟡 Warning: 黄色背景
+- 🟢 Normal: 白色背景
+
+**ReOpenケースの識別:**
+- ReOpenされたケースには「🔄 RO」ラベルを表示
+- ReOpen回数も表示（例: 「🔄 RO x2」）
+
+#### 4.2.4 ケース管理機能
+
+**基本操作:**
+- **カードクリック**: 詳細モーダル表示
+- **Editボタン**: ケース編集モーダル
+- **Detailsボタン**: 全履歴・詳細情報表示
+
+**一括操作（複数選択時）:**
+- **ステータス変更**: 選択したケースを一括で"Solution Offered"に変更
+- **Exclusion設定**: 選択したケースに一括でBug/L2等のフラグを設定
+- **エクスポート**: 選択したケースをCSV形式でエクスポート
+
+**クイック統計表示（画面上部）:**
+```
+┌────────────────────────────────────────────────────────────┐
+│ 📊 My Active Cases Summary                                │
+│ Total: 15 | 🔴 Critical: 3 | 🟡 Warning: 5 | 🟢 Normal: 7 │
+│ Avg IRT Remaining: 18.5h | SLA On Track: 86.7%            │
+└────────────────────────────────────────────────────────────┘
+```
 
 ## ダッシュボード表示仕様
 
@@ -1065,7 +1412,9 @@ const AuditLogSpec = {
 ### 4.4 Analytics（統計分析）
 
 #### 4.4.1 概要と目的
-チーム全体およびユーザー個人のパフォーマンス分析を行う統計機能です。Googleが要求するSLAメトリックの追跡と可視化を提供します。
+チーム全体およびユーザー個人のパフォーマンス分析を行う統計機能です。**2025年Q4以降のIRT (Internal Resolution Time)** メトリックに完全対応し、**Rewardターゲット達成**を最優先目標とした評価システムを提供します。
+
+**2025年最先端の可視化技術**を採用し、Google Charts、ApexCharts、EChartsを組み合わせたインタラクティブなダッシュボードで、データ分析を革新的に効率化します。
 
 #### 4.4.2 メイン統計機能（showReports）
 
@@ -1259,14 +1608,69 @@ const alert = calculateNCCAlert(
 
 #### 4.4.3 統計分析機能の詳細
 
-**NCC計算ロジック**:
+**NCC計算ロジック（2025年Q4最新版）**:
+
+**NCC (Non-Contact Complete) の定義:**
+- **個人の生産性を示す重要指標**: ケースを顧客からの追加コンタクトなしで完了できたことを示す
+- **カウント条件**: 以下の両方を満たすケース
+
 ```javascript
-NCC_CONDITIONS = {
-  caseId_notEmpty: true,        // Case IDが空欄でない
-  caseStatus_notAssigned: true, // Case Statusが"Assigned"以外
-  nonNCC_empty: true,          // non NCC列が空欄
-  bug_unchecked: true          // Bug列にチェックが入っていない（値が0）
-};
+function isNCC(caseData) {
+  // 条件1: Case StatusがSolution OfferedまたはFinished
+  const validStatus = ['Solution Offered', 'Finished'].includes(caseData.caseStatus);
+
+  // 条件2: non NCC列が空欄
+  const nonNCCEmpty = !caseData.nonNCC || caseData.nonNCC === '';
+
+  // NCCと判定
+  const isNCC = validStatus && nonNCCEmpty;
+
+  return isNCC;
+}
+```
+
+**重要な注意点:**
+
+1. **Bug列のチェック状態は NCCカウントに影響しない**
+   - Bug列にチェックが入っていてもNCCとしてカウントされる
+   - ただし、IRT SLA計算からは除外される（下記参照）
+
+2. **NCCとIRT SLA除外の関係:**
+
+```javascript
+// ケース例A: Bug列✓、non NCC空欄、Status = "Solution Offered"
+{
+  bugL2: 1,  // チェックあり
+  nonNCC: "",
+  caseStatus: "Solution Offered"
+}
+→ NCC = YES（カウントされる）
+→ IRT SLA計算 = NO（除外される）← Bugフラグのため
+
+// ケース例B: Bug列なし、non NCC空欄、Status = "Solution Offered"
+{
+  bugL2: 0,  // チェックなし
+  nonNCC: "",
+  caseStatus: "Solution Offered"
+}
+→ NCC = YES（カウントされる）
+→ IRT SLA計算 = YES（含まれる）
+
+// ケース例C: Bug列なし、non NCC = "Duplicate"、Status = "Solution Offered"
+{
+  bugL2: 0,
+  nonNCC: "Duplicate",
+  caseStatus: "Solution Offered"
+}
+→ NCC = NO（カウントされない）← non NCCに値あり
+→ IRT SLA計算 = N/A（NCCでないので対象外）
+```
+
+**非NCCの理由（non NCC列の値）:**
+- Duplicate（重複ケース）
+- Discard（破棄）
+- Transfer to Platinum/S/B/TDCX/3PO/OT/EN Team/GMB Team/Other Team
+- 上記いずれかの値が入っている場合はNCCではない
 ```
 
 **IRT計算ロジック (GAS実装)**:
@@ -3296,5 +3700,21 @@ const CONFIG = {
 **通知**: Google Chat API連携  
 **アクセシビリティ**: WCAG 2.1 AA準拠
 
-**最終更新**: 2025年5月25日  
-**バージョン**: 2.0.0（マルチシート対応版）
+**最終更新**: 2025年11月6日
+**バージョン**: 3.0.0（IRT対応版 - 2025Q4完全移行）
+
+## 📝 更新履歴
+
+### v3.0.0 (2025/11/6) - IRT対応版
+- **IRT RAW dataシート追加**: ReOpen履歴管理とIRT正確計算に対応
+- **Configurationシート追加**: 四半期管理と過去データ統合分析対応
+- **列マッピング修正**: すべてのシートにirtTimerフィールドを追加、列位置を修正
+- **Dashboard機能強化**: 検索バー、Case Statusタブ、ReOpen機能を追加
+- **My Cases機能変更**: Assignedケースのみに特化、高速表示
+- **NCC定義更新**: Solution Offered/Finished両対応、Bug列の扱いを明確化
+- **Analytics modernization**: 2025年最先端チャートライブラリ統合（ApexCharts/ECharts）
+- **Reward重視評価**: Penaltyでなく Rewardターゲット達成を主目標に
+- **用語統一**: P95 → IRT、セグメント名の正式名称化（Titanium LCS等）
+
+### v2.0.0 (2025/5/25) - マルチシート対応版
+- 6シート対応の基本機能実装
