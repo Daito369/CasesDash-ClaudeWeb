@@ -145,6 +145,15 @@
               </button>
             </div>
 
+            <div id="missingSheets" class="warning-card" style="display: none;">
+              <h3>⚠️ Missing Required Sheets</h3>
+              <p id="missingSheetsList"></p>
+              <button id="setupSheetsBtn" class="btn-primary" onclick="setupMissingSheets()">
+                <span class="material-icons">auto_fix_high</span>
+                Auto-Setup Missing Sheets
+              </button>
+            </div>
+
             <div id="settingsError" class="error-message" style="display: none;"></div>
             <div id="settingsSuccess" class="success-message" style="display: none;"></div>
             <div id="settingsLoading" class="loading" style="display: none;">

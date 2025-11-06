@@ -385,3 +385,156 @@ function configureSpreadsheet(spreadsheetId) {
     };
   }
 }
+
+/**
+ * Setup missing sheets automatically
+ * Creates IRT RAW data sheet and Configuration sheet if they don't exist
+ * @return {Object} Setup result { success: boolean, createdSheets: string[] }
+ */
+function setupMissingSheets() {
+  try {
+    const spreadsheet = getSpreadsheet();
+    const sheets = spreadsheet.getSheets();
+    const existingSheetNames = sheets.map(sheet => sheet.getName());
+
+    const requiredSheets = [SheetNames.IRT_RAW_DATA, SheetNames.CONFIGURATION];
+    const missingSheets = requiredSheets.filter(name => !existingSheetNames.includes(name));
+
+    if (missingSheets.length === 0) {
+      return {
+        success: true,
+        message: 'All required sheets already exist',
+        createdSheets: []
+      };
+    }
+
+    const createdSheets = [];
+
+    // Create each missing sheet
+    for (const sheetName of missingSheets) {
+      if (sheetName === SheetNames.IRT_RAW_DATA) {
+        createIRTRawDataSheet(spreadsheet);
+        createdSheets.push(sheetName);
+        Logger.log(`Created sheet: ${sheetName}`);
+      } else if (sheetName === SheetNames.CONFIGURATION) {
+        createConfigurationSheet(spreadsheet);
+        createdSheets.push(sheetName);
+        Logger.log(`Created sheet: ${sheetName}`);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully created ${createdSheets.length} sheet(s)`,
+      createdSheets: createdSheets
+    };
+
+  } catch (error) {
+    Logger.log(`Error setting up missing sheets: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Create IRT RAW data sheet with proper headers
+ * @param {Spreadsheet} spreadsheet - Spreadsheet object
+ */
+function createIRTRawDataSheet(spreadsheet) {
+  const sheet = spreadsheet.insertSheet(SheetNames.IRT_RAW_DATA);
+
+  // Set headers
+  const headers = [
+    'Case ID',
+    'Source Sheet',
+    'Case Open DateTime',
+    'First SO DateTime',
+    'Status History JSON',
+    'ReOpen History JSON',
+    'Current Status',
+    'ReOpen Count',
+    'Total SO Period Hours',
+    'IRT Hours',
+    'IRT Remaining Hours',
+    'Last Updated',
+    'Updated By'
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  // Format header row
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#4285f4');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setHorizontalAlignment('center');
+
+  // Set column widths
+  sheet.setColumnWidth(1, 150); // Case ID
+  sheet.setColumnWidth(2, 120); // Source Sheet
+  sheet.setColumnWidth(3, 180); // Case Open DateTime
+  sheet.setColumnWidth(4, 180); // First SO DateTime
+  sheet.setColumnWidth(5, 200); // Status History JSON
+  sheet.setColumnWidth(6, 200); // ReOpen History JSON
+  sheet.setColumnWidth(7, 130); // Current Status
+  sheet.setColumnWidth(8, 100); // ReOpen Count
+  sheet.setColumnWidth(9, 150); // Total SO Period Hours
+  sheet.setColumnWidth(10, 100); // IRT Hours
+  sheet.setColumnWidth(11, 150); // IRT Remaining Hours
+  sheet.setColumnWidth(12, 180); // Last Updated
+  sheet.setColumnWidth(13, 120); // Updated By
+
+  // Freeze header row
+  sheet.setFrozenRows(1);
+
+  Logger.log('IRT RAW data sheet created successfully');
+}
+
+/**
+ * Create Configuration sheet with proper structure
+ * @param {Spreadsheet} spreadsheet - Spreadsheet object
+ */
+function createConfigurationSheet(spreadsheet) {
+  const sheet = spreadsheet.insertSheet(SheetNames.CONFIGURATION);
+
+  // Set headers and initial data
+  const headers = [
+    'Setting Key',
+    'Setting Value',
+    'Description',
+    'Last Updated'
+  ];
+
+  const initialData = [
+    headers,
+    ['IRT_START_DATE', '2025/11/01', 'IRT tracking start date (YYYY/MM/DD format)', new Date().toISOString()],
+    ['QUARTER', 'Q4 2025', 'Current quarter', new Date().toISOString()],
+    ['PREVIOUS_QUARTER_SPREADSHEET_ID', '', 'Previous quarter spreadsheet ID for reference', ''],
+    ['ALERT_EMAIL', '', 'Email address for IRT alerts (comma-separated for multiple)', ''],
+    ['AUTO_SYNC_ENABLED', 'TRUE', 'Enable automatic IRT sync (TRUE/FALSE)', new Date().toISOString()],
+    ['SYNC_INTERVAL_HOURS', '1', 'IRT sync interval in hours', new Date().toISOString()]
+  ];
+
+  sheet.getRange(1, 1, initialData.length, headers.length).setValues(initialData);
+
+  // Format header row
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#34a853');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setHorizontalAlignment('center');
+
+  // Set column widths
+  sheet.setColumnWidth(1, 250); // Setting Key
+  sheet.setColumnWidth(2, 300); // Setting Value
+  sheet.setColumnWidth(3, 400); // Description
+  sheet.setColumnWidth(4, 180); // Last Updated
+
+  // Freeze header row
+  sheet.setFrozenRows(1);
+
+  Logger.log('Configuration sheet created successfully');
+}
+

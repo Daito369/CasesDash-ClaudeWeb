@@ -92,12 +92,15 @@ async function testConnection() {
     if (result.success) {
       showSuccess('settingsSuccess', '✅ Connection successful! All required sheets found.');
       displayConnectionStatus(result.validation);
+      hideMissingSheetsWarning();
     } else {
-      let errorMsg = result.error || 'Connection failed';
       if (result.missingSheets && result.missingSheets.length > 0) {
-        errorMsg += `\n\nMissing sheets:\n${result.missingSheets.join('\n')}`;
+        // Show missing sheets warning with setup button
+        showMissingSheetsWarning(result.missingSheets);
+      } else {
+        let errorMsg = result.error || 'Connection failed';
+        showError('settingsError', errorMsg);
       }
-      showError('settingsError', errorMsg);
     }
 
   } catch (error) {
@@ -138,17 +141,20 @@ async function saveSpreadsheetConfig() {
     if (result.success) {
       showSuccess('settingsSuccess', '✅ Configuration saved successfully!');
       displayConnectionStatus(result.validation);
+      hideMissingSheetsWarning();
 
       // Update dashboard status
       setTimeout(() => {
         checkSpreadsheetStatus();
       }, 500);
     } else {
-      let errorMsg = result.error || 'Configuration failed';
       if (result.missingSheets && result.missingSheets.length > 0) {
-        errorMsg += `\n\nMissing sheets:\n${result.missingSheets.join('\n')}`;
+        // Show missing sheets warning with setup button
+        showMissingSheetsWarning(result.missingSheets);
+      } else {
+        let errorMsg = result.error || 'Configuration failed';
+        showError('settingsError', errorMsg);
       }
-      showError('settingsError', errorMsg);
     }
 
   } catch (error) {
@@ -246,6 +252,85 @@ function hideSuccess(elementId) {
   if (element) {
     element.style.display = 'none';
     element.textContent = '';
+  }
+}
+
+/**
+ * Show missing sheets warning
+ * @param {Array<string>} missingSheets - List of missing sheet names
+ */
+function showMissingSheetsWarning(missingSheets) {
+  const container = document.getElementById('missingSheets');
+  const list = document.getElementById('missingSheetsList');
+
+  if (container && list) {
+    list.innerHTML = `The following sheets are missing:<br><strong>${missingSheets.join(', ')}</strong><br><br>Click the button below to automatically create these sheets with proper headers and formatting.`;
+    container.style.display = 'block';
+  }
+
+  // Hide error message if showing warning
+  hideError('settingsError');
+}
+
+/**
+ * Hide missing sheets warning
+ */
+function hideMissingSheetsWarning() {
+  const container = document.getElementById('missingSheets');
+  if (container) {
+    container.style.display = 'none';
+  }
+}
+
+/**
+ * Setup missing sheets automatically
+ */
+async function setupMissingSheets() {
+  console.log('Setting up missing sheets...');
+
+  hideError('settingsError');
+  hideSuccess('settingsSuccess');
+  showLoading('settingsLoading');
+
+  const setupBtn = document.getElementById('setupSheetsBtn');
+  if (setupBtn) setupBtn.disabled = true;
+
+  try {
+    const result = await API.spreadsheet.setupMissingSheets();
+
+    console.log('Setup result:', result);
+
+    if (result.success) {
+      const message = result.createdSheets && result.createdSheets.length > 0
+        ? `✅ Successfully created ${result.createdSheets.length} sheet(s): ${result.createdSheets.join(', ')}`
+        : '✅ All required sheets already exist';
+
+      showSuccess('settingsSuccess', message);
+      hideMissingSheetsWarning();
+
+      // Re-validate connection
+      setTimeout(async () => {
+        const spreadsheetId = document.getElementById('spreadsheetId').value;
+        if (spreadsheetId) {
+          const validation = await API.spreadsheet.configure(spreadsheetId);
+          if (validation.success) {
+            displayConnectionStatus(validation.validation);
+            checkSpreadsheetStatus();
+          }
+        }
+      }, 1000);
+
+    } else {
+      showError('settingsError', result.error || 'Failed to setup sheets');
+    }
+
+  } catch (error) {
+    const errorMessage = handleAPIError(error, 'setup sheets');
+    showError('settingsError', errorMessage);
+
+  } finally {
+    hideLoading('settingsLoading');
+    if (setupBtn) setupBtn.disabled = false;
   }
 }
 
