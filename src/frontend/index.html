@@ -208,30 +208,60 @@
               </select>
             </div>
 
+            <!-- Case ID and Case Status -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="caseId">Case ID *</label>
+                <input type="text" id="caseId" class="form-input" placeholder="X-XXXXXXXXXXXXX (auto-generated if empty)" pattern="^\d-\d{13}$" title="Format: X-XXXXXXXXXXXXX (1 digit, dash, 13 digits)">
+              </div>
+              <div class="form-group">
+                <label for="caseStatus">Case Status *</label>
+                <select id="caseStatus" class="form-input" required>
+                  <option value="Assigned">Assigned</option>
+                  <option value="Solution Offered">Solution Offered</option>
+                  <option value="Finished">Finished</option>
+                </select>
+              </div>
+            </div>
+
             <!-- Date and Time -->
             <div class="form-row">
               <div class="form-group">
                 <label for="caseOpenDate">Case Open Date *</label>
-                <input type="date" id="caseOpenDate" class="form-input" required>
+                <input type="date" id="caseOpenDate" class="form-input" required title="Format: YYYY-MM-DD or use date picker">
               </div>
               <div class="form-group">
                 <label for="caseOpenTime">Case Open Time *</label>
-                <input type="time" id="caseOpenTime" class="form-input" required>
+                <input type="time" id="caseOpenTime" class="form-input" step="1" required title="Format: HH:MM:SS or use time picker">
               </div>
             </div>
 
-            <!-- Incoming Segment -->
-            <div class="form-group">
-              <label for="incomingSegment">Incoming Segment *</label>
-              <select id="incomingSegment" class="form-input" required>
-                <option value="">Select Segment...</option>
-                <option value="Platinum">Platinum</option>
-                <option value="Titanium">Titanium</option>
-                <option value="Gold">Gold</option>
-                <option value="Silver">Silver</option>
-                <option value="Bronze - Low">Bronze - Low</option>
-                <option value="Bronze - High">Bronze - High</option>
-              </select>
+            <!-- Segments -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="incomingSegment">Incoming Segment *</label>
+                <select id="incomingSegment" class="form-input" required onchange="handleSegmentChange()">
+                  <option value="">Select Segment...</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Titanium">Titanium</option>
+                  <option value="Gold" selected>Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Bronze - Low">Bronze - Low</option>
+                  <option value="Bronze - High">Bronze - High</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="finalSegment">Final Segment *</label>
+                <select id="finalSegment" class="form-input" required>
+                  <option value="">Select Segment...</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Titanium">Titanium</option>
+                  <option value="Gold" selected>Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Bronze - Low">Bronze - Low</option>
+                  <option value="Bronze - High">Bronze - High</option>
+                </select>
+              </div>
             </div>
 
             <!-- Product Category -->
@@ -299,20 +329,16 @@
               </label>
             </div>
 
-            <!-- Assignee -->
-            <div class="form-group">
-              <label for="firstAssignee">First Assignee</label>
-              <input type="text" id="firstAssignee" class="form-input" placeholder="LDAP (leave blank for auto-fill)">
-            </div>
-
-            <!-- Case Status -->
-            <div class="form-group">
-              <label for="caseStatus">Case Status</label>
-              <select id="caseStatus" class="form-input">
-                <option value="Assigned">Assigned</option>
-                <option value="Solution Offered">Solution Offered</option>
-                <option value="Finished">Finished</option>
-              </select>
+            <!-- Assignees -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstAssignee">1st Assignee *</label>
+                <input type="text" id="firstAssignee" class="form-input" required placeholder="Ldap (auto-filled with your LDAP)" title="Format: Ldap or Ldap@google.com">
+              </div>
+              <div class="form-group">
+                <label for="finalAssignee">Final Assignee *</label>
+                <input type="text" id="finalAssignee" class="form-input" required placeholder="Ldap (defaults to 1st Assignee)" title="Format: Ldap or Ldap@google.com">
+              </div>
             </div>
 
             <!-- Actions -->

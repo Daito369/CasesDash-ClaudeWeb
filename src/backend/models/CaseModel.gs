@@ -195,7 +195,18 @@ class Case {
     row[columnMap.CHANGE_TO_CHILD] = this.changeToChild ? 1 : 0;
     row[columnMap.FINAL_ASSIGNEE] = this.finalAssignee;
     row[columnMap.FINAL_SEGMENT] = this.finalSegment;
-    // SALES_CHANNEL is formula-calculated
+
+    // SALES_CHANNEL (channel): Determined by sheet name per specification lines 1183-1188
+    let channel = '';
+    if (sheetName.includes('Email')) {
+      channel = 'Email';
+    } else if (sheetName.includes('Chat')) {
+      channel = 'Chat';
+    } else if (sheetName.includes('Phone')) {
+      channel = 'Phone';
+    }
+    row[columnMap.SALES_CHANNEL] = channel;
+
     row[columnMap.CASE_STATUS] = this.caseStatus;
     row[columnMap.AM_TRANSFER] = this.amTransfer;
     row[columnMap.NON_NCC] = this.nonNCC;
