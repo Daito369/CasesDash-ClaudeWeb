@@ -39,6 +39,14 @@ function showScreen(screenName) {
     loadSpreadsheetSettings();
   } else if (screenName === 'dashboard') {
     checkSpreadsheetStatus();
+  } else if (screenName === 'createCase') {
+    if (typeof loadCreateCaseScreen === 'function') {
+      loadCreateCaseScreen();
+    }
+  } else if (screenName === 'myCases') {
+    if (typeof loadMyCasesScreen === 'function') {
+      loadMyCasesScreen();
+    }
   }
 }
 

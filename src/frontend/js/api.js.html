@@ -172,6 +172,103 @@ const API = {
         throw error;
       }
     }
+  },
+
+  /**
+   * Case Management API
+   */
+  case: {
+    /**
+     * Create a new case
+     * @param {Object} caseData - Case data
+     * @param {string} sheetName - Target sheet name
+     * @return {Promise<Object>} Creation result
+     */
+    create: async function(caseData, sheetName) {
+      try {
+        const result = await callBackend('frontendCreateCase', caseData, sheetName);
+        return result;
+      } catch (error) {
+        console.error('Create case error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get current user's cases
+     * @param {Object} filters - Filter options
+     * @return {Promise<Object>} Cases result
+     */
+    getMyCases: async function(filters) {
+      try {
+        const result = await callBackend('frontendGetMyCases', filters);
+        return result;
+      } catch (error) {
+        console.error('Get my cases error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Update a case
+     * @param {string} caseId - Case ID
+     * @param {Object} updates - Updates to apply
+     * @return {Promise<Object>} Update result
+     */
+    update: async function(caseId, updates) {
+      try {
+        const result = await callBackend('frontendUpdateCase', caseId, updates);
+        return result;
+      } catch (error) {
+        console.error('Update case error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get a single case
+     * @param {string} caseId - Case ID
+     * @return {Promise<Object>} Case data
+     */
+    get: async function(caseId) {
+      try {
+        const result = await callBackend('frontendGetCase', caseId);
+        return result;
+      } catch (error) {
+        console.error('Get case error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Search cases
+     * @param {Object} searchCriteria - Search criteria
+     * @return {Promise<Object>} Search results
+     */
+    search: async function(searchCriteria) {
+      try {
+        const result = await callBackend('frontendSearchCases', searchCriteria);
+        return result;
+      } catch (error) {
+        console.error('Search cases error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get cases with low IRT
+     * @param {number} thresholdHours - Threshold in hours
+     * @return {Promise<Object>} Low IRT cases
+     */
+    getLowIRT: async function(thresholdHours) {
+      try {
+        const result = await callBackend('frontendGetLowIRTCases', thresholdHours);
+        return result;
+      } catch (error) {
+        console.error('Get low IRT cases error:', error);
+        throw error;
+      }
+    }
   }
 };
 
