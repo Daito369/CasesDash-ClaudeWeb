@@ -284,7 +284,7 @@
             <!-- Sub Category (OT sheets only) -->
             <div id="subCategoryGroup" class="form-group" style="display: none;">
               <label for="subCategory">Sub Category *</label>
-              <select id="subCategory" class="form-input">
+              <select id="subCategory" class="form-input" onchange="handleSubCategoryChange()">
                 <option value="">Select Sub Category...</option>
                 <option value="Search">Search</option>
                 <option value="P-MAX">P-MAX</option>
@@ -297,10 +297,12 @@
               </select>
             </div>
 
-            <!-- Issue Category -->
+            <!-- Issue Category (OT sheets: dynamic based on Sub Category, 3PO sheets: static list) -->
             <div class="form-group">
               <label for="issueCategory">Issue Category *</label>
-              <input type="text" id="issueCategory" class="form-input" required placeholder="Enter issue category">
+              <select id="issueCategory" class="form-input" required>
+                <option value="">Select Issue Category...</option>
+              </select>
             </div>
 
             <!-- Details (3PO sheets only) -->
@@ -326,6 +328,14 @@
               <label class="checkbox-label">
                 <input type="checkbox" id="mcc">
                 MCC
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="changeToChild">
+                Change to Child
+              </label>
+              <label id="bugL2Group" class="checkbox-label">
+                <input type="checkbox" id="bugL2">
+                Bug / L2
               </label>
             </div>
 

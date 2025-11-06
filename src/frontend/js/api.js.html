@@ -91,6 +91,20 @@ const API = {
         console.error('Refresh auth error:', error);
         throw error;
       }
+    },
+
+    /**
+     * Get current user information
+     * @return {Promise<Object>} User object with email, name, etc.
+     */
+    getCurrentUser: async function() {
+      try {
+        const result = await callBackend('getCurrentUser');
+        return result;
+      } catch (error) {
+        console.error('Get current user error:', error);
+        throw error;
+      }
     }
   },
 
