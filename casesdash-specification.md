@@ -1072,14 +1072,14 @@ Dashboardと同じカード形式で表示：
 | 1st Close Date | 日付入力 | YYYY/MM/DD | 今日 | - |
 | 1st Close Time | 時間入力 | HH:MM:SS | 現在時刻 | - |
 
-### OTシート特有フィールド（OT Email, OT Chat, OT Phone）
+#### 4.3.7 OTシート特有フィールド（OT Email, OT Chat, OT Phone）
 
 | フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
 |-------------|-----------------|------------|-------------|------|
 | Sub Category | セレクトボックス | Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other | - | - |
 | Issue Category | セレクトボックス | Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他 | - | - |
 
-#### 4.5.1 OTシートのSub Categoryに応じたIssue Categoryの選択肢
+**Sub Categoryに応じたIssue Categoryの選択肢**:
 - **Search**：Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他
 - **P-MAX**：P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他
 - **Display**：Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他
@@ -1089,7 +1089,7 @@ Dashboardと同じカード形式で表示：
 - **M&A**：Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他
 - **Other**：パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他
 
-### 3POシート特有フィールド（3PO Email, 3PO Chat, 3PO Phone）
+#### 4.3.8 3POシート特有フィールド（3PO Email, 3PO Chat, 3PO Phone）
 
 | フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
 |-------------|-----------------|------------|-------------|------|
@@ -1097,7 +1097,7 @@ Dashboardと同じカード形式で表示：
 | Details | セレクトボックス（入力して部分一致検索あり） | 不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション | - | - |
 
 
-## データ追加・更新機能仕様（NEW）
+## 5. データ追加・更新機能仕様
 
 ### 新規ケース追加処理フロー
 
@@ -1359,7 +1359,7 @@ const AuditLogSpec = {
 };
 ```
 
-#### 4.3.7 Live Mode対応
+#### 4.3.9 Live Mode対応
 - **別ウィンドウ表示**: ポップアップウィンドウでの独立動作
 - **リアルタイム同期**: メインダッシュボードとの自動同期
 - **ウィンドウサイズ記憶**: ユーザー設定のウィンドウサイズ保持
@@ -2753,32 +2753,9 @@ function handleExport() {
 </div>
 ```
 
-## 検索・フィルター機能
+#### 4.4.6 統計分析機能のアクセス制御仕様
 
-### 基本検索
-
-- **全シート統合検索**: すべてのシートを対象
-- **シート指定検索**: 特定シートのみ
-- **ケースID検索**: 即座に該当ケースを表示
-- **担当者検索**: Ldapによる検索
-- **ステータス検索**: ケースステータス別
-
-### 高度なフィルター
-
-| フィルター項目 | タイプ | 選択肢 |
-|---------------|-------|--------|
-| Sheet | マルチセレクト | 6つのシート |
-| Channel | マルチセレクト | Email, Chat, Phone |
-| Case Type | マルチセレクト | OT, 3PO |
-| Segment | マルチセレクト | Platinum, Titanium, Gold, Silver, Bronze |
-| Category | マルチセレクト | Search, Display, Video等 |
-| Case Status | マルチセレクト | Assigned, Solution Offered, Finished |
-| SLA Status | マルチセレクト | 正常, 警告（3時間未満）, 違反 |
-
-
-### 5.1 統計分析機能のアクセス制御仕様
-
-#### 5.1.1 ユーザー別データ表示権限
+**ユーザー別データ表示権限**:
 
 ```javascript
 const UserDataAccessControl = {
@@ -2815,7 +2792,7 @@ const UserDataAccessControl = {
 };
 ```
 
-#### 5.1.2 権限レベル別機能制限
+**権限レベル別機能制限**:
 
 | 権限レベル | 本人データ | 他者個人データ | 集計データ | Sentiment編集 |
 |------------|------------|---------------|------------|---------------|
@@ -3632,49 +3609,71 @@ function getUserRole(email) {
 #### 通知システム
 ```javascript
 // NotificationSystem.gs
-function sendChatNotification(caseData, webhookUrl) {
-  const payload = {
-    text: "⚠️ IRT Alert",
-    cards: [{
-      header: {
-        title: "IRT Timer Warning",
-        subtitle: "Immediate attention required"
-      },
-      sections: [{
-        widgets: [
-          {
-            keyValue: {
-              topLabel: "LDAP",
-              content: caseData.finalAssignee
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Case ID", 
-              content: caseData.caseId
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Message",
-              content: "⚠️ IRT timer has fallen below 2 hours. Immediate action required."
-            }
-          }
-        ]
-      }]
-    }]
-  };
-  
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    payload: JSON.stringify(payload)
-  };
-  
+/**
+ * IRT警告メールを送信（Gmail経由）
+ * @param {Object} caseData - ケースデータ
+ * @param {string} teamLeaderEmail - チームリーダーのメールアドレス
+ */
+function sendIRTAlertEmail(caseData, teamLeaderEmail) {
+  const subject = `⚠️ IRT Alert: ${caseData.caseId} - Immediate Action Required`;
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Google Sans', Roboto, Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ea4335; color: white; padding: 20px; }
+        .content { background-color: #f8f9fa; padding: 20px; }
+        .info-row { margin: 10px 0; padding: 10px; background-color: white; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>⚠️ IRT Timer Warning</h2>
+          <p>Immediate attention required</p>
+        </div>
+        <div class="content">
+          <div class="info-row">
+            <strong>Assignee (LDAP):</strong> ${caseData.finalAssignee}
+          </div>
+          <div class="info-row">
+            <strong>Case ID:</strong> ${caseData.caseId}
+          </div>
+          <div class="info-row">
+            <strong>IRT Remaining:</strong> ${caseData.irtTimer}
+          </div>
+          <div class="info-row">
+            ⚠️ IRT timer has fallen below 2 hours. Immediate action required.
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const plainTextBody = `
+⚠️ IRT ALERT - Immediate Action Required
+
+Assignee: ${caseData.finalAssignee}
+Case ID: ${caseData.caseId}
+IRT Remaining: ${caseData.irtTimer}
+
+⚠️ IRT timer has fallen below 2 hours. Please take immediate action.
+  `;
+
   try {
-    UrlFetchApp.fetch(webhookUrl, options);
+    GmailApp.sendEmail(
+      teamLeaderEmail,
+      subject,
+      plainTextBody,
+      {
+        htmlBody: htmlBody,
+        name: 'CasesDash IRT Alert System'
+      }
+    );
     Logger.log(`Notification sent for case ${caseData.caseId}`);
   } catch (error) {
     Logger.log(`Failed to send notification: ${error.toString()}`);
@@ -3703,9 +3702,11 @@ function getSettings() {
   const properties = PropertiesService.getScriptProperties();
   return {
     spreadsheetId: properties.getProperty('SPREADSHEET_ID'),
-    teamLeaderWebhook: properties.getProperty('TEAM_LEADER_WEBHOOK'),
+    defaultTLEmail: properties.getProperty('DEFAULT_TL_EMAIL'),
     theme: properties.getProperty('THEME') || 'light',
-    language: properties.getProperty('LANGUAGE') || 'en'
+    language: properties.getProperty('LANGUAGE') || 'en',
+    irtAlertEnabled: properties.getProperty('IRT_ALERT_ENABLED') === 'true',
+    irtAlertThreshold: parseInt(properties.getProperty('IRT_ALERT_THRESHOLD') || '2')
   };
 }
 ```
