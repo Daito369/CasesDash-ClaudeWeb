@@ -39,7 +39,7 @@ function showScreen(screenName) {
   if (screenName === 'settings') {
     loadSpreadsheetSettings();
   } else if (screenName === 'dashboard') {
-    checkSpreadsheetStatus();
+    // checkSpreadsheetStatus(); // Temporarily disabled to avoid rate limiting
   } else if (screenName === 'createCase') {
     if (typeof loadCreateCaseScreen === 'function') {
       loadCreateCaseScreen();
