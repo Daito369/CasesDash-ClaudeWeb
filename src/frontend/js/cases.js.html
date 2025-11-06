@@ -101,7 +101,7 @@ async function handleCreateCase(event) {
     console.log('Target sheet:', sheetName);
 
     // Create case
-    const result = await API.case.create(caseData, sheetName);
+    const result = await API.cases.create(caseData, sheetName);
 
     console.log('Create case result:', result);
 
@@ -137,7 +137,7 @@ async function loadMyCasesScreen() {
   hideError('myCasesError');
 
   try {
-    const result = await API.case.getMyCases({});
+    const result = await API.cases.getMyCases({});
 
     console.log('My cases result:', result);
 
@@ -245,7 +245,7 @@ async function updateCaseStatus(caseId) {
   }
 
   try {
-    const result = await API.case.update(caseId, { caseStatus: newStatus });
+    const result = await API.cases.update(caseId, { caseStatus: newStatus });
 
     if (result.success) {
       alert(`Case ${caseId} updated to ${newStatus}`);
