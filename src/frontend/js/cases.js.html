@@ -23,6 +23,31 @@ async function loadCreateCaseScreen() {
 
   if (dateInput) dateInput.value = formatDateForInput(now);
   if (timeInput) timeInput.value = formatTimeForInput(now);
+
+  // Auto-fill assignees with current user's LDAP
+  try {
+    const user = await API.auth.getCurrentUser();
+    if (user && user.email) {
+      const ldap = user.email.split('@')[0];
+      const firstAssigneeInput = document.getElementById('firstAssignee');
+      const finalAssigneeInput = document.getElementById('finalAssignee');
+
+      if (firstAssigneeInput && !firstAssigneeInput.value) {
+        firstAssigneeInput.value = ldap;
+      }
+      if (finalAssigneeInput && !finalAssigneeInput.value) {
+        finalAssigneeInput.value = ldap;
+      }
+    }
+  } catch (error) {
+    console.error('Error auto-filling assignees:', error);
+  }
+
+  // Auto-focus on first required field (Target Sheet)
+  const sheetNameInput = document.getElementById('sheetName');
+  if (sheetNameInput) {
+    sheetNameInput.focus();
+  }
 }
 
 /**
@@ -46,16 +71,19 @@ async function handleCreateCase(event) {
     // Get form data
     const sheetName = document.getElementById('sheetName').value;
     const caseData = {
+      caseId: document.getElementById('caseId').value,
+      caseStatus: document.getElementById('caseStatus').value,
       caseOpenDate: document.getElementById('caseOpenDate').value,
       caseOpenTime: document.getElementById('caseOpenTime').value,
       incomingSegment: document.getElementById('incomingSegment').value,
+      finalSegment: document.getElementById('finalSegment').value,
+      firstAssignee: document.getElementById('firstAssignee').value,
+      finalAssignee: document.getElementById('finalAssignee').value,
       productCategory: document.getElementById('productCategory').value,
       issueCategory: document.getElementById('issueCategory').value,
       triage: document.getElementById('triage').checked,
       is30: document.getElementById('is30').checked,
-      mcc: document.getElementById('mcc').checked,
-      firstAssignee: document.getElementById('firstAssignee').value,
-      caseStatus: document.getElementById('caseStatus').value
+      mcc: document.getElementById('mcc').checked
     };
 
     // Sheet-specific fields
@@ -306,6 +334,19 @@ function handleSheetChange() {
 }
 
 /**
+ * Handle segment change - sync Final Segment with Incoming Segment
+ */
+function handleSegmentChange() {
+  const incomingSegment = document.getElementById('incomingSegment').value;
+  const finalSegmentSelect = document.getElementById('finalSegment');
+
+  if (finalSegmentSelect && incomingSegment) {
+    // Auto-set Final Segment to match Incoming Segment
+    finalSegmentSelect.value = incomingSegment;
+  }
+}
+
+/**
  * Format date for input field (YYYY-MM-DD)
  * @param {Date} date - Date object
  * @return {string}
@@ -318,14 +359,15 @@ function formatDateForInput(date) {
 }
 
 /**
- * Format time for input field (HH:MM)
+ * Format time for input field (HH:MM:SS)
  * @param {Date} date - Date object
  * @return {string}
  */
 function formatTimeForInput(date) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 /**
