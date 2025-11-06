@@ -1,5 +1,5 @@
 # CasesDash - Claude Developer Guide
-** 回答は日本語で出力してください**
+## ※回答は日本語で出力してください
 **Version**: 3.0.0 (IRT Support - 2025 Q4)
 **Last Updated**: 2025-11-06
 **Target Audience**: Claude Code, AI Agents, Human Developers
