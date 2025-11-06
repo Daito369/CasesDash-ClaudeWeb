@@ -142,9 +142,8 @@ class Case {
       const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
       row[columnMap.DATE] = todayStr;
 
-      // Column B (CASES): Auto-generated HYPERLINK formula per specification
-      // Format: =HYPERLINK("https://cases.connect.corp.google.com/#/case/[CaseID]", "[CaseID]")
-      row[columnMap.CASES] = `=HYPERLINK("https://cases.connect.corp.google.com/#/case/${this.caseId}", "${this.caseId}")`;
+      // Column B (CASES): Leave empty - sheet has default formula
+      row[columnMap.CASES] = '';
 
       row[columnMap.CASE_ID] = this.caseId;
       row[columnMap.CASE_OPEN_DATE] = this.caseOpenDate;
@@ -166,8 +165,8 @@ class Case {
       }
     } else {
       // Chat or Phone (no DATE column, starts with CASES at Column A)
-      // Column A (CASES): Auto-generated HYPERLINK formula per specification
-      row[columnMap.CASES] = `=HYPERLINK("https://cases.connect.corp.google.com/#/case/${this.caseId}", "${this.caseId}")`;
+      // Column A (CASES): Leave empty - sheet has default formula
+      row[columnMap.CASES] = '';
 
       row[columnMap.CASE_ID] = this.caseId;
       row[columnMap.CASE_OPEN_DATE] = this.caseOpenDate;
@@ -196,16 +195,8 @@ class Case {
     row[columnMap.FINAL_ASSIGNEE] = this.finalAssignee;
     row[columnMap.FINAL_SEGMENT] = this.finalSegment;
 
-    // SALES_CHANNEL (channel): Determined by sheet name per specification lines 1183-1188
-    let channel = '';
-    if (sheetName.includes('Email')) {
-      channel = 'Email';
-    } else if (sheetName.includes('Chat')) {
-      channel = 'Chat';
-    } else if (sheetName.includes('Phone')) {
-      channel = 'Phone';
-    }
-    row[columnMap.SALES_CHANNEL] = channel;
+    // SALES_CHANNEL (column T): Leave empty - sheet has default formula
+    row[columnMap.SALES_CHANNEL] = '';
 
     row[columnMap.CASE_STATUS] = this.caseStatus;
     row[columnMap.AM_TRANSFER] = this.amTransfer;

@@ -295,6 +295,30 @@ function testAuthentication() {
 }
 
 /**
+ * Get current user information
+ * @return {Object} User object { email, name }
+ */
+function getCurrentUser() {
+  try {
+    const user = Session.getActiveUser();
+    const email = user.getEmail();
+
+    return {
+      success: true,
+      email: email,
+      name: email.split('@')[0] // Extract name from email
+    };
+
+  } catch (error) {
+    Logger.log(`getCurrentUser error: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Case Management Functions (exposed to frontend)
  */
 

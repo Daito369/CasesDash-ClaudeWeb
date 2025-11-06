@@ -83,7 +83,9 @@ async function handleCreateCase(event) {
       issueCategory: document.getElementById('issueCategory').value,
       triage: document.getElementById('triage').checked,
       is30: document.getElementById('is30').checked,
-      mcc: document.getElementById('mcc').checked
+      mcc: document.getElementById('mcc').checked,
+      changeToChild: document.getElementById('changeToChild').checked,
+      bugL2: document.getElementById('bugL2').checked
     };
 
     // Sheet-specific fields
@@ -347,6 +349,120 @@ function handleSegmentChange() {
 }
 
 /**
+ * Issue Category options mapping for OT sheets (spec lines 1082-1090)
+ */
+const ISSUE_CATEGORY_MAP = {
+  'Search': [
+    'Search 仕様・機能',
+    'Search レポート',
+    'Search カスタムテスト・バリエーション',
+    '無効なクリックの調査',
+    '自動化ルール',
+    'Search その他'
+  ],
+  'P-MAX': [
+    'P-MAX 配信関連',
+    'P-MAX 仕様・機能',
+    'P-MAX レポート',
+    'P-MAX カスタムテスト・バリエーション',
+    '除外 KW 追加依頼',
+    'P-MAX その他'
+  ],
+  'Display': [
+    'Display 仕様・機能',
+    'Display 配信状況',
+    '動的リマーケティング広告・ビジネスデータフィード',
+    '「ウェブサイトを訪れたユーザー」のデータセグメント',
+    '顧客リスト',
+    'データセグメントの共有',
+    'シームカービングのオプトアウト',
+    'Display レポート',
+    'Display 3PAS 関連',
+    'Display その他'
+  ],
+  'Demand Gen': [
+    'Demand Gen 仕様・機能',
+    'Demand Gen 配信関連',
+    'オーディエンス',
+    'BLS',
+    'Demand Gen レポート',
+    'Demand Gen 3PAS 関連',
+    'Demand Gen その他'
+  ],
+  'Video': [
+    'Video 仕様・機能',
+    'Video 配信状況',
+    'YouTube ユーザーセグメント',
+    'BLS (ブランドリフト調査)/SLS (検索数の増加測定)',
+    'Video レポート',
+    'Video 3PAS 関連',
+    'Video その他'
+  ],
+  'Apps': [
+    'Apps 配信関連',
+    'Apps 仕様・機能',
+    'Apps レポート',
+    'コンバージョン',
+    '除外設定・オプトアウト依頼',
+    'フィードを使用したアプリキャンペーン',
+    'アプリキャンペーン以外のコンバージョン (Appify)',
+    'アプリユーザーへのリマーケティング',
+    'Apps その他'
+  ],
+  'M&A': [
+    'Ads CV の計測',
+    'Ads CV のレポート',
+    'GA4 CV の計測',
+    'GA4 レポート',
+    'GA4 CV と Ads CV の乖離',
+    'OCI レポート乖離',
+    'OCI エラー',
+    '拡張コンバージョン',
+    'リードの拡張コンバージョン',
+    'Google タグ',
+    'GTM を使用した Ads リマーケティング設定',
+    'GA4 からインポートしたオーディエンス',
+    'M&Aその他'
+  ],
+  'Other': [
+    'パートナープログラム',
+    'エディタ',
+    '本人確認',
+    'UI 操作・エラー',
+    'Ads 権限付与',
+    'GW・年末年始',
+    'Other その他'
+  ]
+};
+
+/**
+ * Handle Sub Category change - update Issue Category options
+ */
+function handleSubCategoryChange() {
+  const subCategorySelect = document.getElementById('subCategory');
+  const issueCategorySelect = document.getElementById('issueCategory');
+
+  if (!subCategorySelect || !issueCategorySelect) return;
+
+  const subCategory = subCategorySelect.value;
+
+  // Clear current options
+  issueCategorySelect.innerHTML = '<option value="">Select Issue Category...</option>';
+
+  // Get options for selected sub category
+  const options = ISSUE_CATEGORY_MAP[subCategory];
+
+  if (options && options.length > 0) {
+    options.forEach(option => {
+      const optionElement = document.createElement('option');
+      optionElement.value = option;
+      optionElement.textContent = option;
+      issueCategorySelect.appendChild(optionElement);
+    });
+  }
+}
+
+/**
  * Format date for input field (YYYY-MM-DD)
  * @param {Date} date - Date object
  * @return {string}
@@ -371,10 +487,44 @@ function formatTimeForInput(date) {
 }
 
 /**
+ * Add keyboard shortcuts for date/time inputs
+ */
+function setupKeyboardShortcuts() {
+  // Add event listeners for date and time inputs
+  const dateInput = document.getElementById('caseOpenDate');
+  const timeInput = document.getElementById('caseOpenTime');
+
+  if (dateInput) {
+    dateInput.addEventListener('keydown', (e) => {
+      // Ctrl+; sets today's date
+      if (e.ctrlKey && e.key === ';') {
+        e.preventDefault();
+        const today = new Date();
+        dateInput.value = formatDateForInput(today);
+      }
+    });
+  }
+
+  if (timeInput) {
+    timeInput.addEventListener('keydown', (e) => {
+      // Ctrl+Shift+; sets current time
+      if (e.ctrlKey && e.shiftKey && e.key === ':') {
+        e.preventDefault();
+        const now = new Date();
+        timeInput.value = formatTimeForInput(now);
+      }
+    });
+  }
+}
+
+/**
  * Initialize cases module
  */
 function initCases() {
   console.log('Cases module initialized');
+
+  // Set up keyboard shortcuts for date/time inputs
+  setupKeyboardShortcuts();
 }
 
 // Initialize when DOM is ready (only in browser environment)
