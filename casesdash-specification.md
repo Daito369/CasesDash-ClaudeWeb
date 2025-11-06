@@ -42,7 +42,7 @@ CasesDashは、Google 広告サポートチームのケース管理を効率化�
 - **複数シート対応の必要性**: 6つのシートに対応
 - **IRT (Internal Resolution Time)メトリック管理**: 2025年Q4（11/1）より導入されたGoogle メトリックのメイン指標の正確な計算と追跡
 - **除外ケース管理**: Bug Case、L2 Consult、PayReq、Invoice Dispute、Workdriver、T&S Teamの適切な除外処理
-- **リアルタイム通知**: IRTタイマー2時間以下での自動Google Chat、メール通知
+- **リアルタイム通知**: IRTタイマー2時間以下での自動Gmail通知
 - **統合ユーザー管理**: 認証、プロファイル、権限管理の一元化
 
 ## 2. 実際のスプレッドシート構造に基づく詳細マッピング
@@ -981,49 +981,6 @@ Dashboardと同じカード形式で表示：
 └────────────────────────────────────────────────────────────┘
 ```
 
-## ダッシュボード表示仕様
-
-### ケースカード表示
-
-各ケースカードには以下の情報を表示：
-
-### 例
-```
-┌────────────────────────────────────────────────────────────┐
-│ [シートバッジ] [チャネルアイコン]                               │
-│ Case ID: X-XXXXXXXXXXXXX                                   │
-│ Assignee: username(Ldap)                                   │
-│ Segment: Gold | Category: Search                           │
-│ Status: Assigned 　　　　　　　　　                           │
-│ P95 Timer: 08:15:30                                        │
-│ P95 Exclusions:                                            │
-│[T&S（[IDT/Payreq]）] [L2][Bug]　（トグルONでP95から除外）       │
-│                                       [編集(歯車アイコン)]   │
-└────────────────────────────────────────────────────────────┘
-```
-
-[T&S 切替] 箇所は「Policy」の場合の仕様であり、「Billing」の場合は、Blocked by [IDT/Payreq]の切り替えでP95タイマーから除外
-Re-Open Caseの場合は、Case Statusが"Solution Offered/Finished"から"Assigned"に変更され、ケースカードに「RO」ラベルを付与
-
-### シート別カラーコーディング
-
-| シート | カラー | ボーダー |
-|--------|--------|----------|
-| OT Email | #4285F4 (Google Blue) | 実線 |
-| 3PO Email | #34A853 (Google Green) | 実線 |
-| OT Chat | #FBBC05 (Google Yellow) | 実線 |
-| 3PO Chat | #EA4335 (Google Red) | 実線 |
-| OT Phone | #8430CE (Google Purple) | 実線 |
-| 3PO Phone | #F57C00 (Google Orange) | 実線 |
-
-### リアルタイムタイマー仕様
-
-**P95タイマー:**
-- 標準: 72時間（3日）
-- 表示形式: HH:MM:SS
-- 期限切れ: "Missed"表示
-- P95除外対象：Excluded
-
 ### 4.3 Create Case（ケース作成）
 
 #### 4.3.1 概要と目的
@@ -1066,9 +1023,7 @@ Re-Open Caseの場合は、Case Statusが"Solution Offered/Finished"から"Assig
 **Policy セグメント特有**:
 - T&S Consulted フラグ
 
-## 新規ケース追加フォーム仕様（シート別動的対応）
-
-### 4.4 Create Case フォームレイアウト
+#### 4.3.5 Create Case フォームレイアウト
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ [Target Sheet *:セレクトボックス]                                     │
@@ -1094,7 +1049,7 @@ Re-Open Caseの場合は、Case Statusが"Solution Offered/Finished"から"Assig
   - [Product Category *] [Issue Category *] [Details *]
   - [Bug / L2 / T&S / Payreq]
 
-### 4.5 共通フィールド定義（全シート）
+#### 4.3.6 共通フィールド定義（全シート）
 
 | フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
 |-------------|-----------------|------------|-------------|------|
@@ -1404,7 +1359,7 @@ const AuditLogSpec = {
 };
 ```
 
-#### 4.3.5 Live Mode対応
+#### 4.3.7 Live Mode対応
 - **別ウィンドウ表示**: ポップアップウィンドウでの独立動作
 - **リアルタイム同期**: メインダッシュボードとの自動同期
 - **ウィンドウサイズ記憶**: ユーザー設定のウィンドウサイズ保持
@@ -1673,67 +1628,121 @@ function isNCC(caseData) {
 - 上記いずれかの値が入っている場合はNCCではない
 ```
 
-**IRT計算ロジック (GAS実装)**:
+**IRT計算ロジック (GAS実装) - 2025Q4完全版**:
+
+**重要**: この関数は**IRT RAW dataシート (2.7) から直接データを取得**します。複数回ReOpenに完全対応するため、6シートの列データ（firstCloseDate, reopenCloseDate）は使用しません。
+
 ```javascript
-function calculateIRT(caseData) {
-  const caseOpenDateTime = new Date(caseData.caseOpenDate + ' ' + caseData.caseOpenTime);
+function calculateIRT(caseId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const irtSheet = ss.getSheetByName('IRT RAW data');
 
-  // 最終クローズ時刻の判定
-  // Case Status = "Solution Offered" の時点のみ
-  let finalCloseDateTime;
+  if (!irtSheet) {
+    throw new Error('IRT RAW data シートが見つかりません');
+  }
 
-  if (caseData.caseStatus === 'Solution Offered') {
-    // クローズ済みケース (Solution Offeredのみ)
-    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
-      // Reopen後にクローズした場合
-      finalCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
-    } else if (caseData.firstCloseDate && caseData.firstCloseTime) {
-      // 初回クローズのみの場合
-      finalCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+  // IRT RAW dataシートから該当ケースを検索
+  const irtData = irtSheet.getDataRange().getValues();
+  const headerRow = irtData[0];
+  const caseIdCol = headerRow.indexOf('Case ID');
+
+  let irtRow = null;
+  for (let i = 1; i < irtData.length; i++) {
+    if (irtData[i][caseIdCol] === caseId) {
+      irtRow = irtData[i];
+      break;
     }
+  }
+
+  if (!irtRow) {
+    throw new Error(`Case ID ${caseId} がIRT RAW dataシートに見つかりません`);
+  }
+
+  // 列インデックスを取得
+  const caseOpenDateTimeCol = headerRow.indexOf('Case Open DateTime');
+  const reopenHistoryJsonCol = headerRow.indexOf('ReOpen History JSON');
+  const currentStatusCol = headerRow.indexOf('Current Status');
+  const irtHoursCol = headerRow.indexOf('IRT Hours');
+  const irtRemainingHoursCol = headerRow.indexOf('IRT Remaining Hours');
+  const withinSLACol = headerRow.indexOf('Within SLA');
+  const urgencyLevelCol = headerRow.indexOf('Urgency Level');
+
+  // Case Open DateTimeをパース
+  const caseOpenDateTime = new Date(irtRow[caseOpenDateTimeCol]);
+
+  // 現在時刻または最終クローズ時刻を取得
+  const currentStatus = irtRow[currentStatusCol];
+  let finalDateTime;
+
+  if (currentStatus === 'Solution Offered' || currentStatus === 'Finished') {
+    // クローズ済み: IRT RAW dataシートのIRT Hours列の値を使用
+    const storedIRTHours = irtRow[irtHoursCol];
+    const storedIRTRemaining = irtRow[irtRemainingHoursCol];
+    const storedWithinSLA = irtRow[withinSLACol];
+    const storedUrgencyLevel = irtRow[urgencyLevelCol];
+
+    return {
+      irt: storedIRTHours,
+      irtRemaining: storedIRTRemaining,
+      irtRemainingFormatted: formatTime(storedIRTRemaining),
+      withinSLA: storedWithinSLA,
+      urgencyLevel: storedUrgencyLevel,
+      isFinal: true  // 確定値であることを示す
+    };
   } else {
-    // Solution Offered以外のケース（Assigned, Finishedなど）
-    finalCloseDateTime = new Date(); // 現在時刻
+    // Assigned状態: リアルタイム計算
+    finalDateTime = new Date(); // 現在時刻
   }
 
-  // TRT = 最終クローズ（または現在時刻） - ケース作成
-  const trt = (finalCloseDateTime - caseOpenDateTime) / (1000 * 60 * 60); // 時間単位
+  // TRT（総経過時間）を計算
+  const trtHours = (finalDateTime - caseOpenDateTime) / (1000 * 60 * 60);
 
-  // SO期間を計算
-  let soPeriod = 0;
+  // ReOpen History JSONから合計SO期間を取得
+  let totalSOPeriodHours = 0;
+  const reopenHistoryJson = irtRow[reopenHistoryJsonCol];
 
-  if (caseData.firstCloseDate && caseData.firstCloseTime) {
-    const firstCloseDateTime = new Date(caseData.firstCloseDate + ' ' + caseData.firstCloseTime);
+  if (reopenHistoryJson && reopenHistoryJson !== '') {
+    try {
+      const reopenHistory = JSON.parse(reopenHistoryJson);
+      totalSOPeriodHours = reopenHistory.totalSOPeriodHours || 0;
 
-    if (caseData.reopenCloseDate && caseData.reopenCloseTime) {
-      // Reopen後にクローズした場合: SO期間 = Reopen Close - 1st Close
-      const reopenCloseDateTime = new Date(caseData.reopenCloseDate + ' ' + caseData.reopenCloseTime);
-      soPeriod = (reopenCloseDateTime - firstCloseDateTime) / (1000 * 60 * 60);
-    } else if (caseData.caseStatus === 'Solution Offered') {
-      // 現在SO status中: SO期間 = 現在時刻 - 1st Close
-      soPeriod = (new Date() - firstCloseDateTime) / (1000 * 60 * 60);
+      // 現在SO状態の場合、最新のSO期間を追加
+      if (currentStatus === 'Solution Offered' && reopenHistory.reopens && reopenHistory.reopens.length > 0) {
+        const lastReopen = reopenHistory.reopens[reopenHistory.reopens.length - 1];
+        if (lastReopen.soDateTime && !lastReopen.reopenDateTime) {
+          // 最新のSOからの経過時間を追加
+          const lastSODateTime = new Date(lastReopen.soDateTime);
+          const currentSOPeriod = (new Date() - lastSODateTime) / (1000 * 60 * 60);
+          totalSOPeriodHours += currentSOPeriod;
+        }
+      }
+    } catch (e) {
+      Logger.log(`Case ${caseId}: ReOpen History JSONのパースエラー - ${e.message}`);
+      totalSOPeriodHours = 0;
     }
   }
 
-  // IRT = TRT - SO期間
-  const irt = trt - soPeriod;
+  // IRT = TRT - 合計SO期間（複数回ReOpen対応）
+  const irtHours = trtHours - totalSOPeriodHours;
 
-  // TRT Timer = 72時間からのカウントダウン（残り時間）
-  const trtRemaining = 72 - trt;
+  // IRT残り時間 = 72時間 - IRT経過時間
+  const irtRemainingHours = 72 - irtHours;
 
-  // IRT Timer = 72時間からのカウントダウン（残り時間）
-  const irtRemaining = 72 - irt;
+  // SLA達成判定
+  const withinSLA = irtHours <= 72;
+
+  // 緊急度レベルの判定
+  const urgencyLevel = getUrgencyLevel(irtRemainingHours);
 
   return {
-    irt: irt,                          // 経過IRT（時間）
-    irtRemaining: irtRemaining,        // 残りIRT（時間）← これがIRT Timer表示値
-    irtRemainingFormatted: formatTime(irtRemaining), // HH:MM:SS形式
-    trt: trt,                          // 経過TRT（時間）
-    trtRemaining: trtRemaining,        // 残りTRT（時間）← これがTRT Timer表示値
-    trtRemainingFormatted: formatTime(trtRemaining), // HH:MM:SS形式
-    soPeriod: soPeriod,                // SO期間（時間）
-    withinSLA: irt <= 72,              // SLA達成判定
-    urgencyLevel: getUrgencyLevel(irtRemaining) // 緊急度レベル
+    irt: irtHours,
+    irtRemaining: irtRemainingHours,
+    irtRemainingFormatted: formatTime(irtRemainingHours),
+    trt: trtHours,
+    totalSOPeriod: totalSOPeriodHours,
+    withinSLA: withinSLA,
+    urgencyLevel: urgencyLevel,
+    isFinal: false  // リアルタイム計算値
   };
 }
 
@@ -2629,6 +2638,8 @@ function handleExport() {
 
 ### 4.5 Search（検索）
 
+**注意**: Search機能は主に**Dashboard (4.1.2)** に統合されています。このセクションはDashboard検索機能の詳細仕様です。
+
 #### 4.5.1 概要と目的
 全シートを対象とした統合検索機能です。Case IDによる即座検索と、詳細条件による絞り込み検索を提供します。
 
@@ -2687,11 +2698,11 @@ function handleExport() {
 - **テーマ切り替え**: ダークモード / ライトモード
 - **表示言語**: UI言語の選択（日本語/英語）
 - **タイムゾーン**: 時間表示のタイムゾーン設定
-- **通知設定**: Google Chat通知の有効/無効
+- **通知設定**: Gmail通知の有効/無効
 
 #### 4.6.4 チーム設定
-- **チームリーダー設定**: P95アラート通知先の設定（PL/TL,JTL,QM,WFM）
-- **Google Chat アプリ**: 通知先チャットルーム（https://mail.google.com/chat/u/0/#chat/space/AAQA-2MRZWU）の設定（注：Google で新しい Chat Webhook を作成することはポリシーで許可されていません。Google 社員は、Webhook の代わりに Google Chat アプリを使用します。）
+- **チームリーダー設定**: IRTアラート通知先の設定（担当者とチームリーダーの紐付け）
+- **Gmail通知設定**: 通知先メールアドレス、通知閾値、デフォルト通知先の設定（詳細は 7. Gmail通知システム 参照）
 - **通知条件**: アラート送信条件の詳細設定
 
 
@@ -3014,10 +3025,12 @@ function getEvaluationSegment(caseData) {
 </div>
 ```
 
-## 7. Google Chat通知システム
+## 7. Gmail通知システム
+
+**重要**: Google Chat Webhook作成はポリシー違反のため、Gmail通知を使用します。
 
 ### 7.1 概要と目的
-IRTタイマーが2時間以下になったケースについて、該当ユーザーのチームリーダーに自動的にGoogle Chat通知を送信します。
+IRTタイマーが2時間以下になったケースについて、該当ユーザーのチームリーダーにGmailで自動通知を送信します。GAS (Google Apps Script) の `MailApp.sendEmail()` または `GmailApp.sendEmail()` を使用します。
 
 ### 7.2 通知トリガー条件
 - IRTタイマーが2時間（7200秒）以下になった時点
@@ -3026,66 +3039,281 @@ IRTタイマーが2時間以下になったケースについて、該当ユー�
 - 既に通知済みのケースは重複通知しない
 - **注意**: SO (Solution Offered) status中はタイマー停止中のため通知されない
 
-### 7.3 通知内容
+### 7.3 通知内容と実装
+
+#### 7.3.1 HTML形式メール
 ```javascript
-const createChatNotification = (caseData) => {
-  return {
-    text: `⚠️ IRT Alert`,
-    cards: [{
-      header: {
-        title: "IRT Timer Warning",
-        subtitle: "Immediate attention required",
-        imageUrl: "https://developers.google.com/chat/images/quickstart-app-avatar.png"
-      },
-      sections: [{
-        widgets: [
-          {
-            keyValue: {
-              topLabel: "LDAP",
-              content: caseData.finalAssignee
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Case ID",
-              content: caseData.caseId
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Segment",
-              content: caseData.segment
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "IRT Remaining Time",
-              content: caseData.irtTimer
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Case Status",
-              content: caseData.caseStatus
-            }
-          },
-          {
-            keyValue: {
-              topLabel: "Message",
-              content: "⚠️ IRT timer has fallen below 2 hours. Immediate action required."
-            }
-          }
-        ]
-      }]
-    }]
-  };
-};
+/**
+ * IRT警告メールを送信
+ * @param {Object} caseData - ケースデータ
+ * @param {string} teamLeaderEmail - チームリーダーのメールアドレス
+ */
+function sendIRTAlertEmail(caseData, teamLeaderEmail) {
+  const subject = `⚠️ IRT Alert: ${caseData.caseId} - Immediate Action Required`;
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Google Sans', Roboto, Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ea4335; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; }
+        .info-row { margin: 10px 0; padding: 10px; background-color: white; border-radius: 4px; }
+        .label { font-weight: bold; color: #5f6368; }
+        .value { color: #202124; margin-left: 10px; }
+        .warning { background-color: #fef7e0; border-left: 4px solid #f9ab00; padding: 12px; margin: 15px 0; }
+        .action-button {
+          display: inline-block;
+          padding: 12px 24px;
+          background-color: #1a73e8;
+          color: white;
+          text-decoration: none;
+          border-radius: 4px;
+          margin-top: 15px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2 style="margin: 0;">⚠️ IRT Timer Warning</h2>
+          <p style="margin: 5px 0 0 0;">Immediate attention required</p>
+        </div>
+        <div class="content">
+          <div class="warning">
+            <strong>⚠️ Alert:</strong> IRT timer has fallen below 2 hours. Immediate action required to avoid SLA miss.
+          </div>
+
+          <div class="info-row">
+            <span class="label">Assignee (LDAP):</span>
+            <span class="value">${caseData.finalAssignee}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Case ID:</span>
+            <span class="value">${caseData.caseId}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Sheet:</span>
+            <span class="value">${caseData.sourceSheet}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Segment:</span>
+            <span class="value">${caseData.segment}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">IRT Remaining Time:</span>
+            <span class="value" style="color: #ea4335; font-weight: bold;">${caseData.irtTimer}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Case Status:</span>
+            <span class="value">${caseData.caseStatus}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="label">Product Category:</span>
+            <span class="value">${caseData.productCategory || 'N/A'}</span>
+          </div>
+
+          <a href="${PropertiesService.getScriptProperties().getProperty('APP_URL')}" class="action-button">
+            Open CasesDash
+          </a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const plainTextBody = `
+⚠️ IRT ALERT - Immediate Action Required
+
+Assignee: ${caseData.finalAssignee}
+Case ID: ${caseData.caseId}
+Sheet: ${caseData.sourceSheet}
+Segment: ${caseData.segment}
+IRT Remaining: ${caseData.irtTimer}
+Status: ${caseData.caseStatus}
+
+⚠️ IRT timer has fallen below 2 hours. Please take immediate action to avoid SLA miss.
+
+Open CasesDash: ${PropertiesService.getScriptProperties().getProperty('APP_URL')}
+  `;
+
+  try {
+    // GmailAppを使用（送信履歴がGmailに残る）
+    GmailApp.sendEmail(
+      teamLeaderEmail,
+      subject,
+      plainTextBody,
+      {
+        htmlBody: htmlBody,
+        name: 'CasesDash IRT Alert System'
+      }
+    );
+
+    // 通知ログを記録
+    logNotification(caseData.caseId, teamLeaderEmail, 'IRT_ALERT_2H', 'SUCCESS');
+
+  } catch (error) {
+    Logger.log(`Failed to send IRT alert email: ${error}`);
+    logNotification(caseData.caseId, teamLeaderEmail, 'IRT_ALERT_2H', 'FAILED', error.toString());
+  }
+}
+```
+
+#### 7.3.2 チームリーダーメールアドレス取得
+```javascript
+/**
+ * ケース担当者のチームリーダーメールアドレスを取得
+ * @param {string} assigneeLdap - 担当者のLDAP
+ * @return {string} チームリーダーのメールアドレス
+ */
+function getTeamLeaderEmail(assigneeLdap) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const settingsSheet = ss.getSheetByName('Settings') || ss.getSheetByName('Configuration');
+
+  // Settings/Configurationシートに「Team Structure」テーブルを想定
+  // 列構成: A: Assignee LDAP, B: Team Leader Email, C: Team Name
+  const data = settingsSheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === assigneeLdap) {
+      return data[i][1]; // Team Leader Email
+    }
+  }
+
+  // 見つからない場合はデフォルト通知先（例：PL/TL）
+  return PropertiesService.getScriptProperties().getProperty('DEFAULT_TL_EMAIL');
+}
 ```
 
 ### 7.4 通知設定管理
+
+#### 7.4.1 Settings画面での設定項目
 ```html
-実装時に自分で考えてください
+<div class="notification-settings">
+  <h3>Gmail通知設定</h3>
+
+  <!-- 通知有効/無効 -->
+  <div class="setting-row">
+    <label>
+      <input type="checkbox" id="irtAlertEnabled" checked>
+      IRT警告メール通知を有効にする
+    </label>
+  </div>
+
+  <!-- 通知閾値 -->
+  <div class="setting-row">
+    <label>通知閾値（時間）:</label>
+    <input type="number" id="irtAlertThreshold" value="2" min="1" max="24">
+    <span class="help-text">IRTタイマーがこの値以下になったときに通知</span>
+  </div>
+
+  <!-- デフォルト通知先 -->
+  <div class="setting-row">
+    <label>デフォルト通知先メールアドレス:</label>
+    <input type="email" id="defaultTLEmail" placeholder="teamlead@google.com">
+    <span class="help-text">担当者のTLが見つからない場合の通知先</span>
+  </div>
+
+  <!-- チーム構成設定 -->
+  <div class="setting-row">
+    <button onclick="openTeamStructureEditor()">チーム構成を編集</button>
+    <span class="help-text">各担当者とチームリーダーの紐付けを設定</span>
+  </div>
+
+  <!-- テスト通知 -->
+  <div class="setting-row">
+    <button onclick="sendTestNotification()">テスト通知を送信</button>
+  </div>
+</div>
 ```
+
+#### 7.4.2 通知ログ管理
+```javascript
+/**
+ * 通知ログをスプレッドシートに記録
+ */
+function logNotification(caseId, recipient, notificationType, status, errorMsg = '') {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let logSheet = ss.getSheetByName('Notification Log');
+
+  if (!logSheet) {
+    logSheet = ss.insertSheet('Notification Log');
+    logSheet.appendRow(['Timestamp', 'Case ID', 'Recipient', 'Type', 'Status', 'Error']);
+  }
+
+  logSheet.appendRow([
+    new Date(),
+    caseId,
+    recipient,
+    notificationType,
+    status,
+    errorMsg
+  ]);
+}
+```
+
+### 7.5 定期実行トリガー設定
+
+```javascript
+/**
+ * 1時間ごとにIRTをチェックし、2時間以下のケースに警告メールを送信
+ */
+function checkAndSendIRTAlerts() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const irtSheet = ss.getSheetByName('IRT RAW data');
+  const data = irtSheet.getDataRange().getValues();
+
+  // ヘッダー行をスキップ
+  for (let i = 1; i < data.length; i++) {
+    const caseId = data[i][0]; // A: Case ID
+    const currentStatus = data[i][6]; // G: Current Status
+    const irtRemainingHours = data[i][10]; // K: IRT Remaining Hours
+    const lastNotified = data[i][14]; // O: Last Notified (想定)
+
+    // 通知条件チェック
+    if (currentStatus === 'Assigned' &&
+        irtRemainingHours <= 2 &&
+        irtRemainingHours > 0 &&
+        !isRecentlyNotified(lastNotified)) {
+
+      // ケース詳細を取得
+      const caseData = getCaseDetails(caseId);
+
+      // チームリーダーメール取得
+      const tlEmail = getTeamLeaderEmail(caseData.finalAssignee);
+
+      // メール送信
+      sendIRTAlertEmail(caseData, tlEmail);
+
+      // 最終通知時刻を更新
+      irtSheet.getRange(i + 1, 15).setValue(new Date()); // O列
+    }
+  }
+}
+
+/**
+ * 最近通知済みかチェック（6時間以内は再通知しない）
+ */
+function isRecentlyNotified(lastNotifiedDate) {
+  if (!lastNotifiedDate) return false;
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  return new Date(lastNotifiedDate) > sixHoursAgo;
+}
+```
+
+**トリガー設定手順**:
+1. GASエディタで「トリガー」→「トリガーを追加」
+2. 実行する関数: `checkAndSendIRTAlerts`
+3. イベントのソース: 時間主導型
+4. 時間ベースのトリガー: 1時間ごと
 
 ## 8. Live Mode機能仕様
 
@@ -3293,11 +3521,16 @@ const LiveModeImplementation = {
 - **JavaScript (ES6+)**: Modern JavaScript features, Async/Await, Modules
 
 #### UIライブラリ
-- **Material Design Components for Web**: 
+- **Material Design Components for Web**:
   - MDC Tab Bar, Dialog, Select, TextField, Button, Checkbox
   - Material Icons & Symbols
 - **Chart.js**: 統計データ可視化
 - **Flatpickr**: 日付時間選択
+- **Select2**: 3PO Details フィールドの巨大ドロップダウン対応
+  - 数百の選択肢を持つドロップダウンに対応
+  - 部分一致検索（autocomplete）機能
+  - パフォーマンス最適化（仮想スクロール）
+  - カスタマイズ可能なスタイリング
 - **Google Fonts**: Google Sans, Roboto
 
 #### 状態管理
@@ -3481,8 +3714,12 @@ function getSettings() {
 
 ### 11.1 認証・認可
 - **Google OAuth**: セキュアなGoogle認証
-- **ドメイン制限**: @google.comドメインのみアクセス許可（past.and.future37@gmail.comだけユーザーが会社以外で実装する際にログインできるようにしたい）
+- **ドメイン制限**: @google.comドメインのみアクセス許可
 - **役割ベースアクセス制御**: user/team_leader/admin の権限分離
+- **開発・テスト用アカウント**:
+  - テスト環境でのみ、Configurationシートまたはスクリプトプロパティに「テスト用許可アカウント」リストを設定可能
+  - 本番環境では必ず無効化すること
+  - **重要**: テスト用アカウントも@google.comドメインを使用することを強く推奨（Googleセキュリティポリシー遵守）
 
 ### 11.2 データプライバシー
 - **個人データ保護**: 本人データのみ表示原則
@@ -3619,7 +3856,7 @@ class RealtimeUpdater {
 
 ### 13.2 フェーズ2: 核心機能（3週間）
 - [ ] IRT除外ケース管理機能
-- [ ] Google Chat通知システム
+- [ ] Gmail通知システム（IRTアラート）
 - [ ] Live Mode機能の実装
 - [ ] Analytics レポート機能の強化
 
@@ -3695,9 +3932,9 @@ const CONFIG = {
 
 **技術仕様**: Google Apps Script (ES6+), Material Design Components, Google Spreadsheets  
 **対象シート**: 6シート完全対応  
-**セキュリティ**: プライバシー保護対応、Google OAuth認証  
-**パフォーマンス**: サブ2秒レスポンス目標、リアルタイム更新対応  
-**通知**: Google Chat API連携  
+**セキュリティ**: プライバシー保護対応、Google OAuth認証
+**パフォーマンス**: サブ2秒レスポンス目標、リアルタイム更新対応
+**通知**: Gmail通知システム（GAS MailApp/GmailApp API）
 **アクセシビリティ**: WCAG 2.1 AA準拠
 
 **最終更新**: 2025年11月6日
