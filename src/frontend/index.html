@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CasesDash v3.0.0</title>
+
+  <!-- Material Design Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Inline CSS -->
+  <style>
+    <?!= include('frontend/css/main'); ?>
+  </style>
+</head>
+<body>
+  <? if (mode === 'login') { ?>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-page">
+      <div class="login-container">
+        <div class="login-header">
+          <span class="material-icons login-icon">dashboard</span>
+          <h1>CasesDash</h1>
+          <p class="version">v3.0.0 - IRT Support</p>
+        </div>
+
+        <div class="login-content">
+          <p class="login-description">Multi-Sheet Case Management System</p>
+          <p class="login-domain">@google.com accounts only</p>
+
+          <button id="loginButton" class="btn-primary" onclick="handleLogin()">
+            <span class="material-icons">login</span>
+            Login with Google
+          </button>
+
+          <div id="loginError" class="error-message" style="display: none;"></div>
+          <div id="loginLoading" class="loading" style="display: none;">
+            <span class="spinner"></span>
+            <span>Authenticating...</span>
+          </div>
+        </div>
+
+        <div class="login-footer">
+          <p>© 2025 Google Ads Support Team</p>
+        </div>
+      </div>
+    </div>
+  <? } else { ?>
+    <!-- Main Application -->
+    <div id="app" class="app">
+      <!-- Navigation Bar -->
+      <nav class="navbar">
+        <div class="nav-left">
+          <span class="material-icons nav-icon">dashboard</span>
+          <span class="nav-title">CasesDash v3.0.0</span>
+        </div>
+
+        <div class="nav-right">
+          <span class="user-info">
+            <span class="material-icons">account_circle</span>
+            <span id="userEmail"><? if (user) { ?><?= user.email ?><? } ?></span>
+          </span>
+          <button id="logoutButton" class="btn-text" onclick="handleLogout()">
+            <span class="material-icons">logout</span>
+            Logout
+          </button>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="welcome-container">
+          <h1>Welcome to CasesDash</h1>
+          <p>Multi-Sheet Case Management System with IRT Support</p>
+
+          <div class="info-card">
+            <h3>🎯 System Status</h3>
+            <ul>
+              <li>✅ Authentication: Active</li>
+              <li>✅ Session: Valid</li>
+              <li>⏳ Spreadsheet Connection: Pending Configuration</li>
+            </ul>
+          </div>
+
+          <div class="info-card">
+            <h3>📋 Next Steps</h3>
+            <ol>
+              <li>Configure spreadsheet connection in Settings</li>
+              <li>Test connection with your 6 case sheets</li>
+              <li>Start managing cases with IRT tracking</li>
+            </ol>
+          </div>
+
+          <div class="user-info-card">
+            <h3>👤 Current User</h3>
+            <p><strong>Email:</strong> <span id="currentUserEmail"><? if (user) { ?><?= user.email ?><? } ?></span></p>
+            <p><strong>LDAP:</strong> <span id="currentUserLdap"><? if (user) { ?><?= user.ldap ?><? } ?></span></p>
+            <p><strong>Domain:</strong> <span id="currentUserDomain"><? if (user) { ?><?= user.domain ?><? } ?></span></p>
+          </div>
+        </div>
+      </main>
+    </div>
+  <? } ?>
+
+  <!-- Scripts -->
+  <script>
+    <?!= include('frontend/js/api'); ?>
+    <?!= include('frontend/js/auth'); ?>
+  </script>
+</body>
+</html>
