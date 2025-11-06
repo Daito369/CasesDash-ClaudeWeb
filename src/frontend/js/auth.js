@@ -2,6 +2,7 @@
  * Authentication Flow
  *
  * Handles login and logout operations with UI feedback.
+ * Uses helper functions from api.js (showLoading, hideLoading, showError, hideError, showSuccess, handleAPIError)
  *
  * @author CasesDash v3.0.0
  */
