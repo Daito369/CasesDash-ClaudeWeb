@@ -106,6 +106,12 @@ async function handleCreateCase(event) {
 
     console.log('Create case result:', result);
 
+    // Check if result is null or undefined
+    if (!result) {
+      showError('createCaseError', 'Backend returned no response. Please check Apps Script logs for errors.');
+      return;
+    }
+
     if (result.success) {
       showSuccess('createCaseSuccess', `✅ Case created successfully! Case ID: ${result.caseId}`);
 

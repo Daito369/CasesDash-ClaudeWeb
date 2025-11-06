@@ -37,10 +37,27 @@ function createCase(caseData, sheetName, createdBy) {
       caseData.caseId = generateCaseId();
     }
 
-    // Set timestamps
+    // Set timestamps - combine date and time strings into Date object
     const now = new Date();
-    caseData.caseOpenDate = caseData.caseOpenDate || now;
-    caseData.caseOpenTime = caseData.caseOpenTime || now;
+
+    // Parse caseOpenDate and caseOpenTime if provided
+    if (caseData.caseOpenDate && caseData.caseOpenTime) {
+      // caseOpenDate: "YYYY-MM-DD", caseOpenTime: "HH:MM"
+      const dateStr = caseData.caseOpenDate;
+      const timeStr = caseData.caseOpenTime;
+      caseData.caseOpenDate = new Date(`${dateStr}T${timeStr}:00`);
+    } else if (caseData.caseOpenDate && typeof caseData.caseOpenDate === 'string') {
+      // Only date provided, use current time
+      caseData.caseOpenDate = new Date(caseData.caseOpenDate);
+    } else {
+      // No date provided, use now
+      caseData.caseOpenDate = now;
+    }
+
+    // caseOpenTime is deprecated in favor of combined caseOpenDate
+    // Keep for backward compatibility but don't use separately
+    delete caseData.caseOpenTime;
+
     caseData.createdAt = now;
     caseData.createdBy = createdBy;
 

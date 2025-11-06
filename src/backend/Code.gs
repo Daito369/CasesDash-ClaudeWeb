@@ -306,24 +306,42 @@ function testAuthentication() {
  */
 function frontendCreateCase(caseData, sheetName) {
   try {
+    Logger.log('frontendCreateCase called');
+    Logger.log(`Sheet: ${sheetName}`);
+    Logger.log(`Case data: ${JSON.stringify(caseData)}`);
+
     // Check authentication
     const authCheck = requireAuth();
     if (!authCheck.success) {
+      Logger.log('Authentication failed');
       return authCheck;
     }
 
     const user = authCheck.data;
+    Logger.log(`Authenticated user: ${user.email}`);
+
     const result = createCase(caseData, sheetName, user.email);
 
-    Logger.log(`Case created by ${user.email}: ${result.caseId || 'failed'}`);
+    Logger.log(`Case creation result: ${JSON.stringify(result)}`);
+
+    // Ensure we always return an object
+    if (!result) {
+      Logger.log('ERROR: createCase returned null or undefined');
+      return {
+        success: false,
+        error: 'Internal error: createCase returned null'
+      };
+    }
 
     return result;
 
   } catch (error) {
     Logger.log(`Error in frontendCreateCase: ${error.message}`);
+    Logger.log(`Stack trace: ${error.stack}`);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     };
   }
 }
