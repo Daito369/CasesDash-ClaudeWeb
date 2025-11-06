@@ -333,7 +333,18 @@ function frontendCreateCase(caseData, sheetName) {
       };
     }
 
-    return result;
+    // Return minimal data to avoid serialization issues with Date objects
+    // google.script.run has issues with complex objects containing Dates
+    const response = {
+      success: result.success,
+      message: result.message || 'Case created',
+      caseId: result.caseId,
+      rowIndex: result.rowIndex,
+      error: result.error || null
+    };
+
+    Logger.log(`Returning response: ${JSON.stringify(response)}`);
+    return response;
 
   } catch (error) {
     Logger.log(`Error in frontendCreateCase: ${error.message}`);
