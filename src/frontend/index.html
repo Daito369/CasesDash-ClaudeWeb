@@ -54,6 +54,16 @@
         <div class="nav-left">
           <span class="material-icons nav-icon">dashboard</span>
           <span class="nav-title">CasesDash v3.0.0</span>
+          <div class="nav-links">
+            <button id="navDashboard" class="nav-link active" onclick="showScreen('dashboard')">
+              <span class="material-icons">home</span>
+              Dashboard
+            </button>
+            <button id="navSettings" class="nav-link" onclick="showScreen('settings')">
+              <span class="material-icons">settings</span>
+              Settings
+            </button>
+          </div>
         </div>
 
         <div class="nav-right">
@@ -70,16 +80,17 @@
 
       <!-- Main Content -->
       <main class="main-content">
-        <div class="welcome-container">
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen active">
           <h1>Welcome to CasesDash</h1>
           <p>Multi-Sheet Case Management System with IRT Support</p>
 
           <div class="info-card">
             <h3>🎯 System Status</h3>
-            <ul>
+            <ul id="systemStatus">
               <li>✅ Authentication: Active</li>
               <li>✅ Session: Valid</li>
-              <li>⏳ Spreadsheet Connection: Pending Configuration</li>
+              <li id="spreadsheetStatus">⏳ Spreadsheet Connection: Checking...</li>
             </ul>
           </div>
 
@@ -99,6 +110,54 @@
             <p><strong>Domain:</strong> <span id="currentUserDomain"><? if (user) { ?><?= user.domain ?><? } ?></span></p>
           </div>
         </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen" style="display: none;">
+          <h1>Settings</h1>
+          <p>Configure your CasesDash application</p>
+
+          <div class="settings-card">
+            <h2>📊 Spreadsheet Connection</h2>
+            <p>Connect to your Google Spreadsheet with 6 case management sheets</p>
+
+            <div class="form-group">
+              <label for="spreadsheetId">Spreadsheet ID</label>
+              <input
+                type="text"
+                id="spreadsheetId"
+                class="form-input"
+                placeholder="Enter spreadsheet ID (e.g., 1a2b3c4d5e...)"
+              />
+              <p class="help-text">
+                Find the ID in your spreadsheet URL:
+                <code>https://docs.google.com/spreadsheets/d/<strong>SPREADSHEET_ID</strong>/edit</code>
+              </p>
+            </div>
+
+            <div class="button-group">
+              <button id="testConnectionBtn" class="btn-secondary" onclick="testConnection()">
+                <span class="material-icons">link</span>
+                Test Connection
+              </button>
+              <button id="saveSpreadsheetBtn" class="btn-primary" onclick="saveSpreadsheetConfig()">
+                <span class="material-icons">save</span>
+                Save Configuration
+              </button>
+            </div>
+
+            <div id="settingsError" class="error-message" style="display: none;"></div>
+            <div id="settingsSuccess" class="success-message" style="display: none;"></div>
+            <div id="settingsLoading" class="loading" style="display: none;">
+              <span class="spinner"></span>
+              <span>Processing...</span>
+            </div>
+          </div>
+
+          <div id="connectionStatus" class="settings-card" style="display: none;">
+            <h2>Connection Status</h2>
+            <div id="connectionDetails"></div>
+          </div>
+        </div>
       </main>
     </div>
   <? } ?>
@@ -107,6 +166,7 @@
   <script>
     <?!= include('frontend/js/api'); ?>
     <?!= include('frontend/js/auth'); ?>
+    <?!= include('frontend/js/settings'); ?>
   </script>
 </body>
 </html>

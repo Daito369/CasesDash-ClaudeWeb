@@ -10,16 +10,16 @@
 /**
  * Call Backend function with Promise wrapper
  * @param {string} functionName - Backend function name
- * @param {Object} params - Function parameters
+ * @param {...any} args - Function arguments
  * @return {Promise} Promise resolving to function result
  */
-function callBackend(functionName, params = {}) {
+function callBackend(functionName, ...args) {
   return new Promise((resolve, reject) => {
     try {
       google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(reject)
-        [functionName](params);
+        [functionName](...args);
     } catch (error) {
       reject(error);
     }
@@ -107,6 +107,54 @@ const API = {
         return result;
       } catch (error) {
         console.error('Get config error:', error);
+        throw error;
+      }
+    }
+  },
+
+  /**
+   * Spreadsheet API
+   */
+  spreadsheet: {
+    /**
+     * Get spreadsheet connection status
+     * @return {Promise<Object>} Status object
+     */
+    getStatus: async function() {
+      try {
+        const result = await callBackend('getSpreadsheetStatus');
+        return result;
+      } catch (error) {
+        console.error('Get spreadsheet status error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Configure spreadsheet connection
+     * @param {string} spreadsheetId - Spreadsheet ID
+     * @return {Promise<Object>} Configuration result
+     */
+    configure: async function(spreadsheetId) {
+      try {
+        const result = await callBackend('configureSpreadsheet', spreadsheetId);
+        return result;
+      } catch (error) {
+        console.error('Configure spreadsheet error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Validate spreadsheet structure
+     * @return {Promise<Object>} Validation result
+     */
+    validate: async function() {
+      try {
+        const result = await callBackend('validateSpreadsheetStructure');
+        return result;
+      } catch (error) {
+        console.error('Validate spreadsheet error:', error);
         throw error;
       }
     }
