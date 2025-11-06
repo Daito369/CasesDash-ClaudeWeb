@@ -368,23 +368,26 @@ function validateCaseData(caseData, sheetName) {
 }
 
 /**
- * Generate unique Case ID
- * Format: YYYY-MM-DD-HHMMSS-RANDOM
+ * Generate unique Case ID per specification
+ * Format: X-XXXXXXXXXXXXX (1 digit - 13 digits)
+ * Example: 3-1234567890123
  * @return {string}
  */
 function generateCaseId() {
-  const now = new Date();
+  // First digit: random 0-9
+  const firstDigit = Math.floor(Math.random() * 10);
 
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
+  // Next 13 digits: current timestamp in milliseconds
+  // Date.now() returns milliseconds since Jan 1, 1970
+  // Current timestamps are 13 digits (e.g., 1730927340123)
+  const timestamp = Date.now().toString();
 
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  // Ensure we have exactly 13 digits
+  const digits13 = timestamp.length >= 13
+    ? timestamp.slice(-13)  // Take last 13 if longer
+    : timestamp.padStart(13, '0');  // Pad with zeros if shorter
 
-  return `${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
+  return `${firstDigit}-${digits13}`;
 }
 
 /**
