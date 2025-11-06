@@ -211,10 +211,14 @@ function serveMainApp() {
  */
 function include(filename) {
   try {
-    return HtmlService.createHtmlOutputFromFile(filename).getContent();
+    const content = HtmlService.createHtmlOutputFromFile(filename).getContent();
+    Logger.log(`Successfully included file: ${filename} (${content.length} bytes)`);
+    return content;
   } catch (error) {
-    Logger.log(`Error including file ${filename}: ${error.message}`);
-    return '';
+    const errorMsg = `Error including file ${filename}: ${error.message}`;
+    Logger.log(errorMsg);
+    // Return error as HTML comment for debugging
+    return `/* ERROR: ${errorMsg} */\n`;
   }
 }
 
