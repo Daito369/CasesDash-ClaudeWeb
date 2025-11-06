@@ -157,6 +157,20 @@ const API = {
         console.error('Validate spreadsheet error:', error);
         throw error;
       }
+    },
+
+    /**
+     * Setup missing sheets automatically
+     * @return {Promise<Object>} Setup result
+     */
+    setupMissingSheets: async function() {
+      try {
+        const result = await callBackend('setupMissingSheets');
+        return result;
+      } catch (error) {
+        console.error('Setup missing sheets error:', error);
+        throw error;
+      }
     }
   }
 };
