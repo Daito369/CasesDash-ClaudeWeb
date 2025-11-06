@@ -37,10 +37,12 @@ async function handleLogin() {
       // Show success message
       showSuccess(`Welcome, ${result.data.email}!`);
 
-      // Reload page to show main app
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Reload page to show main app (only in browser)
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
 
     } else {
       // Authentication failed
@@ -102,10 +104,12 @@ async function handleLogout() {
       // Show success message
       showSuccess('Logged out successfully');
 
-      // Redirect to login page
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Redirect to login page (only in browser)
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
 
     } else {
       // Logout failed (unlikely but handle it)
@@ -137,8 +141,8 @@ async function checkAuthOnLoad() {
 
     if (!status.authenticated) {
       console.log('User not authenticated');
-      // If on main app page but not authenticated, redirect to login
-      if (window.location.pathname.includes('app')) {
+      // If on main app page but not authenticated, redirect to login (only in browser)
+      if (typeof window !== 'undefined' && window.location.pathname.includes('app')) {
         window.location.href = '/';
       }
     } else {
@@ -184,23 +188,26 @@ function initAuth() {
   // Set up session refresh
   setupSessionRefresh();
 
-  // Add keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    // Ctrl/Cmd + Enter on login page triggers login
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      const loginButton = document.getElementById('loginButton');
-      if (loginButton && !loginButton.disabled) {
-        handleLogin();
+  // Add keyboard shortcuts (only in browser environment)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + Enter on login page triggers login
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const loginButton = document.getElementById('loginButton');
+        if (loginButton && !loginButton.disabled) {
+          handleLogin();
+        }
       }
-    }
-  });
+    });
+  }
 }
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAuth);
-} else {
-  initAuth();
+// Initialize when DOM is ready (only in browser environment)
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuth);
+  } else {
+    initAuth();
+  }
+  console.log('Auth module loaded');
 }
-
-console.log('Auth module loaded');

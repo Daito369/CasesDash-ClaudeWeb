@@ -191,4 +191,7 @@ function handleAPIError(error, context = '') {
   return errorMessage;
 }
 
-console.log('API module loaded');
+// Log only in browser environment
+if (typeof console !== 'undefined') {
+  console.log('API module loaded');
+}
