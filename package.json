@@ -1,0 +1,29 @@
+{
+  "name": "casesdash-web",
+  "version": "3.0.0",
+  "description": "Multi-Sheet Case Management System with IRT Support",
+  "main": "src/backend/Code.gs",
+  "scripts": {
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "deploy": "clasp deploy",
+    "open": "clasp open",
+    "logs": "clasp logs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Daito369/CasesDash-ClaudeWeb.git"
+  },
+  "keywords": [
+    "google-apps-script",
+    "case-management",
+    "irt",
+    "support-system"
+  ],
+  "author": "Google Ads Support Team",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
