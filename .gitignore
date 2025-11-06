@@ -1,0 +1,41 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# clasp credentials
+.clasprc.json
+
+# Environment variables
+.env
+.env.local
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build outputs (if any)
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# GAS deployment IDs (sensitive)
+.clasp-deployments.json
