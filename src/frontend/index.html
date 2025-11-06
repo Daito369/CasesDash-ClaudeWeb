@@ -10,9 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 
   <!-- Inline CSS -->
-  <style>
-    <?!= include('frontend/css/main.css'); ?>
-  </style>
+  <?!= include('frontend/css/main.css'); ?>
 </head>
 <body>
   <? if (mode === 'login') { ?>
@@ -342,11 +340,9 @@
   <? } ?>
 
   <!-- Scripts -->
-  <script>
-    <?!= include('frontend/js/api.js'); ?>
-    <?!= include('frontend/js/auth.js'); ?>
-    <?!= include('frontend/js/settings.js'); ?>
-    <?!= include('frontend/js/cases.js'); ?>
-  </script>
+  <?!= include('frontend/js/api.js'); ?>
+  <?!= include('frontend/js/auth.js'); ?>
+  <?!= include('frontend/js/settings.js'); ?>
+  <?!= include('frontend/js/cases.js'); ?>
 </body>
 </html>
