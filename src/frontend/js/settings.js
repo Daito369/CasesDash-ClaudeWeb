@@ -1,0 +1,270 @@
+/**
+ * Settings and Configuration
+ *
+ * Handles spreadsheet configuration and UI screen switching.
+ *
+ * @author CasesDash v3.0.0
+ */
+
+/**
+ * Show a specific screen and hide others
+ * @param {string} screenName - 'dashboard' or 'settings'
+ */
+function showScreen(screenName) {
+  // Hide all screens
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(screen => {
+    screen.style.display = 'none';
+    screen.classList.remove('active');
+  });
+
+  // Show selected screen
+  const selectedScreen = document.getElementById(`${screenName}-screen`);
+  if (selectedScreen) {
+    selectedScreen.style.display = 'block';
+    selectedScreen.classList.add('active');
+  }
+
+  // Update nav button states
+  const navButtons = document.querySelectorAll('.nav-link');
+  navButtons.forEach(btn => btn.classList.remove('active'));
+
+  const activeButton = document.getElementById(`nav${screenName.charAt(0).toUpperCase() + screenName.slice(1)}`);
+  if (activeButton) {
+    activeButton.classList.add('active');
+  }
+
+  // Load data for the screen
+  if (screenName === 'settings') {
+    loadSpreadsheetSettings();
+  } else if (screenName === 'dashboard') {
+    checkSpreadsheetStatus();
+  }
+}
+
+/**
+ * Load spreadsheet settings (populate form with current config)
+ */
+async function loadSpreadsheetSettings() {
+  try {
+    const status = await API.spreadsheet.getStatus();
+
+    if (status.connected && status.spreadsheetId) {
+      const spreadsheetIdInput = document.getElementById('spreadsheetId');
+      if (spreadsheetIdInput) {
+        spreadsheetIdInput.value = status.spreadsheetId;
+      }
+
+      // Show connection status
+      displayConnectionStatus(status);
+    }
+
+  } catch (error) {
+    console.error('Error loading spreadsheet settings:', error);
+  }
+}
+
+/**
+ * Test spreadsheet connection
+ */
+async function testConnection() {
+  console.log('Testing spreadsheet connection...');
+
+  const spreadsheetId = document.getElementById('spreadsheetId').value;
+
+  if (!spreadsheetId || spreadsheetId.trim() === '') {
+    showError('settingsError', 'Please enter a spreadsheet ID');
+    return;
+  }
+
+  hideError('settingsError');
+  hideSuccess('settingsSuccess');
+  showLoading('settingsLoading');
+
+  const testBtn = document.getElementById('testConnectionBtn');
+  if (testBtn) testBtn.disabled = true;
+
+  try {
+    const result = await API.spreadsheet.configure(spreadsheetId);
+
+    console.log('Test connection result:', result);
+
+    if (result.success) {
+      showSuccess('settingsSuccess', '✅ Connection successful! All required sheets found.');
+      displayConnectionStatus(result.validation);
+    } else {
+      let errorMsg = result.error || 'Connection failed';
+      if (result.missingSheets && result.missingSheets.length > 0) {
+        errorMsg += `\n\nMissing sheets:\n${result.missingSheets.join('\n')}`;
+      }
+      showError('settingsError', errorMsg);
+    }
+
+  } catch (error) {
+    const errorMessage = handleAPIError(error, 'test connection');
+    showError('settingsError', errorMessage);
+
+  } finally {
+    hideLoading('settingsLoading');
+    if (testBtn) testBtn.disabled = false;
+  }
+}
+
+/**
+ * Save spreadsheet configuration
+ */
+async function saveSpreadsheetConfig() {
+  console.log('Saving spreadsheet configuration...');
+
+  const spreadsheetId = document.getElementById('spreadsheetId').value;
+
+  if (!spreadsheetId || spreadsheetId.trim() === '') {
+    showError('settingsError', 'Please enter a spreadsheet ID');
+    return;
+  }
+
+  hideError('settingsError');
+  hideSuccess('settingsSuccess');
+  showLoading('settingsLoading');
+
+  const saveBtn = document.getElementById('saveSpreadsheetBtn');
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    const result = await API.spreadsheet.configure(spreadsheetId);
+
+    console.log('Save configuration result:', result);
+
+    if (result.success) {
+      showSuccess('settingsSuccess', '✅ Configuration saved successfully!');
+      displayConnectionStatus(result.validation);
+
+      // Update dashboard status
+      setTimeout(() => {
+        checkSpreadsheetStatus();
+      }, 500);
+    } else {
+      let errorMsg = result.error || 'Configuration failed';
+      if (result.missingSheets && result.missingSheets.length > 0) {
+        errorMsg += `\n\nMissing sheets:\n${result.missingSheets.join('\n')}`;
+      }
+      showError('settingsError', errorMsg);
+    }
+
+  } catch (error) {
+    const errorMessage = handleAPIError(error, 'save configuration');
+    showError('settingsError', errorMessage);
+
+  } finally {
+    hideLoading('settingsLoading');
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+/**
+ * Display connection status details
+ * @param {Object} status - Connection status object
+ */
+function displayConnectionStatus(status) {
+  const container = document.getElementById('connectionStatus');
+  const details = document.getElementById('connectionDetails');
+
+  if (!container || !details) return;
+
+  if (status.success || status.valid) {
+    let html = '<ul class="status-list">';
+    html += '<li>✅ Connection: Active</li>';
+
+    if (status.spreadsheetName) {
+      html += `<li>📊 Spreadsheet: ${status.spreadsheetName}</li>`;
+    }
+
+    if (status.foundSheets) {
+      html += '<li>📋 Found sheets:</li>';
+      html += '<ul>';
+      status.foundSheets.forEach(sheetName => {
+        html += `<li>${sheetName}</li>`;
+      });
+      html += '</ul>';
+    }
+
+    if (status.spreadsheetUrl) {
+      html += `<li><a href="${status.spreadsheetUrl}" target="_blank">Open Spreadsheet</a></li>`;
+    }
+
+    html += '</ul>';
+
+    details.innerHTML = html;
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+/**
+ * Check spreadsheet status and update dashboard
+ */
+async function checkSpreadsheetStatus() {
+  try {
+    const status = await API.spreadsheet.getStatus();
+    const statusElement = document.getElementById('spreadsheetStatus');
+
+    if (!statusElement) return;
+
+    if (status.connected && status.valid) {
+      statusElement.innerHTML = `✅ Spreadsheet Connection: <strong>${status.spreadsheetName}</strong>`;
+    } else if (status.connected) {
+      statusElement.innerHTML = '⚠️ Spreadsheet Connection: Connected but validation failed';
+    } else {
+      statusElement.innerHTML = '⏳ Spreadsheet Connection: Not configured';
+    }
+
+  } catch (error) {
+    console.error('Error checking spreadsheet status:', error);
+  }
+}
+
+/**
+ * Show success message in settings
+ * @param {string} elementId - Element ID
+ * @param {string} message - Success message
+ */
+function showSuccess(elementId, message) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.textContent = message;
+    element.style.display = 'block';
+  }
+}
+
+/**
+ * Hide success message
+ * @param {string} elementId - Element ID
+ */
+function hideSuccess(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.style.display = 'none';
+    element.textContent = '';
+  }
+}
+
+/**
+ * Initialize settings on page load
+ */
+function initSettings() {
+  console.log('Settings module initialized');
+
+  // Check spreadsheet status on dashboard load
+  checkSpreadsheetStatus();
+}
+
+// Initialize when DOM is ready (only in browser environment)
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSettings);
+  } else {
+    initSettings();
+  }
+  console.log('Settings module loaded');
+}
