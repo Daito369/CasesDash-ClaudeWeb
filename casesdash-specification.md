@@ -3801,13 +3801,13 @@ class RealtimeUpdater {
     const caseElements = document.querySelectorAll('.case-card');
     caseElements.forEach(element => {
       const trtTimer = element.querySelector('.trt-timer');
-      const p95Timer = element.querySelector('.p95-timer');
-      
+      const irtTimer = element.querySelector('.irt-timer');
+
       if (trtTimer) {
         this.updateTimer(trtTimer);
       }
-      if (p95Timer) {
-        this.updateTimer(p95Timer);
+      if (irtTimer) {
+        this.updateTimer(irtTimer);
       }
     });
     
@@ -3877,13 +3877,15 @@ class RealtimeUpdater {
 ### 14.1 用語集
 
 - **SLA (Service Level Agreement)**: サービス品質保証のための応答時間枠
-- **TRT (Turnaround Time)**: ケース解決目標時間
-- **P95**: ケースの95%を72時間以内に解決する目標指標
-- **T&S Consulted**: Trust and Safty consultation flag
-- **NCC**: Non-Contact Complete（通常のクローズフロー以外）
+- **TRT (Total Resolution Time)**: ケース解決目標時間（ケースオープンからクローズまでの総経過時間）
+- **IRT (Internal Resolution Time)**: SO期間を除外した実質的な内部対応時間（IRT = TRT - SO期間、2025年Q4より主要メトリック）
+- **SO (Solution Offered)**: ソリューション提供済みステータス（このステータス中はIRTタイマー停止）
+- **T&S Consulted**: Trust and Safety consultation flag
+- **NCC (Non-Contact Complete)**: 通常のクローズフロー以外（Status = SO/Finished かつ non NCC列が空欄）
 - **AM Transfer**: Account Manager移管フラグ
 - **Ldap**: 社内ユーザー識別子（Ldap@google.com）
 - **Live Mode**: ポップアップウィンドウでの独立動作モード
+- **ReOpen**: Solution OfferedまたはFinished状態のケースを再度Assignedに戻す操作
 
 ### 14.2 設定ファイル例
 
@@ -3900,7 +3902,7 @@ const CONFIG = {
   TIMERS: {
     UPDATE_INTERVAL: 1000, // 1秒
     CRITICAL_THRESHOLD: 2 * 60 * 60 * 1000, // 2時間
-    WARNING_THRESHOLD: 8 * 60 * 60 * 1000   // 8時間
+    WARNING_THRESHOLD: 24 * 60 * 60 * 1000  // 24時間
   },
   SLA: {
     EMAIL: {
@@ -3920,9 +3922,10 @@ const CONFIG = {
     }
   },
   NOTIFICATIONS: {
-    GOOGLE_CHAT: {
+    GMAIL: {
       ENABLED: true,
-      RETRY_COUNT: 3
+      RETRY_COUNT: 3,
+      THRESHOLD_HOURS: 2  // IRT残り時間が2時間以下で通知
     }
   }
 };
