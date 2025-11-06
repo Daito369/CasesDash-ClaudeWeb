@@ -37,34 +37,54 @@ function createCase(caseData, sheetName, createdBy) {
       caseData.caseId = generateCaseId();
     }
 
-    // Set timestamps - combine date and time strings into Date object
+    // Convert date and time formats to match specification
     const now = new Date();
 
-    // Parse caseOpenDate and caseOpenTime if provided
-    if (caseData.caseOpenDate && caseData.caseOpenTime) {
-      // caseOpenDate: "YYYY-MM-DD", caseOpenTime: "HH:MM"
-      const dateStr = caseData.caseOpenDate;
-      const timeStr = caseData.caseOpenTime;
-      caseData.caseOpenDate = new Date(`${dateStr}T${timeStr}:00`);
-    } else if (caseData.caseOpenDate && typeof caseData.caseOpenDate === 'string') {
-      // Only date provided, use current time
-      caseData.caseOpenDate = new Date(caseData.caseOpenDate);
+    // Case Open Date: Convert "YYYY-MM-DD" to "YYYY/MM/DD"
+    if (caseData.caseOpenDate && typeof caseData.caseOpenDate === 'string') {
+      caseData.caseOpenDate = caseData.caseOpenDate.replace(/-/g, '/');
     } else {
-      // No date provided, use now
-      caseData.caseOpenDate = now;
+      // Default to today in YYYY/MM/DD format
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      caseData.caseOpenDate = `${year}/${month}/${day}`;
     }
 
-    // caseOpenTime is deprecated in favor of combined caseOpenDate
-    // Keep for backward compatibility but don't use separately
-    delete caseData.caseOpenTime;
+    // Case Open Time: Convert "HH:MM" to "HH:MM:SS" or use current time
+    if (caseData.caseOpenTime && typeof caseData.caseOpenTime === 'string') {
+      // If only HH:MM provided, add :00 for seconds
+      if (caseData.caseOpenTime.length === 5) {
+        caseData.caseOpenTime = `${caseData.caseOpenTime}:00`;
+      }
+    } else {
+      // Default to current time in HH:MM:SS format
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      caseData.caseOpenTime = `${hours}:${minutes}:${seconds}`;
+    }
 
+    // Set metadata timestamps (these are Date objects for backend use only)
     caseData.createdAt = now;
+    caseData.updatedAt = now;
     caseData.createdBy = createdBy;
+    caseData.updatedBy = '';
 
-    // Set default values
+    // Set default values per specification
     caseData.caseStatus = caseData.caseStatus || CaseStatus.ASSIGNED;
+
+    // 1st Assignee: Default to user's LDAP (without @google.com)
     caseData.firstAssignee = caseData.firstAssignee || createdBy.split('@')[0];
+
+    // Final Assignee: Default to 1st Assignee
     caseData.finalAssignee = caseData.finalAssignee || caseData.firstAssignee;
+
+    // Incoming Segment: Default to "Gold" per specification
+    caseData.incomingSegment = caseData.incomingSegment || 'Gold';
+
+    // Final Segment: Default to reflect Incoming Segment per specification
+    caseData.finalSegment = caseData.finalSegment || caseData.incomingSegment;
 
     // Create Case object
     const caseObj = new Case(caseData);
