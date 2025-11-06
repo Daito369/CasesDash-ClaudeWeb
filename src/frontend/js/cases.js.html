@@ -13,22 +13,16 @@
 async function loadCreateCaseScreen() {
   console.log('Loading Create Case screen...');
 
-  // Check spreadsheet connection
-  try {
-    const status = await API.spreadsheet.getStatus();
-    if (!status.connected || !status.valid) {
-      showError('createCaseError', 'Please configure spreadsheet connection in Settings first.');
-      return;
-    }
-  } catch (error) {
-    showError('createCaseError', 'Failed to check spreadsheet connection.');
-    return;
-  }
+  // Skip spreadsheet connection check to avoid rate limiting
+  // User will get error on submit if not configured
 
   // Set default values
   const now = new Date();
-  document.getElementById('caseOpenDate').value = formatDateForInput(now);
-  document.getElementById('caseOpenTime').value = formatTimeForInput(now);
+  const dateInput = document.getElementById('caseOpenDate');
+  const timeInput = document.getElementById('caseOpenTime');
+
+  if (dateInput) dateInput.value = formatDateForInput(now);
+  if (timeInput) timeInput.value = formatTimeForInput(now);
 }
 
 /**
@@ -140,6 +134,15 @@ async function handleCreateCase(event) {
 async function loadMyCasesScreen() {
   console.log('Loading My Cases...');
 
+  // Temporarily disabled to avoid rate limiting
+  const container = document.getElementById('myCasesList');
+  if (container) {
+    container.innerHTML = '<p class="info-message">My Cases feature temporarily disabled to avoid rate limiting. Please check back later.</p>';
+  }
+
+  return;
+
+  /* Temporarily disabled
   showLoading('myCasesLoading');
   hideError('myCasesError');
 
@@ -161,6 +164,7 @@ async function loadMyCasesScreen() {
   } finally {
     hideLoading('myCasesLoading');
   }
+  */
 }
 
 /**
