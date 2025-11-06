@@ -604,3 +604,290 @@ body {
 .status-list a:hover {
   text-decoration: underline;
 }
+
+/* Case Management Screens */
+
+/* Case Form */
+.case-form {
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-xl);
+  max-width: 800px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
+}
+
+.form-group-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  margin: var(--spacing-md) 0 var(--spacing-lg) 0;
+  gap: var(--spacing-md);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.form-input[type="date"],
+.form-input[type="time"] {
+  font-family: var(--font-family-secondary);
+}
+
+select.form-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235f6368' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.form-actions button {
+  flex: 0 0 auto;
+}
+
+/* Case Cards */
+.cases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.case-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.case-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--border-color);
+}
+
+.case-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.case-card.urgency-critical::before {
+  background: var(--error-color);
+}
+
+.case-card.urgency-warning::before {
+  background: var(--warning-color);
+}
+
+.case-card.urgency-normal::before {
+  background: var(--secondary-color);
+}
+
+.case-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.case-id {
+  font-weight: 500;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.case-status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.case-status-badge.assigned {
+  background-color: #e8f0fe;
+  color: #1967d2;
+}
+
+.case-status-badge.solution-offered {
+  background-color: #fef7e0;
+  color: #b06000;
+}
+
+.case-status-badge.finished {
+  background-color: #e6f4ea;
+  color: #137333;
+}
+
+.case-card-body {
+  margin-bottom: var(--spacing-md);
+}
+
+.case-field {
+  display: flex;
+  margin-bottom: var(--spacing-sm);
+  font-size: 13px;
+}
+
+.case-field-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 120px;
+}
+
+.case-field-value {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.case-card-footer {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.irt-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 13px;
+}
+
+.irt-indicator .material-icons {
+  font-size: 18px;
+}
+
+.irt-indicator.critical {
+  color: var(--error-color);
+}
+
+.irt-indicator.warning {
+  color: var(--warning-color);
+}
+
+.irt-indicator.normal {
+  color: var(--secondary-color);
+}
+
+.case-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-icon .material-icons {
+  font-size: 18px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+}
+
+.empty-state .material-icons {
+  font-size: 64px;
+  color: var(--text-disabled);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Responsive - Case Management */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .form-group-checkboxes {
+    flex-direction: column;
+  }
+}

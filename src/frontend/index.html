@@ -59,6 +59,14 @@
               <span class="material-icons">home</span>
               Dashboard
             </button>
+            <button id="navMyCases" class="nav-link" onclick="showScreen('myCases')">
+              <span class="material-icons">folder</span>
+              My Cases
+            </button>
+            <button id="navCreateCase" class="nav-link" onclick="showScreen('createCase')">
+              <span class="material-icons">add_circle</span>
+              Create Case
+            </button>
             <button id="navSettings" class="nav-link" onclick="showScreen('settings')">
               <span class="material-icons">settings</span>
               Settings
@@ -167,6 +175,168 @@
             <div id="connectionDetails"></div>
           </div>
         </div>
+
+        <!-- My Cases Screen -->
+        <div id="myCases-screen" class="screen" style="display: none;">
+          <h1>My Cases</h1>
+          <p>View and manage your assigned cases</p>
+
+          <div id="myCasesError" class="error-message" style="display: none;"></div>
+          <div id="myCasesLoading" class="loading" style="display: none;">
+            <span class="spinner"></span>
+            <span>Loading cases...</span>
+          </div>
+
+          <div id="myCasesList"></div>
+        </div>
+
+        <!-- Create Case Screen -->
+        <div id="createCase-screen" class="screen" style="display: none;">
+          <h1>Create Case</h1>
+          <p>Create a new case in any of the 6 sheets</p>
+
+          <form id="createCaseForm" class="case-form" onsubmit="handleCreateCase(event); return false;">
+            <!-- Sheet Selection -->
+            <div class="form-group">
+              <label for="sheetName">Target Sheet *</label>
+              <select id="sheetName" class="form-input" required onchange="handleSheetChange()">
+                <option value="">Select Sheet...</option>
+                <option value="OT Email">OT Email</option>
+                <option value="3PO Email">3PO Email</option>
+                <option value="OT Chat">OT Chat</option>
+                <option value="3PO Chat">3PO Chat</option>
+                <option value="OT Phone">OT Phone</option>
+                <option value="3PO Phone">3PO Phone</option>
+              </select>
+            </div>
+
+            <!-- Date and Time -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="caseOpenDate">Case Open Date *</label>
+                <input type="date" id="caseOpenDate" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="caseOpenTime">Case Open Time *</label>
+                <input type="time" id="caseOpenTime" class="form-input" required>
+              </div>
+            </div>
+
+            <!-- Incoming Segment -->
+            <div class="form-group">
+              <label for="incomingSegment">Incoming Segment *</label>
+              <select id="incomingSegment" class="form-input" required>
+                <option value="">Select Segment...</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Titanium">Titanium</option>
+                <option value="Gold">Gold</option>
+                <option value="Silver">Silver</option>
+                <option value="Bronze - Low">Bronze - Low</option>
+                <option value="Bronze - High">Bronze - High</option>
+              </select>
+            </div>
+
+            <!-- Product Category -->
+            <div class="form-group">
+              <label for="productCategory">Product Category *</label>
+              <select id="productCategory" class="form-input" required>
+                <option value="">Select Category...</option>
+                <option value="Search">Search</option>
+                <option value="Display">Display</option>
+                <option value="Video">Video</option>
+                <option value="Commerce">Commerce</option>
+                <option value="Apps">Apps</option>
+                <option value="M&A">M&A</option>
+                <option value="Policy">Policy</option>
+                <option value="Billing">Billing</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Sub Category (OT sheets only) -->
+            <div id="subCategoryGroup" class="form-group" style="display: none;">
+              <label for="subCategory">Sub Category *</label>
+              <select id="subCategory" class="form-input">
+                <option value="">Select Sub Category...</option>
+                <option value="Search">Search</option>
+                <option value="P-MAX">P-MAX</option>
+                <option value="Display">Display</option>
+                <option value="Demand Gen">Demand Gen</option>
+                <option value="Video">Video</option>
+                <option value="Apps">Apps</option>
+                <option value="M&A">M&A</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Issue Category -->
+            <div class="form-group">
+              <label for="issueCategory">Issue Category *</label>
+              <input type="text" id="issueCategory" class="form-input" required placeholder="Enter issue category">
+            </div>
+
+            <!-- Details (3PO sheets only) -->
+            <div id="detailsGroup" class="form-group" style="display: none;">
+              <label for="details">Details</label>
+              <textarea id="details" class="form-input" rows="3" placeholder="Additional details..."></textarea>
+            </div>
+
+            <!-- Flags -->
+            <div class="form-group-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="triage">
+                Triage
+              </label>
+              <label id="amInitiatedGroup" class="checkbox-label" style="display: none;">
+                <input type="checkbox" id="amInitiated">
+                AM Initiated
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="is30">
+                Is 3.0
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="mcc">
+                MCC
+              </label>
+            </div>
+
+            <!-- Assignee -->
+            <div class="form-group">
+              <label for="firstAssignee">First Assignee</label>
+              <input type="text" id="firstAssignee" class="form-input" placeholder="LDAP (leave blank for auto-fill)">
+            </div>
+
+            <!-- Case Status -->
+            <div class="form-group">
+              <label for="caseStatus">Case Status</label>
+              <select id="caseStatus" class="form-input">
+                <option value="Assigned">Assigned</option>
+                <option value="Solution Offered">Solution Offered</option>
+                <option value="Finished">Finished</option>
+              </select>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button type="submit" id="createCaseBtn" class="btn-primary">
+                <span class="material-icons">add</span>
+                Create Case
+              </button>
+              <button type="button" class="btn-secondary" onclick="document.getElementById('createCaseForm').reset()">
+                <span class="material-icons">clear</span>
+                Clear
+              </button>
+            </div>
+
+            <div id="createCaseError" class="error-message" style="display: none;"></div>
+            <div id="createCaseSuccess" class="success-message" style="display: none;"></div>
+            <div id="createCaseLoading" class="loading" style="display: none;">
+              <span class="spinner"></span>
+              <span>Creating case...</span>
+            </div>
+          </form>
+        </div>
       </main>
     </div>
   <? } ?>
@@ -176,6 +346,7 @@
     <?!= include('frontend/js/api.js'); ?>
     <?!= include('frontend/js/auth.js'); ?>
     <?!= include('frontend/js/settings.js'); ?>
+    <?!= include('frontend/js/cases.js'); ?>
   </script>
 </body>
 </html>

@@ -1,0 +1,335 @@
+/**
+ * Case Management
+ *
+ * Handles case creation, viewing, and management.
+ *
+ * @author CasesDash v3.0.0
+ */
+
+/**
+ * Load Create Case screen
+ */
+async function loadCreateCaseScreen() {
+  console.log('Loading Create Case screen...');
+
+  // Check spreadsheet connection
+  try {
+    const status = await API.spreadsheet.getStatus();
+    if (!status.connected || !status.valid) {
+      showError('createCaseError', 'Please configure spreadsheet connection in Settings first.');
+      return;
+    }
+  } catch (error) {
+    showError('createCaseError', 'Failed to check spreadsheet connection.');
+    return;
+  }
+
+  // Set default values
+  const now = new Date();
+  document.getElementById('caseOpenDate').value = formatDateForInput(now);
+  document.getElementById('caseOpenTime').value = formatTimeForInput(now);
+}
+
+/**
+ * Handle case creation form submission
+ */
+async function handleCreateCase(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  console.log('Creating case...');
+
+  hideError('createCaseError');
+  hideSuccess('createCaseSuccess');
+  showLoading('createCaseLoading');
+
+  const createBtn = document.getElementById('createCaseBtn');
+  if (createBtn) createBtn.disabled = true;
+
+  try {
+    // Get form data
+    const sheetName = document.getElementById('sheetName').value;
+    const caseData = {
+      caseOpenDate: document.getElementById('caseOpenDate').value,
+      caseOpenTime: document.getElementById('caseOpenTime').value,
+      incomingSegment: document.getElementById('incomingSegment').value,
+      productCategory: document.getElementById('productCategory').value,
+      issueCategory: document.getElementById('issueCategory').value,
+      triage: document.getElementById('triage').checked,
+      is30: document.getElementById('is30').checked,
+      mcc: document.getElementById('mcc').checked,
+      firstAssignee: document.getElementById('firstAssignee').value,
+      caseStatus: document.getElementById('caseStatus').value
+    };
+
+    // Sheet-specific fields
+    if (sheetName.includes('OT') && !sheetName.includes('3PO')) {
+      caseData.subCategory = document.getElementById('subCategory').value;
+    }
+
+    if (sheetName.includes('Email')) {
+      caseData.amInitiated = document.getElementById('amInitiated').checked;
+    }
+
+    if (sheetName.includes('3PO')) {
+      caseData.details = document.getElementById('details').value;
+    }
+
+    // Validate
+    if (!sheetName) {
+      showError('createCaseError', 'Please select a sheet');
+      return;
+    }
+
+    if (!caseData.incomingSegment) {
+      showError('createCaseError', 'Incoming Segment is required');
+      return;
+    }
+
+    if (!caseData.productCategory) {
+      showError('createCaseError', 'Product Category is required');
+      return;
+    }
+
+    if (!caseData.issueCategory) {
+      showError('createCaseError', 'Issue Category is required');
+      return;
+    }
+
+    console.log('Case data:', caseData);
+    console.log('Target sheet:', sheetName);
+
+    // Create case
+    const result = await API.case.create(caseData, sheetName);
+
+    console.log('Create case result:', result);
+
+    if (result.success) {
+      showSuccess('createCaseSuccess', `✅ Case created successfully! Case ID: ${result.caseId}`);
+
+      // Reset form
+      setTimeout(() => {
+        document.getElementById('createCaseForm').reset();
+        loadCreateCaseScreen();
+      }, 2000);
+    } else {
+      showError('createCaseError', result.error || 'Failed to create case');
+    }
+
+  } catch (error) {
+    console.error('Error creating case:', error);
+    showError('createCaseError', handleAPIError(error, 'create case'));
+
+  } finally {
+    hideLoading('createCaseLoading');
+    if (createBtn) createBtn.disabled = false;
+  }
+}
+
+/**
+ * Load My Cases screen
+ */
+async function loadMyCasesScreen() {
+  console.log('Loading My Cases...');
+
+  showLoading('myCasesLoading');
+  hideError('myCasesError');
+
+  try {
+    const result = await API.case.getMyCases({});
+
+    console.log('My cases result:', result);
+
+    if (result.success) {
+      displayCases(result.cases, 'myCasesList');
+    } else {
+      showError('myCasesError', result.error || 'Failed to load cases');
+    }
+
+  } catch (error) {
+    console.error('Error loading my cases:', error);
+    showError('myCasesError', handleAPIError(error, 'load cases'));
+
+  } finally {
+    hideLoading('myCasesLoading');
+  }
+}
+
+/**
+ * Display cases in list
+ * @param {Array} cases - Array of case objects
+ * @param {string} containerId - Container element ID
+ */
+function displayCases(cases, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!cases || cases.length === 0) {
+    container.innerHTML = '<p class="empty-state">No cases found</p>';
+    return;
+  }
+
+  let html = '<div class="cases-grid">';
+
+  cases.forEach(item => {
+    const c = item.case;
+    const irt = item.irtData;
+
+    const urgencyClass = getUrgencyClass(irt);
+    const irtRemaining = irt ? irt.irtRemainingHours.toFixed(1) : 'N/A';
+
+    html += `
+      <div class="case-card ${urgencyClass}">
+        <div class="case-header">
+          <span class="case-id">${c.caseId}</span>
+          <span class="case-status status-${c.caseStatus.toLowerCase().replace(' ', '-')}">${c.caseStatus}</span>
+        </div>
+        <div class="case-body">
+          <p><strong>Sheet:</strong> ${c.sourceSheet}</p>
+          <p><strong>Segment:</strong> ${c.incomingSegment}</p>
+          <p><strong>Category:</strong> ${c.productCategory}</p>
+          <p><strong>Assignee:</strong> ${c.finalAssignee || c.firstAssignee}</p>
+          <p class="case-irt"><strong>IRT Remaining:</strong> <span class="irt-value">${irtRemaining}h</span></p>
+        </div>
+        <div class="case-actions">
+          <button class="btn-sm" onclick="viewCase('${c.caseId}')">View</button>
+          <button class="btn-sm btn-secondary" onclick="updateCaseStatus('${c.caseId}')">Update</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/**
+ * Get urgency class based on IRT
+ * @param {Object} irtData - IRT data
+ * @return {string} CSS class name
+ */
+function getUrgencyClass(irtData) {
+  if (!irtData || !irtData.irtRemainingHours) return '';
+
+  const remaining = irtData.irtRemainingHours;
+
+  if (remaining <= 0) return 'urgency-missed';
+  if (remaining <= 2) return 'urgency-critical';
+  if (remaining <= 4) return 'urgency-warning';
+  return 'urgency-normal';
+}
+
+/**
+ * View case details
+ * @param {string} caseId - Case ID
+ */
+async function viewCase(caseId) {
+  console.log('Viewing case:', caseId);
+  alert(`View case details: ${caseId}\n(Full implementation coming soon)`);
+}
+
+/**
+ * Update case status
+ * @param {string} caseId - Case ID
+ */
+async function updateCaseStatus(caseId) {
+  const newStatus = prompt('Enter new status (Assigned / Solution Offered / Finished):');
+
+  if (!newStatus) return;
+
+  const validStatuses = ['Assigned', 'Solution Offered', 'Finished'];
+  if (!validStatuses.includes(newStatus)) {
+    alert('Invalid status. Must be: Assigned, Solution Offered, or Finished');
+    return;
+  }
+
+  try {
+    const result = await API.case.update(caseId, { caseStatus: newStatus });
+
+    if (result.success) {
+      alert(`Case ${caseId} updated to ${newStatus}`);
+      // Reload cases
+      loadMyCasesScreen();
+    } else {
+      alert(`Failed to update case: ${result.error}`);
+    }
+
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+
+/**
+ * Handle sheet selection change
+ */
+function handleSheetChange() {
+  const sheetName = document.getElementById('sheetName').value;
+
+  // Show/hide conditional fields
+  const subCategoryGroup = document.getElementById('subCategoryGroup');
+  const amInitiatedGroup = document.getElementById('amInitiatedGroup');
+  const detailsGroup = document.getElementById('detailsGroup');
+
+  // Reset visibility
+  if (subCategoryGroup) subCategoryGroup.style.display = 'none';
+  if (amInitiatedGroup) amInitiatedGroup.style.display = 'none';
+  if (detailsGroup) detailsGroup.style.display = 'none';
+
+  if (!sheetName) return;
+
+  // OT sheets (not 3PO) have subCategory
+  if (sheetName.includes('OT') && !sheetName.includes('3PO')) {
+    if (subCategoryGroup) subCategoryGroup.style.display = 'block';
+  }
+
+  // Email sheets have amInitiated
+  if (sheetName.includes('Email')) {
+    if (amInitiatedGroup) amInitiatedGroup.style.display = 'block';
+  }
+
+  // 3PO sheets have details
+  if (sheetName.includes('3PO')) {
+    if (detailsGroup) detailsGroup.style.display = 'block';
+  }
+}
+
+/**
+ * Format date for input field (YYYY-MM-DD)
+ * @param {Date} date - Date object
+ * @return {string}
+ */
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Format time for input field (HH:MM)
+ * @param {Date} date - Date object
+ * @return {string}
+ */
+function formatTimeForInput(date) {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Initialize cases module
+ */
+function initCases() {
+  console.log('Cases module initialized');
+}
+
+// Initialize when DOM is ready (only in browser environment)
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCases);
+  } else {
+    initCases();
+  }
+  console.log('Cases module loaded');
+}
