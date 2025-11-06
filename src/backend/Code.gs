@@ -293,3 +293,231 @@ function testAuthentication() {
     status: status
   };
 }
+
+/**
+ * Case Management Functions (exposed to frontend)
+ */
+
+/**
+ * Create a new case
+ * @param {Object} caseData - Case data
+ * @param {string} sheetName - Target sheet name
+ * @return {Object} Creation result
+ */
+function frontendCreateCase(caseData, sheetName) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const result = createCase(caseData, sheetName, user.email);
+
+    Logger.log(`Case created by ${user.email}: ${result.caseId || 'failed'}`);
+
+    return result;
+
+  } catch (error) {
+    Logger.log(`Error in frontendCreateCase: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Get current user's cases
+ * @param {Object} filters - Filter options
+ * @return {Object} Result with cases array
+ */
+function frontendGetMyCases(filters) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const cases = getMyCases(user.email, filters || {});
+
+    Logger.log(`Retrieved ${cases.length} cases for ${user.email}`);
+
+    return {
+      success: true,
+      cases: cases.map(item => ({
+        case: serializeCase(item.case),
+        irtData: item.irtData
+      }))
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetMyCases: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Update a case
+ * @param {string} caseId - Case ID
+ * @param {Object} updates - Updates to apply
+ * @return {Object} Update result
+ */
+function frontendUpdateCase(caseId, updates) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const result = updateCase(caseId, updates, user.email);
+
+    if (result.success) {
+      result.case = serializeCase(result.case);
+    }
+
+    Logger.log(`Case ${caseId} updated by ${user.email}`);
+
+    return result;
+
+  } catch (error) {
+    Logger.log(`Error in frontendUpdateCase: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Get a single case
+ * @param {string} caseId - Case ID
+ * @return {Object} Case data
+ */
+function frontendGetCase(caseId) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const caseData = getCase(caseId);
+
+    if (!caseData) {
+      return {
+        success: false,
+        error: 'Case not found'
+      };
+    }
+
+    return {
+      success: true,
+      case: serializeCase(caseData.case),
+      irtData: caseData.irtData,
+      sheetName: caseData.sheetName
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetCase: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Search cases
+ * @param {Object} searchCriteria - Search criteria
+ * @return {Object} Search results
+ */
+function frontendSearchCases(searchCriteria) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const results = searchCases(searchCriteria);
+
+    return {
+      success: true,
+      results: results.map(item => ({
+        case: serializeCase(item.case),
+        irtData: item.irtData
+      }))
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendSearchCases: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Get cases with low IRT (for alerts)
+ * @param {number} thresholdHours - Threshold in hours
+ * @return {Object} Result with low IRT cases
+ */
+function frontendGetLowIRTCases(thresholdHours) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const cases = getCasesWithLowIRT(thresholdHours || 2);
+
+    return {
+      success: true,
+      cases: cases
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetLowIRTCases: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Serialize Case object for frontend
+ * Converts Date objects to strings
+ * @param {Case} caseObj - Case object
+ * @return {Object} Serialized case
+ */
+function serializeCase(caseObj) {
+  const serialized = {};
+
+  for (const key in caseObj) {
+    const value = caseObj[key];
+
+    if (value instanceof Date) {
+      serialized[key] = value.toISOString();
+    } else if (typeof value === 'function') {
+      // Skip functions
+      continue;
+    } else {
+      serialized[key] = value;
+    }
+  }
+
+  return serialized;
+}
+
