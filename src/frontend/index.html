@@ -267,7 +267,7 @@
             <!-- Product Category -->
             <div class="form-group">
               <label for="productCategory">Product Category *</label>
-              <select id="productCategory" class="form-input" required>
+              <select id="productCategory" class="form-input" required onchange="handleProductCategoryChange()">
                 <option value="">Select Category...</option>
                 <option value="Search">Search</option>
                 <option value="Display">Display</option>
@@ -308,7 +308,9 @@
             <!-- Details (3PO sheets only) -->
             <div id="detailsGroup" class="form-group" style="display: none;">
               <label for="details">Details</label>
-              <textarea id="details" class="form-input" rows="3" placeholder="Additional details..."></textarea>
+              <select id="details" class="form-input">
+                <option value="">Select Details...</option>
+              </select>
             </div>
 
             <!-- Flags -->
