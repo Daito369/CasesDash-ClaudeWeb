@@ -85,7 +85,7 @@ async function handleCreateCase(event) {
       is30: document.getElementById('is30').checked,
       mcc: document.getElementById('mcc').checked,
       changeToChild: document.getElementById('changeToChild').checked,
-      bugL2: document.getElementById('bugL2').checked
+      bugL2: document.getElementById('irtExclusion').checked // IRT exclusion mapped to bugL2 column
     };
 
     // Sheet-specific fields
@@ -436,7 +436,205 @@ const ISSUE_CATEGORY_MAP = {
 };
 
 /**
- * Handle Sub Category change - update Issue Category options
+ * Product Category → Sub Category mapping for OT sheets (spec lines 1104-1113)
+ */
+const PRODUCT_TO_SUB_CATEGORY_MAP = {
+  'Search': ['Search', 'P-MAX'],
+  'Display': ['Display', 'Demand Gen'],
+  'Video': ['Video', 'Demand Gen'],
+  'Commerce': ['Search', 'P-MAX', 'Display', 'Demand Gen', 'Video', 'Apps', 'M&A', 'Policy', 'Billing', 'Other'],
+  'Apps': ['Apps'],
+  'M&A': ['M&A'],
+  'Policy': ['Policy'],
+  'Billing': ['Billing'],
+  'Other': ['Other']
+};
+
+/**
+ * Issue Category options for 3PO sheets - Policy
+ */
+const TPO_POLICY_ISSUE_CATEGORIES = [
+  'Review',
+  'TM form',
+  'Trademarks issue',
+  'Under Review',
+  'Certificate',
+  'Suspend',
+  'AIV',
+  'GQ',
+  'OOS'
+];
+
+/**
+ * Issue Category options for 3PO sheets - Billing
+ */
+const TPO_BILLING_ISSUE_CATEGORIES = [
+  'CBT',
+  'LC creation',
+  'PP link',
+  'PP update',
+  'Payment user change',
+  'CL increase/decrease',
+  'IDT/ Bmod',
+  'LCS billing policy',
+  'Self-serve issue',
+  'Unidentified Charge',
+  'CBT Flow',
+  'Bulk CBT',
+  'Promotion code',
+  'Refund',
+  'Invoice issue',
+  'Account budget',
+  'Cost discrepancy',
+  'BO',
+  'AIV',
+  'GQ',
+  'OOS'
+];
+
+/**
+ * Details options for 3PO Billing
+ */
+const TPO_BILLING_DETAILS = [
+  'DSL',
+  'PP name',
+  'Address',
+  'Declined payment',
+  'Credit statement',
+  'Collections',
+  'Invoice GQ'
+];
+
+/**
+ * Handle Product Category change
+ * - OT sheets: Filter Sub Category options
+ * - 3PO sheets: Show/hide Issue Category and Details based on selection
+ */
+function handleProductCategoryChange() {
+  const sheetNameSelect = document.getElementById('sheetName');
+  const productCategorySelect = document.getElementById('productCategory');
+  const subCategorySelect = document.getElementById('subCategory');
+  const issueCategoryGroup = document.getElementById('issueCategory').parentElement;
+  const detailsGroup = document.getElementById('detailsGroup');
+
+  if (!sheetNameSelect || !productCategorySelect) return;
+
+  const sheetName = sheetNameSelect.value;
+  const productCategory = productCategorySelect.value;
+
+  // OT sheets: Filter Sub Category options
+  if (sheetName.includes('OT') && !sheetName.includes('3PO')) {
+    if (subCategorySelect) {
+      // Clear current options
+      subCategorySelect.innerHTML = '<option value="">Select Sub Category...</option>';
+
+      // Get filtered options
+      const subCategoryOptions = PRODUCT_TO_SUB_CATEGORY_MAP[productCategory];
+
+      if (subCategoryOptions && subCategoryOptions.length > 0) {
+        subCategoryOptions.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          subCategorySelect.appendChild(optionElement);
+        });
+      }
+    }
+  }
+
+  // 3PO sheets: Control Issue Category and Details visibility
+  if (sheetName.includes('3PO')) {
+    const issueCategorySelect = document.getElementById('issueCategory');
+
+    if (productCategory === 'Policy') {
+      // Show Issue Category with Policy options
+      if (issueCategoryGroup) issueCategoryGroup.style.display = 'block';
+      if (issueCategorySelect) {
+        issueCategorySelect.innerHTML = '<option value="">Select Issue Category...</option>';
+        TPO_POLICY_ISSUE_CATEGORIES.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          issueCategorySelect.appendChild(optionElement);
+        });
+      }
+
+      // Show Details (will load from Index sheet)
+      if (detailsGroup) {
+        detailsGroup.style.display = 'block';
+        loadDetailsOptions('Policy');
+      }
+
+    } else if (productCategory === 'Billing') {
+      // Show Issue Category with Billing options
+      if (issueCategoryGroup) issueCategoryGroup.style.display = 'block';
+      if (issueCategorySelect) {
+        issueCategorySelect.innerHTML = '<option value="">Select Issue Category...</option>';
+        TPO_BILLING_ISSUE_CATEGORIES.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          issueCategorySelect.appendChild(optionElement);
+        });
+      }
+
+      // Show Details with Billing-specific options
+      if (detailsGroup) {
+        detailsGroup.style.display = 'block';
+        loadDetailsOptions('Billing');
+      }
+
+    } else {
+      // Hide Issue Category and Details for other categories
+      if (issueCategoryGroup) issueCategoryGroup.style.display = 'none';
+      if (detailsGroup) detailsGroup.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Load Details options for 3PO sheets
+ * @param {string} category - 'Policy' or 'Billing'
+ */
+async function loadDetailsOptions(category) {
+  const detailsSelect = document.getElementById('details');
+  if (!detailsSelect) return;
+
+  // Clear current options
+  detailsSelect.innerHTML = '<option value="">Select Details...</option>';
+
+  if (category === 'Billing') {
+    // Billing: Use predefined 7 options
+    TPO_BILLING_DETAILS.forEach(option => {
+      const optionElement = document.createElement('option');
+      optionElement.value = option;
+      optionElement.textContent = option;
+      detailsSelect.appendChild(optionElement);
+    });
+
+  } else if (category === 'Policy') {
+    // Policy: Load from Index sheet R column
+    try {
+      const result = await API.spreadsheet.getDetailsOptions();
+
+      if (result.success && result.details && result.details.length > 0) {
+        result.details.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          detailsSelect.appendChild(optionElement);
+        });
+      } else {
+        console.error('Failed to load details:', result.error || 'No details found');
+      }
+    } catch (error) {
+      console.error('Error loading details options:', error);
+    }
+  }
+}
+
+/**
+ * Handle Sub Category change - update Issue Category options (OT sheets only)
  */
 function handleSubCategoryChange() {
   const subCategorySelect = document.getElementById('subCategory');
