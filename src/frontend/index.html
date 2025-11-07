@@ -333,9 +333,22 @@
                 <input type="checkbox" id="changeToChild">
                 Change to Child
               </label>
-              <label id="bugL2Group" class="checkbox-label">
-                <input type="checkbox" id="bugL2">
-                Bug / L2
+              <label class="checkbox-label tooltip-container">
+                <input type="checkbox" id="irtExclusion">
+                IRT除外対象
+                <span class="tooltip-text">
+                  <strong>＜IRT の SLAから除外されるケース＞</strong><br><br>
+                  <strong>• Bug：</strong>Case を Bug として Blocked By したもの<br><br>
+                  <strong>• L2 Consult：</strong>あくまでも私達から L2 に Direct で上がったケースのみが除外。<br>
+                  &nbsp;&nbsp;以下は IRT の除外対象になりません。<br>
+                  &nbsp;&nbsp;- L1S/L1R（L1S/L1R が L2 に上げたケースも除外対象ではない）<br>
+                  &nbsp;&nbsp;- pSME<br><br>
+                  <strong>• PayReq：</strong>Payment Request ID が発行されて Blocked by したもの<br><br>
+                  <strong>• Invoice Dispute：</strong>Invoice Dispute ID が発行されて Blocked by したもの<br><br>
+                  <strong>• Workdriver：</strong>Neo Taxnomy の最後の Workdriver を Troubleshooting 以外にしたもの<br>
+                  &nbsp;&nbsp;※ Implementation など<br><br>
+                  <strong>• T&S Team：</strong>T&S Team に上がったケース
+                </span>
               </label>
             </div>
 
