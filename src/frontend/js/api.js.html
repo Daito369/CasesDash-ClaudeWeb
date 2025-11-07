@@ -161,6 +161,20 @@ const API = {
     },
 
     /**
+     * Get Details options from Index sheet
+     * @return {Promise<Object>} Details options result
+     */
+    getDetailsOptions: async function() {
+      try {
+        const result = await callBackend('getDetailsOptions');
+        return result;
+      } catch (error) {
+        console.error('Get details options error:', error);
+        throw error;
+      }
+    },
+
+    /**
      * Validate spreadsheet structure
      * @return {Promise<Object>} Validation result
      */

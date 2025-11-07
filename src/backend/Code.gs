@@ -319,6 +319,62 @@ function getCurrentUser() {
 }
 
 /**
+ * Get Details options from Index sheet R column (Detailed category)
+ * @return {Object} { success: boolean, details: Array<string> }
+ */
+function getDetailsOptions() {
+  try {
+    Logger.log('getDetailsOptions called');
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const indexSheet = spreadsheet.getSheetByName('Index');
+
+    if (!indexSheet) {
+      return {
+        success: false,
+        error: 'Index sheet not found'
+      };
+    }
+
+    // Get R column (Detailed category) - assuming data starts from row 2
+    const lastRow = indexSheet.getLastRow();
+    if (lastRow < 2) {
+      return {
+        success: true,
+        details: []
+      };
+    }
+
+    // Get R2:R{lastRow}
+    const range = indexSheet.getRange(2, 18, lastRow - 1, 1); // Column R = 18
+    const values = range.getValues();
+
+    // Flatten and filter out empty values
+    const details = values
+      .map(row => row[0])
+      .filter(value => value && value.toString().trim() !== '')
+      .map(value => value.toString().trim());
+
+    // Remove duplicates and sort
+    const uniqueDetails = [...new Set(details)].sort();
+
+    Logger.log(`Found ${uniqueDetails.length} unique details`);
+
+    return {
+      success: true,
+      details: uniqueDetails
+    };
+
+  } catch (error) {
+    Logger.log(`getDetailsOptions error: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Case Management Functions (exposed to frontend)
  */
 

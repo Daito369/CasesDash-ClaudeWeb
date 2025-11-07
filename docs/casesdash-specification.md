@@ -1010,18 +1010,40 @@ Dashboardと同じカード形式で表示：
 - **フィールドの自動フォーカス**: フォーム表示時に最初の必須フィールドに自動でフォーカスを当てる
  
 #### 4.3.4 IRT除外ケース設定
-除外対象ケースの設定機能（セグメントに応じて表示）：
+除外対象ケースの設定機能：
 
-**全セグメント共通**:
-- Bug Case (Blocked by) フラグ
-- L2 Consulted フラグ
+**全シート共通**:
+- **IRT除外対象**: 単一チェックボックス（0/1）
+  - チェックON: IRTのSLA計算から除外される
+  - ホバー時にツールチップを表示（以下の詳細説明）
 
-**Billing セグメント特有**:
-- IDT Blocked by フラグ
-- Payreq Blocked by フラグ
+**IRT除外対象の詳細（ツールチップ表示内容）**:
+```
+＜IRT の SLAから除外されるケース＞
 
-**Policy セグメント特有**:
-- T&S Consulted フラグ
+• Bug：Case を Bug として Blocked By したもの
+
+• L2 Consult：あくまでも私達から L2 に Direct で上がったケースのみが除外。
+  以下は IRT の除外対象になりません。
+  - L1S/L1R（L1S/L1R が L2 に上げたケースも除外対象ではない）
+  - pSME
+
+• PayReq：Payment Request ID が発行されて Blocked by したもの
+
+• Invoice Dispute：Invoice Dispute ID が発行されて Blocked by したもの
+
+• Workdriver：Neo Taxnomy の最後の Workdriver を Troubleshooting 以外にしたもの
+  ※ Implementation など
+
+• T&S Team：T&S Team に上がったケース
+```
+
+**データマッピング**:
+- OT Email: X列（BUG_L2）
+- OT Chat/Phone: V列（BUG_L2）
+- 3PO Email: X列（BUG_L2_TS_PAYREQ）
+- 3PO Chat/Phone: V列（BUG_L2_TS_PAYREQ）
+
 
 #### 4.3.5 Create Case フォームレイアウト
 ```
@@ -1076,10 +1098,21 @@ Dashboardと同じカード形式で表示：
 
 | フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
 |-------------|-----------------|------------|-------------|------|
-| Sub Category | セレクトボックス | Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Other | - | - |
-| Issue Category | セレクトボックス | Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他 | - | - |
+| Sub Category | セレクトボックス（動的） | Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Policy, Billing, Other | - | - |
+| Issue Category | セレクトボックス（動的） | Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他, P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他, Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他, Demand Gen 仕様・機能, Demand Gen 配信関連, オーディエンス, BLS, Demand Gen レポート, Demand Gen 3PAS 関連, Demand Gen その他, Video 仕様・機能, Video 配信状況, YouTube ユーザーセグメント, BLS (ブランドリフト調査)/SLS (検索数の増加測定), Video レポート, Video 3PAS 関連, Video その他, MCM, Apps 配信関連, Apps 仕様・機能, Apps レポート, コンバージョン, 除外設定・オプトアウト依頼, フィードを使用したアプリキャンペーン, アプリキャンペーン以外のコンバージョン (Appify), アプリユーザーへのリマーケティング, Apps その他, Ads CV の計測, Ads CV のレポート, GA4 CV の計測, GA4 レポート, GA4 CV と Ads CV の乖離, OCI レポート乖離, OCI エラー, 拡張コンバージョン, リードの拡張コンバージョン, Google タグ, GTM を使用した Ads リマーケティング設定, GA4 からインポートしたオーディエンス, M&Aその他, パートナープログラム, エディタ, 本人確認, UI 操作・エラー, Ads 権限付与, GW・年末年始, Other その他 | - | - |
 
-**Sub Categoryに応じたIssue Categoryの選択肢**:
+**Product Categoryに応じたSub Categoryの選択肢（動的絞り込み）**:
+- **Search** → Search, P-MAX
+- **Display** → Display, Demand Gen
+- **Video** → Video, Demand Gen
+- **Commerce** → すべて（Search, P-MAX, Display, Demand Gen, Video, Apps, M&A, Policy, Billing, Other）
+- **Apps** → Apps
+- **M&A** → M&A
+- **Policy** → Policy
+- **Billing** → Billing
+- **Other** → Other
+
+**Sub Categoryに応じたIssue Categoryの選択肢（動的絞り込み）**:
 - **Search**：Search 仕様・機能, Search レポート, Search カスタムテスト・バリエーション, 無効なクリックの調査, 自動化ルール, Search その他
 - **P-MAX**：P-MAX 配信関連, P-MAX 仕様・機能, P-MAX レポート, P-MAX カスタムテスト・バリエーション, 除外 KW 追加依頼, P-MAX その他
 - **Display**：Display 仕様・機能, Display 配信状況, 動的リマーケティング広告・ビジネスデータフィード, 「ウェブサイトを訪れたユーザー」のデータセグメント, 顧客リスト, データセグメントの共有, シームカービングのオプトアウト, Display レポート, Display 3PAS 関連, Display その他
@@ -1093,8 +1126,63 @@ Dashboardと同じカード形式で表示：
 
 | フィールド名 | フィールドタイプ | 選択肢/形式 | デフォルト値 | 必須 |
 |-------------|-----------------|------------|-------------|------|
-| Issue Category | セレクトボックス | Review, TM form, Trademarks issue, Under Review, Certificate, Suspend, AIV, GQ, OOS, CBT, LC creation, PP link, PP update, Payment user change, CL increase/decrease, IDT/ Bmod, LCS billing policy, Self-serve issue, Unidentified Charge, CBT Flow, Bulk CBT, Promotion code, Refund, Invoice issue, Account budget, Cost discrepancy, BO | - | - |
-| Details | セレクトボックス（入力して部分一致検索あり） | 不適切な価格設定 / 許可されないビジネス手法, 誤解を招く広告のデザイン, 信頼できない文言, 操作されたメディア, 誤解を招く表現, ビジネス名の要件, 許可されないビジネス, 関連性が不明確, 法的要件, 不適切なリンク先, リンク先の利便性, アクセスできないリンク先, クロールできないリンク先, 機能していないリンク先, 確認できないアプリ, 広告グループ 1 つにつき 1 つのウェブサイト, 未確認の電話番号, 広告文に記載された電話番号, サポートされていない言語, 利用できない動画, 許可されない動画フォーマット, 画像の品質, 第四者呼び出し, 使用できない URL, 第三者配信の要件, 許可されない電話番号, 許可されないスクリプト, HTML5, 画像アセットのフォーマットの要件, アプリやウェブストアに関するポリシー違反, 危険な商品やサービス, 危険または中傷的なコンテンツ, 露骨な性的コンテンツ, デリケートな事象, 報酬を伴う性的行為, 児童への性的虐待の画像, 危険ドラッグ, 衝撃的なコンテンツ, その他の武器および兵器, 爆発物, 銃、銃部品、関連商品, 美白製品の宣伝, 国際結婚の斡旋, 動物への残虐行為, 不正入手された政治的資料, 暗号通貨, 個人ローン, 金融商品およびサービスについての情報開示, バイナリー オプション, 投機目的の複雑な金融商品, 広告主の適格性確認, 商標 / 再販業者と情報サイト, 不正なソフトウェア, 広告掲載システムの回避, 不当な手段による利益の獲得, 独自コンテンツの不足, ウェブマスター向けガイドライン, 性的なコンテンツ / 一部制限付きのカテゴリ, 性的なコンテンツ / 厳しく制限されるカテゴリ, ポルノ, 句読点と記号, 不明なビジネス, 会社名の要件, 大文字, 許可されないスペース, スタイルと表現, 広告機能の不正使用, 重複表現, 高脂肪、高塩分、高糖分の食品および飲料に関する広告, 政府発行書類と公的サービス, イベント チケットの販売, 第三者による消費者向けテクニカル サポート, サポートされていないビジネス, 無料のPC ソフトウェア, ローカル サービス, 保釈金立替サービス, 消費者勧告, 電話番号案内サービス、通話転送サービス、通話録音サービス, 信仰（パーソナライズド広告の場合）, 13 歳未満のユーザー（パーソナライズド広告の場合）, 虐待や心的外傷（パーソナライズド広告の場合）, 部分的なヌード, 人間関係における困難（パーソナライズド広告の場合）, 厳しい経済状況（パーソナライズド広告の場合）, 健康（パーソナライズド広告の場合）, 機会へのアクセス（住居 / 求人 / クレジット）, 強制停止, インタラクティブ要素の暗示, わかりにくいテキスト, 否定的な出来事, テキストまたはグラフィックのオーバーレイ, コラージュ, ぼやけた画像や不鮮明な画像, 切り抜き方に問題がある画像, 乱れた画像, 空白の多すぎる画像, アルコール / タバコ, ビジネスオペレーションの適格性, クローキング, 著作権, オフライン・オンラインギャンブル, ソーシャルカジノ, 処方薬、市販薬, 制限付き医療コンテンツ, 制限付き薬物に関するキーワード, 不承認の薬物, 依存症関連サービス, 実証されていない試験的な医療、細胞治療、遺伝子治療, 避妊, 中絶, 臨床試験の被験者募集, HIV 家庭用検査キット, 不正な支払い、, フィッシング, 政治に関するコンテンツ, その他, リンク先のエクスペリエンス, クリックベイト, 空白のクリエイティブ, 不適切なコンテンツ, よくない出来事, 人種や民族（パーソナライズド広告の場合）, オンライン マッチング, マイナス思考の強制(パーソナライズド広告の場合), 禁止カテゴリ, 禁止コンテンツ, 不正行為を助長する商品やサービス, 利用できない特典, ビジネスの名前が不適切, ビジネスのロゴが不適切, 金融サービスの適格性確認, リスト　クローズ, ブランドリフト調査, 不正使用されているサイト, サードパーティーポリシーに関する要件, コンテンツ　ポリシーに基づく自動化, 画像に含まれる行動を促すフレーズの要素, クレジット回復サービス, アクセスが制限されている動画, アルゼンチンの政治広告, クリックトラッカー, 日本の日付証明書, 債務関連サービス, 見出しと説明の要件, カジノ以外のオンラインゲーム, 動画コンテンツの変更, 勤務先, DSL, 出会い系関連の禁止事項, PP name, Address, Declined payment, Credit statement, Collections, Invoice GQ, 出会い系とコンパニオンサービス, ビジネス名の視認性の高さ, 関連性のない名前, 関連性のないロゴ, ロゴの視認性の高さ, ビジネスオペレーションの適格性確認, YTCQ - 不適切なコンテンツ, YTCQ - 誇張表現や不正確な表現, YTCQ - ネガティブな出来事および画像, ビジネスのロゴが不鮮明, イメージ広告におけるアニメーション | - | - |
+| Issue Category | セレクトボックス（動的） | Product Categoryに基づいて動的に変更（下記参照） | - | - |
+| Details | セレクトボックス（動的・オートコンプリート） | Product Categoryに基づいて動的に変更（下記参照）。Indexシート R列（Detailed category）から取得。 | - | - |
+
+**Product Categoryに応じたフィールド表示制御**:
+
+**1. Product Category = "Policy" の場合**:
+- **Issue Category表示**: 以下9個のオプション
+  - Review
+  - TM form
+  - Trademarks issue
+  - Under Review
+  - Certificate
+  - Suspend
+  - AIV
+  - GQ
+  - OOS
+
+- **Details表示**: IndexシートR列の全リスト（200+項目）から動的取得
+  - オートコンプリート機能: 部分一致検索でタイプして絞り込み可能
+  - データソース: `Index`シート R列（Detailed category）
+
+**2. Product Category = "Billing" の場合**:
+- **Issue Category表示**: 以下21個のオプション
+  - CBT
+  - LC creation
+  - PP link
+  - PP update
+  - Payment user change
+  - CL increase/decrease
+  - IDT/ Bmod
+  - LCS billing policy
+  - Self-serve issue
+  - Unidentified Charge
+  - CBT Flow
+  - Bulk CBT
+  - Promotion code
+  - Refund
+  - Invoice issue
+  - Account budget
+  - Cost discrepancy
+  - BO
+  - AIV
+  - GQ
+  - OOS
+
+- **Details表示**: 以下7個のオプション（IndexシートR列にも含まれる）
+  - DSL
+  - PP name
+  - Address
+  - Declined payment
+  - Credit statement
+  - Collections
+  - Invoice GQ
+
+**3. Product Category = その他（Search, Display, Video, Commerce, Apps, M&A, Other）の場合**:
+- **Issue Category**: 非表示
+- **Details**: 非表示
 
 
 ## 5. データ追加・更新機能仕様
