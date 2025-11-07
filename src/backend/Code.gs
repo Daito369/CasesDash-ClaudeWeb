@@ -327,17 +327,30 @@ function getDetailsOptions() {
     Logger.log('getDetailsOptions called');
 
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const indexSheet = spreadsheet.getSheetByName('Index');
+
+    // Try to find Index sheet (case-insensitive)
+    let indexSheet = spreadsheet.getSheetByName('Index');
+    if (!indexSheet) {
+      indexSheet = spreadsheet.getSheetByName('index');
+    }
+    if (!indexSheet) {
+      indexSheet = spreadsheet.getSheetByName('INDEX');
+    }
 
     if (!indexSheet) {
+      Logger.log('Index sheet not found. Available sheets: ' + spreadsheet.getSheets().map(s => s.getName()).join(', '));
       return {
         success: false,
-        error: 'Index sheet not found'
+        error: 'Index sheet not found. Available sheets: ' + spreadsheet.getSheets().map(s => s.getName()).join(', ')
       };
     }
 
+    Logger.log('Found Index sheet: ' + indexSheet.getName());
+
     // Get R column (Detailed category) - assuming data starts from row 2
     const lastRow = indexSheet.getLastRow();
+    Logger.log('Last row in Index sheet: ' + lastRow);
+
     if (lastRow < 2) {
       return {
         success: true,
@@ -367,9 +380,11 @@ function getDetailsOptions() {
 
   } catch (error) {
     Logger.log(`getDetailsOptions error: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     };
   }
 }

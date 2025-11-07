@@ -522,22 +522,40 @@ function handleProductCategoryChange() {
   const sheetName = sheetNameSelect.value;
   const productCategory = productCategorySelect.value;
 
-  // OT sheets: Filter Sub Category options
+  // OT sheets: Filter Sub Category options and handle special cases
   if (sheetName.includes('OT') && !sheetName.includes('3PO')) {
-    if (subCategorySelect) {
-      // Clear current options
-      subCategorySelect.innerHTML = '<option value="">Select Sub Category...</option>';
+    const subCategoryGroup = subCategorySelect ? subCategorySelect.parentElement : null;
 
-      // Get filtered options
-      const subCategoryOptions = PRODUCT_TO_SUB_CATEGORY_MAP[productCategory];
+    // Special case: Hide Sub Category and Issue Category for Billing or Policy
+    if (productCategory === 'Billing' || productCategory === 'Policy') {
+      if (subCategoryGroup) subCategoryGroup.style.display = 'none';
+      if (issueCategoryGroup) issueCategoryGroup.style.display = 'none';
+    } else {
+      // Show Sub Category and Issue Category for other product categories
+      if (subCategoryGroup) subCategoryGroup.style.display = 'block';
+      if (issueCategoryGroup) issueCategoryGroup.style.display = 'block';
 
-      if (subCategoryOptions && subCategoryOptions.length > 0) {
-        subCategoryOptions.forEach(option => {
-          const optionElement = document.createElement('option');
-          optionElement.value = option;
-          optionElement.textContent = option;
-          subCategorySelect.appendChild(optionElement);
-        });
+      if (subCategorySelect) {
+        // Clear current options
+        subCategorySelect.innerHTML = '<option value="">Select Sub Category...</option>';
+
+        // Get filtered options
+        const subCategoryOptions = PRODUCT_TO_SUB_CATEGORY_MAP[productCategory];
+
+        if (subCategoryOptions && subCategoryOptions.length > 0) {
+          subCategoryOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option;
+            optionElement.textContent = option;
+            subCategorySelect.appendChild(optionElement);
+          });
+
+          // Auto-select if only 1 option available
+          if (subCategoryOptions.length === 1) {
+            subCategorySelect.value = subCategoryOptions[0];
+            console.log(`Auto-selected Sub Category: ${subCategoryOptions[0]}`);
+          }
+        }
       }
     }
   }
@@ -617,6 +635,12 @@ async function loadDetailsOptions(category) {
     try {
       const result = await API.spreadsheet.getDetailsOptions();
 
+      if (!result) {
+        console.error('No response from getDetailsOptions');
+        detailsSelect.innerHTML += '<option value="" disabled>Error: No response from server</option>';
+        return;
+      }
+
       if (result.success && result.details && result.details.length > 0) {
         result.details.forEach(option => {
           const optionElement = document.createElement('option');
@@ -624,11 +648,15 @@ async function loadDetailsOptions(category) {
           optionElement.textContent = option;
           detailsSelect.appendChild(optionElement);
         });
+        console.log(`Loaded ${result.details.length} details options`);
       } else {
         console.error('Failed to load details:', result.error || 'No details found');
+        console.error('Full result:', result);
+        detailsSelect.innerHTML += `<option value="" disabled>Error: ${result.error || 'No details found'}</option>`;
       }
     } catch (error) {
       console.error('Error loading details options:', error);
+      detailsSelect.innerHTML += '<option value="" disabled>Error loading options</option>';
     }
   }
 }
