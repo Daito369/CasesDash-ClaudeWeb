@@ -326,7 +326,9 @@ function getDetailsOptions() {
   try {
     Logger.log('getDetailsOptions called');
 
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    // Use getSpreadsheet() which reads from configuration (like other functions)
+    const spreadsheet = getSpreadsheet();
+    Logger.log('Successfully got spreadsheet: ' + spreadsheet.getName());
 
     // Try to find Index sheet (case-insensitive)
     let indexSheet = spreadsheet.getSheetByName('Index');
@@ -338,10 +340,11 @@ function getDetailsOptions() {
     }
 
     if (!indexSheet) {
-      Logger.log('Index sheet not found. Available sheets: ' + spreadsheet.getSheets().map(s => s.getName()).join(', '));
+      const availableSheets = spreadsheet.getSheets().map(s => s.getName()).join(', ');
+      Logger.log('Index sheet not found. Available sheets: ' + availableSheets);
       return {
         success: false,
-        error: 'Index sheet not found. Available sheets: ' + spreadsheet.getSheets().map(s => s.getName()).join(', ')
+        error: 'Index sheet not found. Available sheets: ' + availableSheets
       };
     }
 
