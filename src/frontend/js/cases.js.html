@@ -68,6 +68,18 @@ async function handleCreateCase(event) {
   if (createBtn) createBtn.disabled = true;
 
   try {
+    // Sync detailsSearch to details select before submission (for 3PO sheets)
+    const detailsSearch = document.getElementById('detailsSearch');
+    const detailsSelect = document.getElementById('details');
+    if (detailsSearch && detailsSelect && detailsSearch.value) {
+      // Find matching option in select
+      const options = Array.from(detailsSelect.options);
+      const matchingOption = options.find(opt => opt.value === detailsSearch.value);
+      if (matchingOption) {
+        detailsSelect.value = matchingOption.value;
+      }
+    }
+
     // Get form data
     const sheetName = document.getElementById('sheetName').value;
     const caseData = {
@@ -98,7 +110,8 @@ async function handleCreateCase(event) {
     }
 
     if (sheetName.includes('3PO')) {
-      caseData.details = document.getElementById('details').value;
+      // Use the search field value if available, otherwise use select value
+      caseData.details = detailsSearch && detailsSearch.value ? detailsSearch.value : detailsSelect.value;
     }
 
     // Validate
@@ -612,25 +625,33 @@ function handleProductCategoryChange() {
   }
 }
 
+// Store all details options for filtering
+let allDetailsOptions = [];
+
 /**
  * Load Details options for 3PO sheets
  * @param {string} category - 'Policy' or 'Billing'
  */
 async function loadDetailsOptions(category) {
   const detailsSelect = document.getElementById('details');
+  const detailsSearch = document.getElementById('detailsSearch');
   if (!detailsSelect) return;
 
   // Clear current options
   detailsSelect.innerHTML = '<option value="">Select Details...</option>';
+  allDetailsOptions = [];
 
   if (category === 'Billing') {
     // Billing: Use predefined 7 options
+    allDetailsOptions = [...TPO_BILLING_DETAILS];
     TPO_BILLING_DETAILS.forEach(option => {
       const optionElement = document.createElement('option');
       optionElement.value = option;
       optionElement.textContent = option;
       detailsSelect.appendChild(optionElement);
     });
+    // Setup autocomplete for Billing (fewer options, but still useful)
+    setupDetailsAutocomplete();
 
   } else if (category === 'Policy') {
     // Policy: Load from Index sheet R column
@@ -644,6 +665,7 @@ async function loadDetailsOptions(category) {
       }
 
       if (result.success && result.details && result.details.length > 0) {
+        allDetailsOptions = [...result.details];
         result.details.forEach(option => {
           const optionElement = document.createElement('option');
           optionElement.value = option;
@@ -651,6 +673,8 @@ async function loadDetailsOptions(category) {
           detailsSelect.appendChild(optionElement);
         });
         console.log(`Loaded ${result.details.length} details options`);
+        // Setup autocomplete for Policy (168+ options)
+        setupDetailsAutocomplete();
       } else {
         console.error('Failed to load details:', result.error || 'No details found');
         console.error('Full result:', result);
@@ -661,6 +685,124 @@ async function loadDetailsOptions(category) {
       detailsSelect.innerHTML += '<option value="" disabled>Error loading options</option>';
     }
   }
+}
+
+/**
+ * Setup autocomplete functionality for Details field
+ */
+function setupDetailsAutocomplete() {
+  const detailsSearch = document.getElementById('detailsSearch');
+  const detailsSelect = document.getElementById('details');
+
+  if (!detailsSearch || !detailsSelect) return;
+
+  // Show dropdown on focus
+  detailsSearch.addEventListener('focus', () => {
+    if (allDetailsOptions.length > 0) {
+      detailsSelect.style.display = 'block';
+      filterDetailsOptions(detailsSearch.value);
+    }
+  });
+
+  // Filter on input
+  detailsSearch.addEventListener('input', (e) => {
+    filterDetailsOptions(e.target.value);
+    detailsSelect.style.display = 'block';
+  });
+
+  // Handle selection from dropdown
+  detailsSelect.addEventListener('change', (e) => {
+    if (e.target.value) {
+      detailsSearch.value = e.target.value;
+      detailsSelect.style.display = 'none';
+    }
+  });
+
+  // Handle click on option
+  detailsSelect.addEventListener('click', (e) => {
+    if (detailsSelect.value) {
+      detailsSearch.value = detailsSelect.value;
+      detailsSelect.style.display = 'none';
+    }
+  });
+
+  // Hide dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!detailsSearch.contains(e.target) && !detailsSelect.contains(e.target)) {
+      detailsSelect.style.display = 'none';
+    }
+  });
+
+  // Handle keyboard navigation
+  detailsSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      detailsSelect.style.display = 'block';
+      detailsSelect.focus();
+      if (detailsSelect.options.length > 1) {
+        detailsSelect.selectedIndex = 1; // Skip "Select Details..." option
+      }
+    } else if (e.key === 'Escape') {
+      detailsSelect.style.display = 'none';
+    } else if (e.key === 'Enter' && detailsSelect.style.display === 'block') {
+      e.preventDefault();
+      if (detailsSelect.selectedIndex > 0) {
+        detailsSearch.value = detailsSelect.value;
+        detailsSelect.style.display = 'none';
+      }
+    }
+  });
+
+  detailsSelect.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (detailsSelect.value) {
+        detailsSearch.value = detailsSelect.value;
+        detailsSelect.style.display = 'none';
+        detailsSearch.focus();
+      }
+    } else if (e.key === 'Escape') {
+      detailsSelect.style.display = 'none';
+      detailsSearch.focus();
+    }
+  });
+}
+
+/**
+ * Filter Details options based on search query
+ * @param {string} query - Search query
+ */
+function filterDetailsOptions(query) {
+  const detailsSelect = document.getElementById('details');
+  if (!detailsSelect) return;
+
+  // Clear current options except first
+  detailsSelect.innerHTML = '<option value="">Select Details...</option>';
+
+  // Filter options (case-insensitive partial match)
+  const lowerQuery = query.toLowerCase();
+  const filtered = allDetailsOptions.filter(option =>
+    option.toLowerCase().includes(lowerQuery)
+  );
+
+  // Add filtered options
+  filtered.forEach(option => {
+    const optionElement = document.createElement('option');
+    optionElement.value = option;
+    optionElement.textContent = option;
+    detailsSelect.appendChild(optionElement);
+  });
+
+  // Show message if no results
+  if (filtered.length === 0 && query) {
+    const noResultOption = document.createElement('option');
+    noResultOption.value = '';
+    noResultOption.textContent = `No results for "${query}"`;
+    noResultOption.disabled = true;
+    detailsSelect.appendChild(noResultOption);
+  }
+
+  console.log(`Filtered ${filtered.length} options from ${allDetailsOptions.length} total`);
 }
 
 /**
