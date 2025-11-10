@@ -45,7 +45,14 @@ async function loadMyCasesScreen() {
 
   try {
     // Fetch my cases from backend
+    console.log('Calling API.cases.getMyCases()...');
     const result = await API.cases.getMyCases();
+    console.log('API response received:', result);
+
+    // Check if result is null or undefined
+    if (!result) {
+      throw new Error('No response from server. The request may have timed out or failed.');
+    }
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to load cases');
@@ -65,7 +72,8 @@ async function loadMyCasesScreen() {
 
   } catch (error) {
     console.error('Error loading my cases:', error);
-    showError('myCasesError', `Failed to load cases: ${error.message}`);
+    const errorMessage = error.message || 'Unknown error occurred';
+    showError('myCasesError', `Failed to load cases: ${errorMessage}`);
   } finally {
     hideLoading('myCasesLoading');
   }
@@ -369,10 +377,18 @@ async function refreshMyCases() {
 
     const result = await API.cases.getMyCases();
 
+    // Check if result is null or undefined
+    if (!result) {
+      console.warn('No response from server during refresh');
+      return;
+    }
+
     if (result.success) {
       myCasesData = result.cases || [];
       displayMyCases(myCasesData);
       console.log('Cases refreshed successfully');
+    } else {
+      console.warn('Refresh failed:', result.error);
     }
 
   } catch (error) {
