@@ -945,4 +945,43 @@ textarea.form-input {
     width: 300px;
   }
 }
+
+/* Details Autocomplete Styles */
+#detailsGroup {
+  position: relative;
+}
+
+#detailsSearch {
+  margin-bottom: 0;
+}
+
+#details {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-top: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+#details option {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+#details option:hover {
+  background-color: var(--bg-hover);
+}
+
+#details option:checked,
+#details option:focus {
+  background-color: var(--primary-color);
+  color: white;
+}
 </style>
