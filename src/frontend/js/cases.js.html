@@ -554,6 +554,8 @@ function handleProductCategoryChange() {
           if (subCategoryOptions.length === 1) {
             subCategorySelect.value = subCategoryOptions[0];
             console.log(`Auto-selected Sub Category: ${subCategoryOptions[0]}`);
+            // Trigger Issue Category update after auto-selection
+            handleSubCategoryChange();
           }
         }
       }
@@ -733,11 +735,12 @@ function setupKeyboardShortcuts() {
 
   if (timeInput) {
     timeInput.addEventListener('keydown', (e) => {
-      // Ctrl+Shift+; sets current time
-      if (e.ctrlKey && e.shiftKey && e.key === ':') {
+      // Ctrl+Shift+; sets current time (use code instead of key for better compatibility)
+      if (e.ctrlKey && e.shiftKey && (e.code === 'Semicolon' || e.key === ':' || e.key === ';')) {
         e.preventDefault();
         const now = new Date();
         timeInput.value = formatTimeForInput(now);
+        console.log('Current time inserted:', timeInput.value);
       }
     });
   }
