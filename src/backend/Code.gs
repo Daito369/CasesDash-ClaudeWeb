@@ -455,40 +455,6 @@ function frontendCreateCase(caseData, sheetName) {
   }
 }
 
-/**
- * Get current user's cases
- * @param {Object} filters - Filter options
- * @return {Object} Result with cases array
- */
-function frontendGetMyCases(filters) {
-  try {
-    // Check authentication
-    const authCheck = requireAuth();
-    if (!authCheck.success) {
-      return authCheck;
-    }
-
-    const user = authCheck.data;
-    const cases = getMyCases(user.email, filters || {});
-
-    Logger.log(`Retrieved ${cases.length} cases for ${user.email}`);
-
-    return {
-      success: true,
-      cases: cases.map(item => ({
-        case: serializeCase(item.case),
-        irtData: item.irtData
-      }))
-    };
-
-  } catch (error) {
-    Logger.log(`Error in frontendGetMyCases: ${error.message}`);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
 
 /**
  * Update a case
@@ -624,8 +590,9 @@ function frontendGetLowIRTCases(thresholdHours) {
 }
 
 /**
- * Get My Active Cases
+ * Get My Active Cases (OPTIMIZED for performance)
  * Returns all Assigned cases for the current user
+ * Uses batch reads and in-memory filtering to minimize service calls
  * @return {Object} Result with user's active cases
  */
 function frontendGetMyCases() {
@@ -643,28 +610,50 @@ function frontendGetMyCases() {
 
     Logger.log(`Fetching cases for LDAP: ${ldap}`);
 
+    // OPTIMIZATION 1: Read IRT data ONCE and create a Map for O(1) lookup
+    const irtDataMap = loadAllIRTDataIntoMap();
+    Logger.log(`Loaded ${irtDataMap.size} IRT entries into memory`);
+
     const allCases = [];
     const sheets = SheetNames.getAllCaseSheets();
 
-    // Iterate through all 6 sheets
+    // OPTIMIZATION 2: Read all sheets using batch operations
     for (const sheetName of sheets) {
       try {
-        const cases = getCasesFromSheet(sheetName);
-        const columnMap = getColumnMapping(sheetName);
+        const sheet = getSheet(sheetName);
+        const lastRow = sheet.getLastRow();
 
-        for (let i = 0; i < cases.length; i++) {
-          const row = cases[i];
+        if (lastRow < 2) {
+          // No data rows (only header or empty)
+          continue;
+        }
+
+        // Get column mapping for this sheet
+        const columnMap = getColumnMapping(sheetName);
+        const numCols = sheet.getLastColumn();
+
+        // Read all data at once (batch operation)
+        const data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+
+        // OPTIMIZATION 3: Filter in memory (JavaScript is fast)
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
           const caseId = row[columnMap.CASE_ID];
           const caseStatus = row[columnMap.CASE_STATUS];
           const finalAssignee = row[columnMap.FINAL_ASSIGNEE];
+
+          // Skip empty rows
+          if (!caseId || caseId.toString().trim() === '') {
+            continue;
+          }
 
           // Filter: Final Assignee = current user AND Case Status = Assigned
           if (finalAssignee === ldap && caseStatus === CaseStatus.ASSIGNED) {
             // Create Case object
             const caseObj = Case.fromSheetRow(row, sheetName, i + 2);
 
-            // Get IRT data
-            const irtData = getOrCreateIRTData(caseId);
+            // OPTIMIZATION 4: O(1) lookup from Map instead of reading sheet again
+            const irtData = irtDataMap.get(caseId);
 
             // Calculate current IRT if IRT data exists
             if (irtData) {
@@ -716,6 +705,47 @@ function frontendGetMyCases() {
       success: false,
       error: error.message
     };
+  }
+}
+
+/**
+ * Load all IRT data into a Map for fast O(1) lookup
+ * This is a key performance optimization - read once, lookup many times
+ * @return {Map<string, IRTData>} Map of caseId -> IRTData
+ */
+function loadAllIRTDataIntoMap() {
+  try {
+    const sheet = getSheet(SheetNames.IRT_RAW_DATA);
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow < 2) {
+      // No data rows
+      return new Map();
+    }
+
+    // Read all IRT data at once (batch operation)
+    const data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
+
+    // Build Map for O(1) lookup
+    const irtMap = new Map();
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const caseId = row[0]; // Case ID is in column A (index 0)
+
+      if (caseId && caseId.toString().trim() !== '') {
+        const irtData = IRTData.fromSheetRow(row);
+        irtMap.set(caseId.toString(), irtData);
+      }
+    }
+
+    Logger.log(`Built IRT Map with ${irtMap.size} entries`);
+    return irtMap;
+
+  } catch (error) {
+    Logger.log(`Error loading IRT data into map: ${error.message}`);
+    // Return empty map to allow function to continue
+    return new Map();
   }
 }
 
