@@ -1,0 +1,429 @@
+<script>
+/**
+ * My Cases Module
+ *
+ * Handles display and management of user's active assigned cases.
+ * Features: Real-time IRT timer, color-coded warnings, filters, sorting.
+ *
+ * @author CasesDash v3.0.0
+ * @specification docs/casesdash-specification.md Section 4.2
+ */
+
+// Global state
+let myCasesData = [];
+let timerInterval = null;
+let autoRefreshInterval = null;
+
+// Sheet type color mapping (per specification)
+const SHEET_COLORS = {
+  'OT Email': '#4285F4',    // Google Blue
+  '3PO Email': '#34A853',   // Google Green
+  'OT Chat': '#FBBC05',     // Google Yellow
+  '3PO Chat': '#EA4335',    // Google Red
+  'OT Phone': '#8430CE',    // Google Purple
+  '3PO Phone': '#F57C00'    // Google Orange
+};
+
+// Sheet type icons
+const SHEET_ICONS = {
+  'OT Email': '📧',
+  '3PO Email': '📧',
+  'OT Chat': '💬',
+  '3PO Chat': '💬',
+  'OT Phone': '📞',
+  '3PO Phone': '📞'
+};
+
+/**
+ * Load My Cases screen
+ */
+async function loadMyCasesScreen() {
+  console.log('Loading My Cases screen...');
+
+  showLoading('myCasesLoading');
+  hideError('myCasesError');
+
+  try {
+    // Fetch my cases from backend
+    const result = await API.cases.getMyCases();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load cases');
+    }
+
+    myCasesData = result.cases || [];
+    console.log(`Loaded ${myCasesData.length} active cases`);
+
+    // Display cases
+    displayMyCases(myCasesData);
+
+    // Start real-time timer updates (every 1 second)
+    startTimerUpdates();
+
+    // Start auto-refresh (every 1 minute)
+    startAutoRefresh();
+
+  } catch (error) {
+    console.error('Error loading my cases:', error);
+    showError('myCasesError', `Failed to load cases: ${error.message}`);
+  } finally {
+    hideLoading('myCasesLoading');
+  }
+}
+
+/**
+ * Display my cases
+ * @param {Array} cases - Array of case objects
+ */
+function displayMyCases(cases) {
+  const container = document.getElementById('myCasesContainer');
+  if (!container) {
+    console.error('My Cases container not found');
+    return;
+  }
+
+  // Update summary statistics
+  updateCasesSummary(cases);
+
+  // Clear container
+  container.innerHTML = '';
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>🎉 No active cases!</h3>
+        <p>You don't have any assigned cases at the moment.</p>
+        <p>Great job keeping up with your workload!</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render each case card
+  cases.forEach(caseItem => {
+    const card = createCaseCard(caseItem);
+    container.appendChild(card);
+  });
+}
+
+/**
+ * Create case card element
+ * @param {Object} caseItem - Case item with case and irtData
+ * @return {HTMLElement} Card element
+ */
+function createCaseCard(caseItem) {
+  const { case: caseData, irtData, sheetName } = caseItem;
+
+  const card = document.createElement('div');
+  card.className = 'case-card';
+  card.setAttribute('data-case-id', caseData.caseId);
+  card.setAttribute('data-sheet-name', sheetName);
+
+  // Calculate urgency level
+  const urgency = getUrgencyLevel(irtData);
+  card.classList.add(`urgency-${urgency.level}`);
+
+  const sheetColor = SHEET_COLORS[sheetName] || '#666';
+  const sheetIcon = SHEET_ICONS[sheetName] || '📄';
+
+  card.innerHTML = `
+    <div class="case-card-header" style="border-left: 4px solid ${sheetColor};">
+      <div class="case-sheet-badge" style="background-color: ${sheetColor};">
+        ${sheetIcon} ${sheetName}
+      </div>
+      <div class="case-timer ${urgency.level}">
+        <span class="timer-value" data-case-id="${caseData.caseId}">
+          ${urgency.icon} ${formatIRTTimer(irtData)}
+        </span>
+      </div>
+    </div>
+
+    <div class="case-card-body">
+      <div class="case-id">
+        <strong>Case ID:</strong> ${caseData.caseId}
+      </div>
+
+      <div class="case-details">
+        <div class="case-detail-item">
+          <span class="detail-label">Segment:</span>
+          <span class="detail-value">${caseData.finalSegment || caseData.incomingSegment || 'N/A'}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Product:</span>
+          <span class="detail-value">${caseData.productCategory || 'N/A'}</span>
+        </div>
+        ${caseData.subCategory ? `
+        <div class="case-detail-item">
+          <span class="detail-label">Sub Category:</span>
+          <span class="detail-value">${caseData.subCategory}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="case-meta">
+        <div class="case-meta-item">
+          📅 Opened: ${caseData.caseOpenDate} ${caseData.caseOpenTime || ''}
+        </div>
+        ${irtData && irtData.reopenCount > 0 ? `
+        <div class="case-meta-item">
+          🔄 RO x${irtData.reopenCount}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="case-card-footer">
+      <button class="btn-secondary btn-sm" onclick="viewCaseDetails('${caseData.caseId}')">
+        Details
+      </button>
+      <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}')">
+        Edit
+      </button>
+    </div>
+  `;
+
+  return card;
+}
+
+/**
+ * Update cases summary statistics
+ * @param {Array} cases - Cases array
+ */
+function updateCasesSummary(cases) {
+  const summaryElement = document.getElementById('myCasesSummary');
+  if (!summaryElement) return;
+
+  let criticalCount = 0;
+  let warningCount = 0;
+  let normalCount = 0;
+  let totalIRTRemaining = 0;
+
+  cases.forEach(caseItem => {
+    const urgency = getUrgencyLevel(caseItem.irtData);
+
+    if (urgency.level === 'critical') criticalCount++;
+    else if (urgency.level === 'warning') warningCount++;
+    else normalCount++;
+
+    if (caseItem.irtData) {
+      totalIRTRemaining += caseItem.irtData.irtRemainingHours || 0;
+    }
+  });
+
+  const avgIRT = cases.length > 0 ? (totalIRTRemaining / cases.length).toFixed(1) : 0;
+  const slaOnTrack = cases.length > 0 ? ((normalCount + warningCount) / cases.length * 100).toFixed(1) : 100;
+
+  summaryElement.innerHTML = `
+    <div class="summary-stat">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">${cases.length}</span>
+    </div>
+    <div class="summary-stat critical">
+      <span class="stat-label">🔴 Critical:</span>
+      <span class="stat-value">${criticalCount}</span>
+    </div>
+    <div class="summary-stat warning">
+      <span class="stat-label">🟡 Warning:</span>
+      <span class="stat-value">${warningCount}</span>
+    </div>
+    <div class="summary-stat normal">
+      <span class="stat-label">🟢 Normal:</span>
+      <span class="stat-value">${normalCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Avg IRT Remaining:</span>
+      <span class="stat-value">${avgIRT}h</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">SLA On Track:</span>
+      <span class="stat-value">${slaOnTrack}%</span>
+    </div>
+  `;
+}
+
+/**
+ * Get urgency level based on IRT remaining
+ * @param {Object} irtData - IRT data
+ * @return {Object} Urgency info { level, icon, color }
+ */
+function getUrgencyLevel(irtData) {
+  if (!irtData || irtData.irtRemainingHours === null || irtData.irtRemainingHours === undefined) {
+    return { level: 'normal', icon: '🟢', color: '#34a853' };
+  }
+
+  const remaining = irtData.irtRemainingHours;
+
+  if (remaining <= 0) {
+    return { level: 'missed', icon: '⚫', color: '#5f6368' };
+  } else if (remaining <= 2) {
+    return { level: 'critical', icon: '🔴', color: '#ea4335' };
+  } else if (remaining <= 24) {
+    return { level: 'warning', icon: '🟡', color: '#fbbc05' };
+  } else {
+    return { level: 'normal', icon: '🟢', color: '#34a853' };
+  }
+}
+
+/**
+ * Format IRT timer for display
+ * @param {Object} irtData - IRT data
+ * @return {string} Formatted timer string
+ */
+function formatIRTTimer(irtData) {
+  if (!irtData || irtData.irtRemainingHours === null || irtData.irtRemainingHours === undefined) {
+    return '--:--:--';
+  }
+
+  const remaining = irtData.irtRemainingHours;
+
+  if (remaining <= 0) {
+    return 'MISSED';
+  }
+
+  // Convert hours to HH:MM:SS
+  const totalSeconds = Math.floor(remaining * 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Start real-time timer updates (every 1 second)
+ */
+function startTimerUpdates() {
+  // Clear existing interval
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+
+  timerInterval = setInterval(() => {
+    updateAllTimers();
+  }, 1000);
+
+  console.log('Started real-time timer updates');
+}
+
+/**
+ * Update all timer displays
+ */
+function updateAllTimers() {
+  const timerElements = document.querySelectorAll('.timer-value');
+
+  timerElements.forEach(element => {
+    const caseId = element.getAttribute('data-case-id');
+    const caseItem = myCasesData.find(item => item.case.caseId === caseId);
+
+    if (caseItem && caseItem.irtData) {
+      // Recalculate IRT remaining (client-side countdown)
+      const caseOpenTime = new Date(caseItem.irtData.caseOpenDateTime);
+      const now = new Date();
+      const elapsedMs = now - caseOpenTime;
+      const elapsedHours = elapsedMs / (1000 * 60 * 60);
+      const irtHours = elapsedHours - (caseItem.irtData.totalSOPeriodHours || 0);
+      const irtRemaining = 72 - irtHours;
+
+      // Update irtData in memory
+      caseItem.irtData.irtRemainingHours = irtRemaining;
+
+      // Update display
+      const urgency = getUrgencyLevel(caseItem.irtData);
+      element.innerHTML = `${urgency.icon} ${formatIRTTimer(caseItem.irtData)}`;
+
+      // Update card class
+      const card = element.closest('.case-card');
+      if (card) {
+        card.className = 'case-card';
+        card.classList.add(`urgency-${urgency.level}`);
+      }
+    }
+  });
+
+  // Update summary
+  updateCasesSummary(myCasesData);
+}
+
+/**
+ * Start auto-refresh (every 1 minute)
+ */
+function startAutoRefresh() {
+  // Clear existing interval
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+
+  autoRefreshInterval = setInterval(() => {
+    refreshMyCases();
+  }, 60000); // 60 seconds
+
+  console.log('Started auto-refresh (1 minute interval)');
+}
+
+/**
+ * Refresh my cases data from backend
+ */
+async function refreshMyCases() {
+  try {
+    console.log('Refreshing my cases...');
+
+    const result = await API.cases.getMyCases();
+
+    if (result.success) {
+      myCasesData = result.cases || [];
+      displayMyCases(myCasesData);
+      console.log('Cases refreshed successfully');
+    }
+
+  } catch (error) {
+    console.error('Error refreshing cases:', error);
+  }
+}
+
+/**
+ * Stop timers when leaving My Cases screen
+ */
+function stopMyCasesTimers() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+
+  console.log('Stopped My Cases timers');
+}
+
+/**
+ * View case details
+ * @param {string} caseId - Case ID
+ */
+function viewCaseDetails(caseId) {
+  // TODO: Implement case details modal
+  console.log('View details for case:', caseId);
+  alert(`Case Details view will be implemented soon.\n\nCase ID: ${caseId}`);
+}
+
+/**
+ * Edit case
+ * @param {string} caseId - Case ID
+ */
+function editCase(caseId) {
+  // TODO: Implement edit case modal
+  console.log('Edit case:', caseId);
+  alert(`Edit Case functionality will be implemented soon.\n\nCase ID: ${caseId}`);
+}
+
+/**
+ * Initialize My Cases module
+ */
+function initMyCasesModule() {
+  console.log('My Cases module initialized');
+}
+
+// Initialize on load
+initMyCasesModule();
+</script>
