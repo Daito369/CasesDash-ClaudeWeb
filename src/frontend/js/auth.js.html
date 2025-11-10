@@ -179,6 +179,74 @@ function setupSessionRefresh() {
 }
 
 /**
+ * Show screen by name
+ * @param {string} screenName - Screen name (e.g., 'dashboard', 'myCases', 'createCase', 'settings')
+ */
+function showScreen(screenName) {
+  console.log(`Navigating to ${screenName} screen`);
+
+  // Stop My Cases timers if leaving My Cases screen
+  const currentScreen = document.querySelector('.screen.active');
+  if (currentScreen && currentScreen.id === 'myCases-screen') {
+    if (typeof stopMyCasesTimers === 'function') {
+      stopMyCasesTimers();
+    }
+  }
+
+  // Hide all screens
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(screen => {
+    screen.classList.remove('active');
+    screen.style.display = 'none';
+  });
+
+  // Remove active class from all nav buttons
+  const navButtons = document.querySelectorAll('.nav-link');
+  navButtons.forEach(btn => btn.classList.remove('active'));
+
+  // Show selected screen
+  const screenId = `${screenName}-screen`;
+  const screenElement = document.getElementById(screenId);
+
+  if (screenElement) {
+    screenElement.style.display = 'block';
+    screenElement.classList.add('active');
+
+    // Activate corresponding nav button
+    const navButton = document.getElementById(`nav${screenName.charAt(0).toUpperCase() + screenName.slice(1)}`);
+    if (navButton) {
+      navButton.classList.add('active');
+    }
+
+    // Load screen-specific content
+    switch (screenName) {
+      case 'myCases':
+        if (typeof loadMyCasesScreen === 'function') {
+          loadMyCasesScreen();
+        }
+        break;
+      case 'createCase':
+        if (typeof loadCreateCaseScreen === 'function') {
+          loadCreateCaseScreen();
+        }
+        break;
+      case 'settings':
+        if (typeof loadSettingsScreen === 'function') {
+          loadSettingsScreen();
+        }
+        break;
+      case 'dashboard':
+        // Dashboard is static for now
+        break;
+      default:
+        console.warn(`Unknown screen: ${screenName}`);
+    }
+  } else {
+    console.error(`Screen not found: ${screenId}`);
+  }
+}
+
+/**
  * Initialize authentication module
  */
 function initAuth() {

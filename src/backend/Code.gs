@@ -624,6 +624,102 @@ function frontendGetLowIRTCases(thresholdHours) {
 }
 
 /**
+ * Get My Active Cases
+ * Returns all Assigned cases for the current user
+ * @return {Object} Result with user's active cases
+ */
+function frontendGetMyCases() {
+  try {
+    Logger.log('frontendGetMyCases called');
+
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const ldap = user.email.split('@')[0];
+
+    Logger.log(`Fetching cases for LDAP: ${ldap}`);
+
+    const allCases = [];
+    const sheets = SheetNames.getAllCaseSheets();
+
+    // Iterate through all 6 sheets
+    for (const sheetName of sheets) {
+      try {
+        const cases = getCasesFromSheet(sheetName);
+        const columnMap = getColumnMapping(sheetName);
+
+        for (let i = 0; i < cases.length; i++) {
+          const row = cases[i];
+          const caseId = row[columnMap.CASE_ID];
+          const caseStatus = row[columnMap.CASE_STATUS];
+          const finalAssignee = row[columnMap.FINAL_ASSIGNEE];
+
+          // Filter: Final Assignee = current user AND Case Status = Assigned
+          if (finalAssignee === ldap && caseStatus === CaseStatus.ASSIGNED) {
+            // Create Case object
+            const caseObj = Case.fromSheetRow(row, sheetName, i + 2);
+
+            // Get IRT data
+            const irtData = getOrCreateIRTData(caseId);
+
+            // Calculate current IRT if IRT data exists
+            if (irtData) {
+              irtData.calculateIRT();
+            }
+
+            allCases.push({
+              case: serializeCase(caseObj),
+              irtData: irtData ? {
+                caseId: irtData.caseId,
+                sourceSheet: irtData.sourceSheet,
+                caseOpenDateTime: irtData.caseOpenDateTime,
+                currentStatus: irtData.currentStatus,
+                reopenCount: irtData.reopenCount,
+                totalSOPeriodHours: irtData.totalSOPeriodHours,
+                irtHours: irtData.irtHours,
+                irtRemainingHours: irtData.irtRemainingHours,
+                lastUpdated: irtData.lastUpdated
+              } : null,
+              sheetName: sheetName
+            });
+          }
+        }
+      } catch (error) {
+        Logger.log(`Error processing sheet ${sheetName}: ${error.message}`);
+        // Continue to next sheet
+      }
+    }
+
+    // Sort by IRT remaining (most urgent first)
+    allCases.sort((a, b) => {
+      const aRemaining = a.irtData ? a.irtData.irtRemainingHours : 999;
+      const bRemaining = b.irtData ? b.irtData.irtRemainingHours : 999;
+      return aRemaining - bRemaining;
+    });
+
+    Logger.log(`Found ${allCases.length} active cases for ${ldap}`);
+
+    return {
+      success: true,
+      cases: allCases,
+      totalCases: allCases.length
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetMyCases: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Serialize Case object for frontend
  * Converts Date objects to strings
  * @param {Case} caseObj - Case object

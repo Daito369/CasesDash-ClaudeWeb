@@ -984,4 +984,242 @@ textarea.form-input {
   background-color: var(--primary-color);
   color: white;
 }
+
+/* My Cases Styles */
+.cases-summary-card {
+  background: white;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.cases-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.summary-stat {
+  flex: 1;
+  min-width: 150px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.summary-stat.critical {
+  background: #fee;
+  border-left: 4px solid var(--error-color);
+}
+
+.summary-stat.warning {
+  background: #fff8e1;
+  border-left: 4px solid var(--warning-color);
+}
+
+.summary-stat.normal {
+  background: #e8f5e9;
+  border-left: 4px solid var(--secondary-color);
+}
+
+.summary-stat .stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.summary-stat .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.cases-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.case-card {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.case-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.case-card-header {
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+}
+
+.case-sheet-badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.case-timer {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: 'Courier New', monospace;
+}
+
+.case-timer.normal {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.case-timer.warning {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.case-timer.critical {
+  background: #ffebee;
+  color: #c62828;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.case-timer.missed {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.case-card.urgency-critical {
+  border: 2px solid var(--error-color);
+}
+
+.case-card.urgency-warning {
+  border: 2px solid var(--warning-color);
+}
+
+.case-card-body {
+  padding: var(--spacing-md);
+}
+
+.case-id {
+  font-size: 1rem;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.case-id strong {
+  color: var(--primary-color);
+}
+
+.case-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.case-detail-item {
+  font-size: 0.875rem;
+}
+
+.detail-label {
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  display: block;
+}
+
+.case-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.case-meta-item {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.case-card-footer {
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-lg);
+}
+
+.empty-state h3 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin: var(--spacing-sm) 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cases-container {
+    grid-template-columns: 1fr;
+  }
+
+  .case-details {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-summary {
+    flex-direction: column;
+  }
+}
 </style>

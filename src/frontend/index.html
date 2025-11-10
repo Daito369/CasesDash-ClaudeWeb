@@ -176,8 +176,8 @@
 
         <!-- My Cases Screen -->
         <div id="myCases-screen" class="screen" style="display: none;">
-          <h1>My Cases</h1>
-          <p>View and manage your assigned cases</p>
+          <h1>📋 My Active Cases</h1>
+          <p>View and manage your assigned cases with real-time IRT tracking</p>
 
           <div id="myCasesError" class="error-message" style="display: none;"></div>
           <div id="myCasesLoading" class="loading" style="display: none;">
@@ -185,7 +185,18 @@
             <span>Loading cases...</span>
           </div>
 
-          <div id="myCasesList"></div>
+          <!-- Summary Statistics -->
+          <div class="cases-summary-card">
+            <h3>📊 Summary</h3>
+            <div id="myCasesSummary" class="cases-summary">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Cases Container -->
+          <div id="myCasesContainer" class="cases-container">
+            <!-- Case cards populated by JavaScript -->
+          </div>
         </div>
 
         <!-- Create Case Screen -->
@@ -396,5 +407,6 @@
   <?!= include('frontend/js/auth.js'); ?>
   <?!= include('frontend/js/settings.js'); ?>
   <?!= include('frontend/js/cases.js'); ?>
+  <?!= include('frontend/js/mycases.js'); ?>
 </body>
 </html>
