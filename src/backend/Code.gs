@@ -460,9 +460,10 @@ function frontendCreateCase(caseData, sheetName) {
  * Update a case
  * @param {string} caseId - Case ID
  * @param {Object} updates - Updates to apply
+ * @param {string} sheetName - Optional: specific sheet name to update
  * @return {Object} Update result
  */
-function frontendUpdateCase(caseId, updates) {
+function frontendUpdateCase(caseId, updates, sheetName) {
   try {
     // Check authentication
     const authCheck = requireAuth();
@@ -471,7 +472,7 @@ function frontendUpdateCase(caseId, updates) {
     }
 
     const user = authCheck.data;
-    const result = updateCase(caseId, updates, user.email);
+    const result = updateCase(caseId, updates, user.email, sheetName);
 
     if (result.success) {
       result.case = serializeCase(result.case);

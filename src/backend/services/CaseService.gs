@@ -131,12 +131,13 @@ function createCase(caseData, sheetName, createdBy) {
  * @param {string} caseId - Case ID
  * @param {Object} updates - Fields to update
  * @param {string} updatedBy - User email
+ * @param {string} sheetName - Optional: specific sheet name to update
  * @return {Object} Result { success: boolean }
  */
-function updateCase(caseId, updates, updatedBy) {
+function updateCase(caseId, updates, updatedBy, sheetName) {
   try {
-    // Find case across all sheets
-    const caseData = findCaseById(caseId);
+    // Find case in specific sheet or across all sheets
+    const caseData = findCaseById(caseId, sheetName);
 
     if (!caseData) {
       return {
