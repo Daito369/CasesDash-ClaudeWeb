@@ -522,14 +522,33 @@ function frontendGetCase(caseId) {
 
     Logger.log(`Serializing case: ${caseData.case.caseId}`);
 
+    // Serialize IRT data explicitly (same as frontendGetMyCases)
+    const serializedIRTData = caseData.irtData ? {
+      caseId: String(caseData.irtData.caseId || ''),
+      sourceSheet: String(caseData.irtData.sourceSheet || ''),
+      caseOpenDateTime: caseData.irtData.caseOpenDateTime ?
+        (caseData.irtData.caseOpenDateTime instanceof Date ?
+          caseData.irtData.caseOpenDateTime.toISOString() :
+          String(caseData.irtData.caseOpenDateTime)) : null,
+      currentStatus: String(caseData.irtData.currentStatus || ''),
+      reopenCount: Number(caseData.irtData.reopenCount || 0),
+      totalSOPeriodHours: Number(caseData.irtData.totalSOPeriodHours || 0),
+      irtHours: Number(caseData.irtData.irtHours || 0),
+      irtRemainingHours: Number(caseData.irtData.irtRemainingHours || 0),
+      lastUpdated: caseData.irtData.lastUpdated ?
+        (caseData.irtData.lastUpdated instanceof Date ?
+          caseData.irtData.lastUpdated.toISOString() :
+          String(caseData.irtData.lastUpdated)) : null
+    } : null;
+
     const response = {
       success: true,
       case: serializeCase(caseData.case),
-      irtData: caseData.irtData,
+      irtData: serializedIRTData,
       sheetName: caseData.sheetName
     };
 
-    Logger.log(`Response prepared, returning`);
+    Logger.log(`Response prepared with serialized IRT data, returning`);
 
     return response;
 
