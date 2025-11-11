@@ -831,19 +831,32 @@ function loadAllIRTDataIntoMap() {
  * @return {Object} Serialized case - plain object with primitives only
  */
 function serializeCase(caseObj) {
-  // Helper function to safely convert Date to string
+  // Helper function to convert time field (may be Date object with 1899 date)
+  const timeToString = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) {
+      // Extract time part only from Date object
+      const hours = String(value.getHours()).padStart(2, '0');
+      const minutes = String(value.getMinutes()).padStart(2, '0');
+      const seconds = String(value.getSeconds()).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
+    if (typeof value === 'string') return value;
+    return null;
+  };
+
+  // Helper function to convert date field
   const dateToString = (value) => {
     if (!value) return null;
     if (value instanceof Date) {
-      return value.toISOString();
+      // Convert to YYYY/MM/DD format
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const day = String(value.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
     }
     if (typeof value === 'string') return value;
-    try {
-      const date = new Date(value);
-      return isNaN(date.getTime()) ? null : date.toISOString();
-    } catch (e) {
-      return null;
-    }
+    return null;
   };
 
   // Return ALL the data needed by frontend, with explicit type conversion
@@ -851,8 +864,8 @@ function serializeCase(caseObj) {
     // Basic Info
     caseId: String(caseObj.caseId || ''),
     sourceSheet: String(caseObj.sourceSheet || ''),
-    caseOpenDate: caseObj.caseOpenDate ? String(caseObj.caseOpenDate) : null,
-    caseOpenTime: caseObj.caseOpenTime ? String(caseObj.caseOpenTime) : null,
+    caseOpenDate: dateToString(caseObj.caseOpenDate),
+    caseOpenTime: timeToString(caseObj.caseOpenTime),
 
     // Segment & Category
     incomingSegment: String(caseObj.incomingSegment || ''),
@@ -880,11 +893,11 @@ function serializeCase(caseObj) {
     amTransfer: caseObj.amTransfer ? String(caseObj.amTransfer) : null,
     nonNCC: caseObj.nonNCC ? String(caseObj.nonNCC) : null,
 
-    // Close dates
-    firstCloseDate: caseObj.firstCloseDate ? String(caseObj.firstCloseDate) : null,
-    firstCloseTime: caseObj.firstCloseTime ? String(caseObj.firstCloseTime) : null,
-    reopenCloseDate: caseObj.reopenCloseDate ? String(caseObj.reopenCloseDate) : null,
-    reopenCloseTime: caseObj.reopenCloseTime ? String(caseObj.reopenCloseTime) : null,
+    // Close dates and times
+    firstCloseDate: dateToString(caseObj.firstCloseDate),
+    firstCloseTime: timeToString(caseObj.firstCloseTime),
+    reopenCloseDate: dateToString(caseObj.reopenCloseDate),
+    reopenCloseTime: timeToString(caseObj.reopenCloseTime),
 
     // Timers (read-only from sheet)
     trtTimer: caseObj.trtTimer ? String(caseObj.trtTimer) : null,
