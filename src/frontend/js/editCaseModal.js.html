@@ -12,6 +12,7 @@
 let editingCaseId = null;
 let editingSheetName = null;
 let originalCaseData = null;
+let editingIrtData = null;
 let editModalFocusTrap = null;
 
 /**
@@ -52,6 +53,7 @@ function closeEditCaseModal() {
   editingCaseId = null;
   editingSheetName = null;
   originalCaseData = null;
+  editingIrtData = null;
   teardownEditModalKeyboardListeners();
   teardownEditModalFocusTrap();
 
@@ -94,16 +96,17 @@ async function loadCaseForEdit(caseId, sheetName) {
 
     console.log('Case data loaded for editing:', result);
 
-    // Store original data and sheet name
+    // Store original data, sheet name, and IRT data
     originalCaseData = result.case;
     editingSheetName = result.sheetName;
+    editingIrtData = result.irtData;
 
     // Hide loading, show form
     document.getElementById('editCaseLoading').style.display = 'none';
     document.getElementById('editCaseForm').style.display = 'block';
 
-    // Populate form with data
-    populateEditForm(result.case, result.sheetName);
+    // Populate form with data including IRT data for reopen count
+    populateEditForm(result.case, result.sheetName, result.irtData);
 
   } catch (error) {
     console.error('Error loading case for edit:', error);
@@ -120,8 +123,9 @@ async function loadCaseForEdit(caseId, sheetName) {
  * Populate edit form with case data
  * @param {Object} caseData - Case data
  * @param {string} sheetName - Sheet name
+ * @param {Object} irtData - IRT data (optional)
  */
-function populateEditForm(caseData, sheetName) {
+function populateEditForm(caseData, sheetName, irtData) {
   // Read-only context information
   document.getElementById('editCaseId').textContent = caseData.caseId;
   document.getElementById('editSheet').textContent = sheetName;
@@ -161,6 +165,59 @@ function populateEditForm(caseData, sheetName) {
   // Editable fields - Transfer & Disposition
   document.getElementById('inputAmTransfer').value = caseData.amTransfer || '';
   document.getElementById('inputNonNcc').value = caseData.nonNCC || '';
+
+  // Editable fields - Close Date/Time
+  // Determine if this is a reopen case based on IRT data
+  const reopenCount = irtData ? (irtData.reopenCount || 0) : 0;
+  const isReopen = reopenCount > 0;
+
+  // Update labels based on reopen status
+  if (isReopen) {
+    document.getElementById('closeDateTimeTitle').textContent = 'Reopen Close Date & Time';
+    document.getElementById('closeDateLabel').textContent = 'Reopen Close Date';
+    document.getElementById('closeTimeLabel').textContent = 'Reopen Close Time';
+
+    // Set values for reopen close
+    if (caseData.reopenCloseDate) {
+      document.getElementById('inputCloseDate').value = formatDateForInput(caseData.reopenCloseDate);
+    }
+    if (caseData.reopenCloseTime) {
+      document.getElementById('inputCloseTime').value = formatTimeForInput(caseData.reopenCloseTime);
+    }
+  } else {
+    document.getElementById('closeDateTimeTitle').textContent = '1st Close Date & Time';
+    document.getElementById('closeDateLabel').textContent = '1st Close Date';
+    document.getElementById('closeTimeLabel').textContent = '1st Close Time';
+
+    // Set values for first close
+    if (caseData.firstCloseDate) {
+      document.getElementById('inputCloseDate').value = formatDateForInput(caseData.firstCloseDate);
+    }
+    if (caseData.firstCloseTime) {
+      document.getElementById('inputCloseTime').value = formatTimeForInput(caseData.firstCloseTime);
+    }
+  }
+}
+
+/**
+ * Format date for HTML date input (YYYY-MM-DD)
+ * @param {string} date - Date string (YYYY/MM/DD or YYYY-MM-DD)
+ * @return {string} Formatted date for input
+ */
+function formatDateForInput(date) {
+  if (!date) return '';
+  // Convert YYYY/MM/DD to YYYY-MM-DD
+  return String(date).replace(/\//g, '-');
+}
+
+/**
+ * Format time for HTML time input (HH:MM:SS)
+ * @param {string} time - Time string
+ * @return {string} Formatted time for input
+ */
+function formatTimeForInput(time) {
+  if (!time) return '';
+  return String(time);
 }
 
 /**
@@ -267,6 +324,23 @@ async function saveEditCase() {
     nonNCC: document.getElementById('inputNonNcc').value.trim()
   };
 
+  // Add Close Date/Time based on reopen status
+  const reopenCount = editingIrtData ? (editingIrtData.reopenCount || 0) : 0;
+  const isReopen = reopenCount > 0;
+
+  const closeDate = document.getElementById('inputCloseDate').value;
+  const closeTime = document.getElementById('inputCloseTime').value;
+
+  if (isReopen) {
+    // This is a reopen case, update reopen close fields
+    updates.reopenCloseDate = closeDate ? closeDate.replace(/-/g, '/') : null;
+    updates.reopenCloseTime = closeTime || null;
+  } else {
+    // This is a first close, update first close fields
+    updates.firstCloseDate = closeDate ? closeDate.replace(/-/g, '/') : null;
+    updates.firstCloseTime = closeTime || null;
+  }
+
   console.log('Update data:', updates);
 
   // Show loading state on save button
@@ -275,8 +349,8 @@ async function saveEditCase() {
   saveBtn.classList.add('saving');
 
   try {
-    // Call backend API
-    const result = await API.cases.update(editingCaseId, updates);
+    // Call backend API with sheetName to update the correct sheet
+    const result = await API.cases.update(editingCaseId, updates, editingSheetName);
 
     if (!result) {
       throw new Error('No response from server');
@@ -315,11 +389,50 @@ async function saveEditCase() {
  * Show toast notification
  * @param {string} message - Message to display
  * @param {string} type - Type: 'success', 'error', 'warning', 'info'
+ * @param {number} duration - Duration in milliseconds (default: 3000)
  */
-function showToast(message, type = 'info') {
-  // Simple toast notification
-  // You can enhance this with a proper toast library or custom implementation
-  alert(message);
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) {
+    console.warn('Toast container not found, falling back to alert');
+    alert(message);
+    return;
+  }
+
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+
+  // Icon mapping
+  const icons = {
+    success: 'check_circle',
+    error: 'error',
+    warning: 'warning',
+    info: 'info'
+  };
+
+  toast.innerHTML = `
+    <div class="toast-icon">
+      <span class="material-icons">${icons[type] || icons.info}</span>
+    </div>
+    <div class="toast-message">${message}</div>
+    <button class="toast-close" onclick="this.parentElement.remove()">
+      <span class="material-icons">close</span>
+    </button>
+  `;
+
+  // Add to container
+  container.appendChild(toast);
+
+  // Auto-remove after duration
+  setTimeout(() => {
+    toast.classList.add('hiding');
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.remove();
+      }
+    }, 300); // Wait for animation to complete
+  }, duration);
 }
 
 /**

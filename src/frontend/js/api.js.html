@@ -241,11 +241,12 @@ const API = {
      * Update a case
      * @param {string} caseId - Case ID
      * @param {Object} updates - Updates to apply
+     * @param {string} sheetName - Optional: specific sheet name to update
      * @return {Promise<Object>} Update result
      */
-    update: async function(caseId, updates) {
+    update: async function(caseId, updates, sheetName) {
       try {
-        const result = await callBackend('frontendUpdateCase', caseId, updates);
+        const result = await callBackend('frontendUpdateCase', caseId, updates, sheetName);
         return result;
       } catch (error) {
         console.error('Update case error:', error);
