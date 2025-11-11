@@ -607,8 +607,9 @@ function formatTimeForDisplay(timeValue) {
     return '';
   }
 
-  // Check for invalid date or 1899 issue
-  if (isNaN(date.getTime()) || date.getFullYear() < 1900) {
+  // For time-only values (1899 date), extract time portion regardless of year
+  // Google Sheets stores time-only values as 1899-12-30 + time
+  if (isNaN(date.getTime())) {
     return '';
   }
 
