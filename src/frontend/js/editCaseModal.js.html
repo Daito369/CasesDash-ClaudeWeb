@@ -182,8 +182,8 @@ function populateEditForm(caseData, sheetName, irtData) {
 
   // Get current date and time for defaults
   const now = new Date();
-  const currentDate = formatDateFromDateObject(now);
-  const currentTime = formatTimeFromDateObject(now);
+  const currentDate = formatDateForInput(now);
+  const currentTime = formatTimeForInput(now);
 
   // Update labels based on reopen status
   if (isReopen) {
@@ -193,10 +193,10 @@ function populateEditForm(caseData, sheetName, irtData) {
 
     // Set values for reopen close (default to current date/time if not set)
     document.getElementById('inputCloseDate').value = caseData.reopenCloseDate
-      ? formatDateForInput(caseData.reopenCloseDate)
+      ? formatSheetDateForInput(caseData.reopenCloseDate)
       : currentDate;
     document.getElementById('inputCloseTime').value = caseData.reopenCloseTime
-      ? formatTimeForInput(caseData.reopenCloseTime)
+      ? formatSheetTimeForInput(caseData.reopenCloseTime)
       : currentTime;
   } else {
     document.getElementById('closeDateTimeTitle').textContent = '1st Close Date & Time';
@@ -205,42 +205,43 @@ function populateEditForm(caseData, sheetName, irtData) {
 
     // Set values for first close (default to current date/time if not set)
     document.getElementById('inputCloseDate').value = caseData.firstCloseDate
-      ? formatDateForInput(caseData.firstCloseDate)
+      ? formatSheetDateForInput(caseData.firstCloseDate)
       : currentDate;
     document.getElementById('inputCloseTime').value = caseData.firstCloseTime
-      ? formatTimeForInput(caseData.firstCloseTime)
+      ? formatSheetTimeForInput(caseData.firstCloseTime)
       : currentTime;
   }
 }
 
 /**
- * Format date for HTML date input (YYYY-MM-DD)
+ * Format date string from sheet to HTML date input format (YYYY-MM-DD)
+ * Converts YYYY/MM/DD to YYYY-MM-DD
  * @param {string} date - Date string (YYYY/MM/DD or YYYY-MM-DD)
  * @return {string} Formatted date for input
  */
-function formatDateForInput(date) {
+function formatSheetDateForInput(date) {
   if (!date) return '';
   // Convert YYYY/MM/DD to YYYY-MM-DD
   return String(date).replace(/\//g, '-');
 }
 
 /**
- * Format time for HTML time input (HH:MM:SS)
+ * Format time string for HTML time input (HH:MM:SS)
  * @param {string} time - Time string
  * @return {string} Formatted time for input
  */
-function formatTimeForInput(time) {
+function formatSheetTimeForInput(time) {
   if (!time) return '';
   return String(time);
 }
 
 /**
  * Format Date object to date string for HTML date input (YYYY-MM-DD)
- * Used for keyboard shortcuts to insert current date
+ * Used for keyboard shortcuts and default values (works with Date objects)
  * @param {Date} date - Date object
  * @return {string} Formatted date string
  */
-function formatDateFromDateObject(date) {
+function formatDateForInput(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -249,11 +250,11 @@ function formatDateFromDateObject(date) {
 
 /**
  * Format Date object to time string for HTML time input (HH:MM:SS)
- * Used for keyboard shortcuts to insert current time
+ * Used for keyboard shortcuts and default values (works with Date objects)
  * @param {Date} date - Date object
  * @return {string} Formatted time string
  */
-function formatTimeFromDateObject(date) {
+function formatTimeForInput(date) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   const seconds = String(date.getSeconds()).padStart(2, '0');
@@ -593,7 +594,7 @@ function handleCloseDateKeyDown(event) {
   if (event.ctrlKey && event.key === ';') {
     event.preventDefault();
     const today = new Date();
-    event.target.value = formatDateFromDateObject(today);
+    event.target.value = formatDateForInput(today);
     console.log('Today\'s date inserted:', event.target.value);
   }
 }
@@ -607,7 +608,7 @@ function handleCloseTimeKeyDown(event) {
   if (event.ctrlKey && event.shiftKey && (event.code === 'Semicolon' || event.key === ':' || event.key === ';')) {
     event.preventDefault();
     const now = new Date();
-    event.target.value = formatTimeFromDateObject(now);
+    event.target.value = formatTimeForInput(now);
     console.log('Current time inserted:', event.target.value);
   }
 }
