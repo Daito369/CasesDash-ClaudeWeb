@@ -660,20 +660,29 @@ function frontendGetMyCases() {
               irtData.calculateIRT();
             }
 
+            // Serialize IRT data to ensure clean transfer
+            const serializedIRTData = irtData ? {
+              caseId: String(irtData.caseId || ''),
+              sourceSheet: String(irtData.sourceSheet || ''),
+              caseOpenDateTime: irtData.caseOpenDateTime ?
+                (irtData.caseOpenDateTime instanceof Date ?
+                  irtData.caseOpenDateTime.toISOString() :
+                  String(irtData.caseOpenDateTime)) : null,
+              currentStatus: String(irtData.currentStatus || ''),
+              reopenCount: Number(irtData.reopenCount || 0),
+              totalSOPeriodHours: Number(irtData.totalSOPeriodHours || 0),
+              irtHours: Number(irtData.irtHours || 0),
+              irtRemainingHours: Number(irtData.irtRemainingHours || 0),
+              lastUpdated: irtData.lastUpdated ?
+                (irtData.lastUpdated instanceof Date ?
+                  irtData.lastUpdated.toISOString() :
+                  String(irtData.lastUpdated)) : null
+            } : null;
+
             allCases.push({
               case: serializeCase(caseObj),
-              irtData: irtData ? {
-                caseId: irtData.caseId,
-                sourceSheet: irtData.sourceSheet,
-                caseOpenDateTime: irtData.caseOpenDateTime,
-                currentStatus: irtData.currentStatus,
-                reopenCount: irtData.reopenCount,
-                totalSOPeriodHours: irtData.totalSOPeriodHours,
-                irtHours: irtData.irtHours,
-                irtRemainingHours: irtData.irtRemainingHours,
-                lastUpdated: irtData.lastUpdated
-              } : null,
-              sheetName: sheetName
+              irtData: serializedIRTData,
+              sheetName: String(sheetName)
             });
           }
         }
@@ -692,11 +701,23 @@ function frontendGetMyCases() {
 
     Logger.log(`Found ${allCases.length} active cases for ${ldap}`);
 
-    return {
+    // Prepare response
+    const response = {
       success: true,
       cases: allCases,
       totalCases: allCases.length
     };
+
+    // Log response size for debugging
+    try {
+      const jsonString = JSON.stringify(response);
+      Logger.log(`Response size: ${jsonString.length} characters`);
+      Logger.log(`Response size: ${(jsonString.length / 1024).toFixed(2)} KB`);
+    } catch (e) {
+      Logger.log(`Warning: Could not stringify response for size check: ${e.message}`);
+    }
+
+    return response;
 
   } catch (error) {
     Logger.log(`Error in frontendGetMyCases: ${error.message}`);
@@ -750,27 +771,60 @@ function loadAllIRTDataIntoMap() {
 }
 
 /**
- * Serialize Case object for frontend
- * Converts Date objects to strings
+ * Serialize Case object for frontend (OPTIMIZED for google.script.run)
+ * Creates a clean, minimal object with only necessary data
+ * Converts all Date objects to ISO strings
+ * Removes all methods and complex objects
  * @param {Case} caseObj - Case object
- * @return {Object} Serialized case
+ * @return {Object} Serialized case - plain object with primitives only
  */
 function serializeCase(caseObj) {
-  const serialized = {};
-
-  for (const key in caseObj) {
-    const value = caseObj[key];
-
+  // Helper function to safely convert Date to ISO string
+  const dateToString = (value) => {
+    if (!value) return null;
     if (value instanceof Date) {
-      serialized[key] = value.toISOString();
-    } else if (typeof value === 'function') {
-      // Skip functions
-      continue;
-    } else {
-      serialized[key] = value;
+      return value.toISOString();
     }
-  }
+    if (typeof value === 'string') return value;
+    // Try to convert to Date and then to string
+    try {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date.toISOString();
+    } catch (e) {
+      return null;
+    }
+  };
 
-  return serialized;
+  // Return ONLY the data needed by frontend, with explicit type conversion
+  return {
+    // Basic Info
+    caseId: String(caseObj.caseId || ''),
+    sourceSheet: String(caseObj.sourceSheet || ''),
+    caseOpenDate: caseObj.caseOpenDate ? String(caseObj.caseOpenDate) : null,
+    caseOpenTime: caseObj.caseOpenTime ? String(caseObj.caseOpenTime) : null,
+
+    // Segment & Category
+    incomingSegment: String(caseObj.incomingSegment || ''),
+    productCategory: String(caseObj.productCategory || ''),
+    subCategory: caseObj.subCategory ? String(caseObj.subCategory) : null,
+    issueCategory: String(caseObj.issueCategory || ''),
+    details: caseObj.details ? String(caseObj.details) : null,
+
+    // Flags (convert to boolean)
+    triage: Boolean(caseObj.triage),
+    is30: Boolean(caseObj.is30),
+    mcc: Boolean(caseObj.mcc),
+
+    // Assignee
+    firstAssignee: String(caseObj.firstAssignee || ''),
+    finalAssignee: String(caseObj.finalAssignee || ''),
+    finalSegment: String(caseObj.finalSegment || ''),
+
+    // Status
+    caseStatus: String(caseObj.caseStatus || 'Assigned'),
+
+    // Row index for reference
+    rowIndex: caseObj.rowIndex ? Number(caseObj.rowIndex) : null
+  };
 }
 
