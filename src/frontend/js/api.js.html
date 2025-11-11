@@ -254,13 +254,14 @@ const API = {
     },
 
     /**
-     * Get a single case
+     * Get a single case (optionally from specific sheet)
      * @param {string} caseId - Case ID
+     * @param {string} sheetName - Optional: specific sheet name to search
      * @return {Promise<Object>} Case data
      */
-    get: async function(caseId) {
+    get: async function(caseId, sheetName) {
       try {
-        const result = await callBackend('frontendGetCase', caseId);
+        const result = await callBackend('frontendGetCase', caseId, sheetName);
         return result;
       } catch (error) {
         console.error('Get case error:', error);

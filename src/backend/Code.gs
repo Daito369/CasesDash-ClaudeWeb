@@ -491,11 +491,12 @@ function frontendUpdateCase(caseId, updates) {
 }
 
 /**
- * Get a single case
+ * Get a single case (optionally from specific sheet)
  * @param {string} caseId - Case ID
+ * @param {string} sheetName - Optional: specific sheet name to search
  * @return {Object} Case data
  */
-function frontendGetCase(caseId) {
+function frontendGetCase(caseId, sheetName) {
   try {
     // Check authentication
     const authCheck = requireAuth();
@@ -503,7 +504,7 @@ function frontendGetCase(caseId) {
       return authCheck;
     }
 
-    const caseData = getCase(caseId);
+    const caseData = getCase(caseId, sheetName);
 
     if (!caseData) {
       return {
