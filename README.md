@@ -406,7 +406,8 @@ For questions or issues:
 - ✨ Material Design compliance throughout the application
 - ✨ Color-coded urgency levels (Normal/Warning/Critical/Missed)
 - ✨ Sheet badge color coding (Blue for Email, Red for Chat, Green for Phone)
-- ✨ Keyboard shortcuts (Ctrl+; for date, Ctrl+Shift+; for time)
+- ✨ Native HTML5 date/time pickers in Create Case and Edit Case Modal
+- ✨ Dual input method: Picker UI + Keyboard shortcuts (Ctrl+; / Ctrl+Shift+;)
 - ✨ IRT除外対象 tooltip with detailed exclusion criteria
 - ✨ Focus trap for modals (accessibility)
 - ✨ Loading states and comprehensive error handling
@@ -419,6 +420,9 @@ For questions or issues:
 - 🔧 **FIX**: getCaseByRowIndex to read directly from sheet
 - 🔧 **FIX**: Column mappings (added irtTimer at column O)
 - 🔧 **FIX**: Security policy compliance (@google.com domain only)
+- 🔧 **FIX**: Function name conflicts between Create Case and Edit Case Modal
+- 🔧 **FIX**: Date/Time keyboard shortcuts displaying Date objects as strings
+- 🔧 **FIX**: Email notification date/time format (now "Case Opened: 2025/11/08 22:59:00")
 
 #### 📚 Documentation
 - 📚 **DOC**: Complete specification rewrite (v3.0.0)
