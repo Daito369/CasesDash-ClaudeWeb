@@ -1,0 +1,423 @@
+<script>
+/**
+ * Edit Case Modal Module
+ *
+ * Handles editing of case data through a modal dialog
+ * Implements form validation, API integration, and accessibility features
+ *
+ * @author CasesDash v3.0.0
+ */
+
+// Global state for Edit Case Modal
+let editingCaseId = null;
+let editingSheetName = null;
+let originalCaseData = null;
+let editModalFocusTrap = null;
+
+/**
+ * Open edit case modal
+ * @param {string} caseId - Case ID to edit
+ */
+function editCase(caseId) {
+  console.log('Opening edit case modal for:', caseId);
+
+  editingCaseId = caseId;
+  const modal = document.getElementById('editCaseModal');
+
+  // Show modal
+  modal.style.display = 'flex';
+
+  // Set up keyboard listeners
+  setupEditModalKeyboardListeners();
+
+  // Set up focus trap
+  setupEditModalFocusTrap();
+
+  // Load case data
+  loadCaseForEdit(caseId);
+}
+
+/**
+ * Close edit case modal
+ */
+function closeEditCaseModal() {
+  console.log('Closing edit case modal');
+
+  const modal = document.getElementById('editCaseModal');
+  modal.style.display = 'none';
+
+  // Clean up
+  editingCaseId = null;
+  editingSheetName = null;
+  originalCaseData = null;
+  teardownEditModalKeyboardListeners();
+  teardownEditModalFocusTrap();
+
+  // Reset form
+  document.getElementById('editCaseForm').reset();
+  document.getElementById('editCaseForm').style.display = 'none';
+  document.getElementById('editCaseLoading').style.display = 'flex';
+  document.getElementById('editCaseError').style.display = 'none';
+
+  // Remove validation classes
+  document.querySelectorAll('.form-control').forEach(el => {
+    el.classList.remove('is-invalid', 'is-valid');
+  });
+}
+
+/**
+ * Load case data for editing
+ * @param {string} caseId - Case ID
+ */
+async function loadCaseForEdit(caseId) {
+  console.log('Loading case data for editing:', caseId);
+
+  // Show loading state
+  document.getElementById('editCaseLoading').style.display = 'flex';
+  document.getElementById('editCaseForm').style.display = 'none';
+  document.getElementById('editCaseError').style.display = 'none';
+
+  try {
+    // Call backend API
+    const result = await API.cases.get(caseId);
+
+    if (!result) {
+      throw new Error('No response from server');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load case data');
+    }
+
+    console.log('Case data loaded for editing:', result);
+
+    // Store original data and sheet name
+    originalCaseData = result.case;
+    editingSheetName = result.sheetName;
+
+    // Hide loading, show form
+    document.getElementById('editCaseLoading').style.display = 'none';
+    document.getElementById('editCaseForm').style.display = 'block';
+
+    // Populate form with data
+    populateEditForm(result.case, result.sheetName);
+
+  } catch (error) {
+    console.error('Error loading case for edit:', error);
+
+    // Show error state
+    document.getElementById('editCaseLoading').style.display = 'none';
+    document.getElementById('editCaseError').style.display = 'block';
+    document.getElementById('editCaseError').textContent =
+      `Failed to load case data: ${error.message}`;
+  }
+}
+
+/**
+ * Populate edit form with case data
+ * @param {Object} caseData - Case data
+ * @param {string} sheetName - Sheet name
+ */
+function populateEditForm(caseData, sheetName) {
+  // Read-only context information
+  document.getElementById('editCaseId').textContent = caseData.caseId;
+  document.getElementById('editSheet').textContent = sheetName;
+
+  const caseOpenedText = `${caseData.caseOpenDate || ''} ${caseData.caseOpenTime || ''}`.trim();
+  document.getElementById('editCaseOpened').textContent = caseOpenedText || 'N/A';
+
+  document.getElementById('editFirstAssignee').textContent = caseData.firstAssignee || 'N/A';
+
+  const incomingSegmentEl = document.getElementById('editIncomingSegment');
+  incomingSegmentEl.textContent = caseData.incomingSegment || 'N/A';
+  incomingSegmentEl.setAttribute('data-segment', caseData.incomingSegment || '');
+
+  document.getElementById('editProductCategory').textContent = caseData.productCategory || 'N/A';
+
+  // Editable fields - Status & Assignment
+  document.getElementById('inputCaseStatus').value = caseData.caseStatus || 'Assigned';
+  document.getElementById('inputFinalAssignee').value = caseData.finalAssignee || '';
+  document.getElementById('inputFinalSegment').value = caseData.finalSegment || caseData.incomingSegment || 'Gold';
+
+  // Editable fields - Flags
+  document.getElementById('inputTriage').checked = Boolean(caseData.triage);
+  document.getElementById('inputAmInitiated').checked = Boolean(caseData.amInitiated);
+  document.getElementById('inputIs30').checked = Boolean(caseData.is30);
+  document.getElementById('inputMcc').checked = Boolean(caseData.mcc);
+  document.getElementById('inputChangeToChild').checked = Boolean(caseData.changeToChild);
+  document.getElementById('inputBugL2').checked = Boolean(caseData.bugL2);
+
+  // Hide AM Initiated checkbox for non-Email sheets
+  const amInitiatedCheckbox = document.getElementById('amInitiatedCheckbox');
+  if (sheetName && !sheetName.includes('Email')) {
+    amInitiatedCheckbox.style.display = 'none';
+  } else {
+    amInitiatedCheckbox.style.display = 'flex';
+  }
+
+  // Editable fields - Transfer & Disposition
+  document.getElementById('inputAmTransfer').value = caseData.amTransfer || '';
+  document.getElementById('inputNonNcc').value = caseData.nonNCC || '';
+}
+
+/**
+ * Validate edit form
+ * @return {Object} Validation result { valid: boolean, errors: Object }
+ */
+function validateEditForm() {
+  const errors = {};
+  let isValid = true;
+
+  // Case Status - required
+  const caseStatus = document.getElementById('inputCaseStatus').value.trim();
+  if (!caseStatus) {
+    errors.caseStatus = 'Case Status is required';
+    isValid = false;
+  }
+
+  // Final Assignee - required, LDAP format
+  const finalAssignee = document.getElementById('inputFinalAssignee').value.trim();
+  if (!finalAssignee) {
+    errors.finalAssignee = 'Final Assignee is required';
+    isValid = false;
+  } else if (finalAssignee.includes('@')) {
+    errors.finalAssignee = 'Enter LDAP only (without @google.com)';
+    isValid = false;
+  } else if (!/^[a-zA-Z0-9]+$/.test(finalAssignee)) {
+    errors.finalAssignee = 'LDAP should contain only letters and numbers';
+    isValid = false;
+  }
+
+  // Final Segment - required
+  const finalSegment = document.getElementById('inputFinalSegment').value.trim();
+  if (!finalSegment) {
+    errors.finalSegment = 'Final Segment is required';
+    isValid = false;
+  }
+
+  // Apply validation feedback to form
+  applyValidationFeedback('inputCaseStatus', errors.caseStatus);
+  applyValidationFeedback('inputFinalAssignee', errors.finalAssignee);
+  applyValidationFeedback('inputFinalSegment', errors.finalSegment);
+
+  return { valid: isValid, errors };
+}
+
+/**
+ * Apply validation feedback to form field
+ * @param {string} fieldId - Field ID
+ * @param {string} errorMessage - Error message (null if valid)
+ */
+function applyValidationFeedback(fieldId, errorMessage) {
+  const field = document.getElementById(fieldId);
+
+  if (errorMessage) {
+    field.classList.add('is-invalid');
+    field.classList.remove('is-valid');
+
+    // Add or update error message
+    let feedback = field.nextElementSibling;
+    if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+      feedback = document.createElement('div');
+      feedback.className = 'invalid-feedback';
+      field.parentNode.insertBefore(feedback, field.nextSibling);
+    }
+    feedback.textContent = errorMessage;
+  } else {
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+
+    // Remove error message
+    const feedback = field.nextElementSibling;
+    if (feedback && feedback.classList.contains('invalid-feedback')) {
+      feedback.remove();
+    }
+  }
+}
+
+/**
+ * Save edited case
+ */
+async function saveEditCase() {
+  console.log('Saving edited case:', editingCaseId);
+
+  // Validate form
+  const validation = validateEditForm();
+  if (!validation.valid) {
+    console.warn('Form validation failed:', validation.errors);
+    showToast('Please fix validation errors', 'error');
+    return;
+  }
+
+  // Collect form data
+  const updates = {
+    caseStatus: document.getElementById('inputCaseStatus').value.trim(),
+    finalAssignee: document.getElementById('inputFinalAssignee').value.trim(),
+    finalSegment: document.getElementById('inputFinalSegment').value.trim(),
+    triage: document.getElementById('inputTriage').checked,
+    amInitiated: document.getElementById('inputAmInitiated').checked,
+    is30: document.getElementById('inputIs30').checked,
+    mcc: document.getElementById('inputMcc').checked,
+    changeToChild: document.getElementById('inputChangeToChild').checked,
+    bugL2: document.getElementById('inputBugL2').checked,
+    amTransfer: document.getElementById('inputAmTransfer').value.trim(),
+    nonNCC: document.getElementById('inputNonNcc').value.trim()
+  };
+
+  console.log('Update data:', updates);
+
+  // Show loading state on save button
+  const saveBtn = document.getElementById('saveEditBtn');
+  saveBtn.disabled = true;
+  saveBtn.classList.add('saving');
+
+  try {
+    // Call backend API
+    const result = await API.cases.update(editingCaseId, updates);
+
+    if (!result) {
+      throw new Error('No response from server');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update case');
+    }
+
+    console.log('Case updated successfully:', result);
+
+    // Show success message
+    showToast('Case updated successfully!', 'success');
+
+    // Close modal
+    closeEditCaseModal();
+
+    // Refresh the cases list if we're on My Cases page
+    if (typeof refreshMyCases === 'function') {
+      setTimeout(() => {
+        refreshMyCases();
+      }, 500);
+    }
+
+  } catch (error) {
+    console.error('Error updating case:', error);
+    showToast(`Failed to update case: ${error.message}`, 'error');
+  } finally {
+    // Reset button state
+    saveBtn.disabled = false;
+    saveBtn.classList.remove('saving');
+  }
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - Type: 'success', 'error', 'warning', 'info'
+ */
+function showToast(message, type = 'info') {
+  // Simple toast notification
+  // You can enhance this with a proper toast library or custom implementation
+  alert(message);
+}
+
+/**
+ * Setup keyboard listeners for edit modal
+ */
+function setupEditModalKeyboardListeners() {
+  document.addEventListener('keydown', handleEditModalKeyDown);
+}
+
+/**
+ * Teardown keyboard listeners
+ */
+function teardownEditModalKeyboardListeners() {
+  document.removeEventListener('keydown', handleEditModalKeyDown);
+}
+
+/**
+ * Handle keyboard events in edit modal
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleEditModalKeyDown(event) {
+  // ESC key closes modal
+  if (event.key === 'Escape') {
+    closeEditCaseModal();
+  }
+}
+
+/**
+ * Setup focus trap for accessibility
+ */
+function setupEditModalFocusTrap() {
+  const modal = document.getElementById('editCaseModal');
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+
+  if (focusableElements.length === 0) return;
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  // Focus first element
+  firstElement.focus();
+
+  // Trap focus within modal
+  editModalFocusTrap = function(event) {
+    if (event.key !== 'Tab') return;
+
+    if (event.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  };
+
+  modal.addEventListener('keydown', editModalFocusTrap);
+}
+
+/**
+ * Teardown focus trap
+ */
+function teardownEditModalFocusTrap() {
+  if (editModalFocusTrap) {
+    const modal = document.getElementById('editCaseModal');
+    modal.removeEventListener('keydown', editModalFocusTrap);
+    editModalFocusTrap = null;
+  }
+}
+
+/**
+ * Initialize Edit Case Modal module
+ */
+function initEditCaseModal() {
+  console.log('Edit Case Modal module initialized');
+
+  // Add real-time validation listeners
+  const finalAssigneeInput = document.getElementById('inputFinalAssignee');
+  if (finalAssigneeInput) {
+    finalAssigneeInput.addEventListener('blur', function() {
+      const value = this.value.trim();
+      if (value) {
+        if (value.includes('@')) {
+          applyValidationFeedback('inputFinalAssignee', 'Enter LDAP only (without @google.com)');
+        } else if (!/^[a-zA-Z0-9]+$/.test(value)) {
+          applyValidationFeedback('inputFinalAssignee', 'LDAP should contain only letters and numbers');
+        } else {
+          applyValidationFeedback('inputFinalAssignee', null);
+        }
+      }
+    });
+  }
+}
+
+// Initialize on load
+initEditCaseModal();
+</script>

@@ -572,6 +572,239 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Case Modal -->
+    <div id="editCaseModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="editCaseModalTitle">
+      <div class="modal-overlay" onclick="closeEditCaseModal()"></div>
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h2 id="editCaseModalTitle" class="modal-title">
+              <span class="material-icons">edit</span>
+              Edit Case
+            </h2>
+            <button class="modal-close-btn" onclick="closeEditCaseModal()" aria-label="Close modal">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body" id="editCaseContent">
+            <!-- Loading State -->
+            <div id="editCaseLoading" class="modal-loading" style="display: flex;">
+              <div class="spinner"></div>
+              <p>Loading case data...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="editCaseError" class="modal-error" style="display: none;">
+              Error loading case data
+            </div>
+
+            <!-- Edit Form -->
+            <form id="editCaseForm" style="display: none;">
+              <!-- Read-Only Context Section -->
+              <section class="details-section">
+                <h3 class="section-title">
+                  <span class="material-icons">info</span>
+                  Case Information
+                </h3>
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Case ID</span>
+                    <span class="detail-value" id="editCaseId">-</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Sheet</span>
+                    <span class="detail-value" id="editSheet">-</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Case Opened</span>
+                    <span class="detail-value" id="editCaseOpened">-</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">1st Assignee</span>
+                    <span class="detail-value" id="editFirstAssignee">-</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Incoming Segment</span>
+                    <span class="detail-value segment-badge" id="editIncomingSegment" data-segment="">-</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Product Category</span>
+                    <span class="detail-value" id="editProductCategory">-</span>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Status & Assignment Section (Editable) -->
+              <section class="details-section">
+                <h3 class="section-title">
+                  <span class="material-icons">assignment</span>
+                  Status & Assignment
+                </h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="inputCaseStatus" class="form-label">
+                      Case Status <span class="required">*</span>
+                    </label>
+                    <select id="inputCaseStatus" class="form-control" required>
+                      <option value="Assigned">Assigned</option>
+                      <option value="Solution Offered">Solution Offered</option>
+                      <option value="Finished">Finished</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inputFinalAssignee" class="form-label">
+                      Final Assignee (LDAP) <span class="required">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="inputFinalAssignee"
+                      class="form-control"
+                      placeholder="e.g., jsmith"
+                      required
+                    />
+                    <small class="form-hint">LDAP ID without @google.com</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inputFinalSegment" class="form-label">
+                      Final Segment <span class="required">*</span>
+                    </label>
+                    <select id="inputFinalSegment" class="form-control" required>
+                      <option value="Platinum">Platinum</option>
+                      <option value="Titanium">Titanium</option>
+                      <option value="Gold">Gold</option>
+                      <option value="Silver">Silver</option>
+                      <option value="Bronze - Low">Bronze - Low</option>
+                      <option value="Bronze - High">Bronze - High</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Flags Section (Editable) -->
+              <section class="details-section">
+                <h3 class="section-title">
+                  <span class="material-icons">flag</span>
+                  Case Flags
+                </h3>
+                <div class="form-checkboxes">
+                  <div class="form-checkbox">
+                    <input type="checkbox" id="inputTriage" />
+                    <label for="inputTriage">
+                      <span class="material-icons">filter_list</span>
+                      Triage
+                    </label>
+                  </div>
+
+                  <div class="form-checkbox" id="amInitiatedCheckbox">
+                    <input type="checkbox" id="inputAmInitiated" />
+                    <label for="inputAmInitiated">
+                      <span class="material-icons">contact_mail</span>
+                      AM Initiated
+                    </label>
+                  </div>
+
+                  <div class="form-checkbox">
+                    <input type="checkbox" id="inputIs30" />
+                    <label for="inputIs30">
+                      <span class="material-icons">new_releases</span>
+                      Is 3.0
+                    </label>
+                  </div>
+
+                  <div class="form-checkbox">
+                    <input type="checkbox" id="inputMcc" />
+                    <label for="inputMcc">
+                      <span class="material-icons">account_tree</span>
+                      MCC
+                    </label>
+                  </div>
+
+                  <div class="form-checkbox">
+                    <input type="checkbox" id="inputChangeToChild" />
+                    <label for="inputChangeToChild">
+                      <span class="material-icons">child_care</span>
+                      Change to Child
+                    </label>
+                  </div>
+
+                  <div class="form-checkbox">
+                    <input type="checkbox" id="inputBugL2" />
+                    <label for="inputBugL2">
+                      <span class="material-icons">bug_report</span>
+                      Bug/L2
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Transfer Fields Section (Editable) -->
+              <section class="details-section">
+                <h3 class="section-title">
+                  <span class="material-icons">swap_horiz</span>
+                  Transfer & Disposition
+                </h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="inputAmTransfer" class="form-label">
+                      AM Transfer
+                    </label>
+                    <select id="inputAmTransfer" class="form-control">
+                      <option value="">None</option>
+                      <option value="Request to AM contact">Request to AM contact</option>
+                      <option value="Optimize request">Optimize request</option>
+                      <option value="β product inquiry">β product inquiry</option>
+                      <option value="Trouble shooting scope but we don't have access to the resource">Trouble shooting scope but we don't have access to the resource</option>
+                      <option value="Tag team request (LCS customer)">Tag team request (LCS customer)</option>
+                      <option value="Data analysis">Data analysis</option>
+                      <option value="Allowlist request">Allowlist request</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inputNonNcc" class="form-label">
+                      non NCC
+                    </label>
+                    <select id="inputNonNcc" class="form-control">
+                      <option value="">None</option>
+                      <option value="Duplicate">Duplicate</option>
+                      <option value="Discard">Discard</option>
+                      <option value="Transfer to Platinum">Transfer to Platinum</option>
+                      <option value="Transfer to S/B">Transfer to S/B</option>
+                      <option value="Transfer to TDCX">Transfer to TDCX</option>
+                      <option value="Transfer to 3PO">Transfer to 3PO</option>
+                      <option value="Transfer to OT">Transfer to OT</option>
+                      <option value="Transfer to EN Team">Transfer to EN Team</option>
+                      <option value="Transfer to GMB Team">Transfer to GMB Team</option>
+                      <option value="Transfer to Other Team (not AM)">Transfer to Other Team (not AM)</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+            </form>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeEditCaseModal()">
+              <span class="material-icons">close</span>
+              Cancel
+            </button>
+            <button type="button" class="btn-primary" onclick="saveEditCase()" id="saveEditBtn">
+              <span class="material-icons">save</span>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   <? } ?>
 
   <!-- Scripts -->
@@ -581,5 +814,6 @@
   <?!= include('frontend/js/cases.js'); ?>
   <?!= include('frontend/js/mycases.js'); ?>
   <?!= include('frontend/js/caseDetailsModal.js'); ?>
+  <?!= include('frontend/js/editCaseModal.js'); ?>
 </body>
 </html>

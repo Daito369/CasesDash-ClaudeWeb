@@ -205,25 +205,16 @@ function updateCase(caseId, updates, updatedBy) {
  */
 function getCase(caseId) {
   try {
-    Logger.log(`getCase: Searching for case ID: ${caseId}`);
-
     const caseData = findCaseById(caseId);
 
     if (!caseData) {
-      Logger.log(`getCase: Case not found: ${caseId}`);
       return null;
     }
 
-    Logger.log(`getCase: Found case in ${caseData.sheetName} at row ${caseData.rowIndex}`);
-
     const caseObj = Case.fromSheetRow(caseData.data, caseData.sheetName, caseData.rowIndex);
-
-    Logger.log(`getCase: Case object created: ${caseObj.caseId}`);
 
     // Get IRT data
     const irtData = getOrCreateIRTData(caseId);
-
-    Logger.log(`getCase: IRT data retrieved: ${irtData ? 'yes' : 'no'}`);
 
     return {
       case: caseObj,
