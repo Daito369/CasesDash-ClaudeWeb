@@ -248,7 +248,7 @@ function getTeamLeaderEmail(assigneeLdap) {
     Logger.log(`Getting team leader email for assignee: ${assigneeLdap}`);
 
     // Get spreadsheet ID from Config
-    const spreadsheetId = getSpreadsheetId();
+    const spreadsheetId = getConfig('SPREADSHEET_ID');
     if (!spreadsheetId) {
       Logger.log('WARNING: Spreadsheet ID not configured, using default TL email');
       return getDefaultTeamLeaderEmail();
@@ -329,7 +329,7 @@ function getDefaultTeamLeaderEmail() {
 function logNotification(caseId, recipient, notificationType, status, errorMsg = '') {
   try {
     // Get spreadsheet ID from Config
-    const spreadsheetId = getSpreadsheetId();
+    const spreadsheetId = getConfig('SPREADSHEET_ID');
     if (!spreadsheetId) {
       Logger.log('WARNING: Cannot log notification - Spreadsheet ID not configured');
       return;
@@ -390,7 +390,7 @@ function checkAndSendIRTAlerts() {
     Logger.log('=== Starting IRT Alert Check ===');
 
     // Get spreadsheet ID from Config
-    const spreadsheetId = getSpreadsheetId();
+    const spreadsheetId = getConfig('SPREADSHEET_ID');
     if (!spreadsheetId) {
       Logger.log('ERROR: Spreadsheet ID not configured');
       return { success: false, error: 'Spreadsheet ID not configured' };
