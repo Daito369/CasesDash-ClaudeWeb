@@ -164,7 +164,7 @@ function sendIRTAlertEmail(caseData, teamLeaderEmail) {
 
             <div class="info-row">
               <span class="label">Case Opened:</span>
-              <span class="value">${caseData.caseOpenDate || 'N/A'} ${caseData.caseOpenTime || ''}</span>
+              <span class="value">${formatDateForDisplay(caseData.caseOpenDate)} ${formatTimeForDisplay(caseData.caseOpenTime)}</span>
             </div>
 
             <a href="${appUrl}" class="action-button">Open CasesDash</a>
@@ -190,7 +190,7 @@ Segment: ${caseData.finalSegment || caseData.incomingSegment || 'N/A'}
 IRT Remaining: ${irtTimerDisplay}
 Status: ${caseData.caseStatus || 'N/A'}
 Product Category: ${caseData.productCategory || 'N/A'}
-Case Opened: ${caseData.caseOpenDate || 'N/A'} ${caseData.caseOpenTime || ''}
+Case Opened: ${formatDateForDisplay(caseData.caseOpenDate)} ${formatTimeForDisplay(caseData.caseOpenTime)}
 
 ⚠️ IRT timer has fallen below 2 hours. Please take immediate action to avoid SLA miss.
 
@@ -545,6 +545,76 @@ function getCaseDetailsByCaseId(caseId, sourceSheet) {
     Logger.log(`Error getting case details: ${error.message}`);
     return null;
   }
+}
+
+/**
+ * Format date for display (YYYY/MM/DD)
+ * @param {Date|string} dateValue - Date value (Date object or string)
+ * @return {string} Formatted date string
+ */
+function formatDateForDisplay(dateValue) {
+  if (!dateValue) return 'N/A';
+
+  // If already a string in correct format, return as is
+  if (typeof dateValue === 'string' && dateValue.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
+    return dateValue;
+  }
+
+  // Convert to Date object if needed
+  let date;
+  if (dateValue instanceof Date) {
+    date = dateValue;
+  } else if (typeof dateValue === 'string') {
+    date = new Date(dateValue);
+  } else {
+    return 'N/A';
+  }
+
+  // Check for invalid date or 1899 issue
+  if (isNaN(date.getTime()) || date.getFullYear() < 1900) {
+    return 'N/A';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}/${month}/${day}`;
+}
+
+/**
+ * Format time for display (HH:MM:SS)
+ * @param {Date|string} timeValue - Time value (Date object or string)
+ * @return {string} Formatted time string
+ */
+function formatTimeForDisplay(timeValue) {
+  if (!timeValue) return '';
+
+  // If already a string in correct format, return as is
+  if (typeof timeValue === 'string' && timeValue.match(/^\d{2}:\d{2}:\d{2}$/)) {
+    return timeValue;
+  }
+
+  // Convert to Date object if needed
+  let date;
+  if (timeValue instanceof Date) {
+    date = timeValue;
+  } else if (typeof timeValue === 'string') {
+    date = new Date(timeValue);
+  } else {
+    return '';
+  }
+
+  // Check for invalid date or 1899 issue
+  if (isNaN(date.getTime()) || date.getFullYear() < 1900) {
+    return '';
+  }
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 /**

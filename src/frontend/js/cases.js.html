@@ -43,6 +43,9 @@ async function loadCreateCaseScreen() {
     console.error('Error auto-filling assignees:', error);
   }
 
+  // Setup keyboard shortcuts for date/time inputs
+  setupKeyboardShortcuts();
+
   // Auto-focus on first required field (Target Sheet)
   const sheetNameInput = document.getElementById('sheetName');
   if (sheetNameInput) {
@@ -894,8 +897,8 @@ function setupKeyboardShortcuts() {
 function initCases() {
   console.log('Cases module initialized');
 
-  // Set up keyboard shortcuts for date/time inputs
-  setupKeyboardShortcuts();
+  // Keyboard shortcuts are now set up in loadCreateCaseScreen()
+  // when the Create Case screen is actually displayed
 }
 
 // Initialize when DOM is ready (only in browser environment)
