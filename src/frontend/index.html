@@ -399,6 +399,178 @@
           </form>
         </div>
       </main>
+
+      <!-- Case Details Modal -->
+      <div id="caseDetailsModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="caseDetailsModalTitle">
+        <div class="modal-overlay" onclick="closeCaseDetailsModal()"></div>
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+              <h2 id="caseDetailsModalTitle" class="modal-title">
+                <span class="material-icons">description</span>
+                Case Details
+              </h2>
+              <button class="modal-close-btn" onclick="closeCaseDetailsModal()" aria-label="Close modal" title="Close (Esc)">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body" id="caseDetailsContent">
+              <!-- Loading State -->
+              <div id="caseDetailsLoading" class="modal-loading">
+                <span class="spinner"></span>
+                <span>Loading case details...</span>
+              </div>
+
+              <!-- Error State -->
+              <div id="caseDetailsError" class="error-message" style="display: none;"></div>
+
+              <!-- Case Details Content -->
+              <div id="caseDetailsData" style="display: none;">
+                <!-- Basic Information Section -->
+                <section class="details-section">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">info</span>
+                    Basic Information
+                  </h3>
+                  <div class="details-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Case ID</span>
+                      <span class="detail-value" id="detailCaseId"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Sheet</span>
+                      <span class="detail-value" id="detailSheet"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Status</span>
+                      <span class="detail-value status-badge" id="detailStatus"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Case Opened</span>
+                      <span class="detail-value" id="detailCaseOpened"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- Product & Category Section -->
+                <section class="details-section">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">category</span>
+                    Product & Category
+                  </h3>
+                  <div class="details-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Product Category</span>
+                      <span class="detail-value" id="detailProductCategory"></span>
+                    </div>
+                    <div class="detail-item" id="detailSubCategoryItem" style="display: none;">
+                      <span class="detail-label">Sub Category</span>
+                      <span class="detail-value" id="detailSubCategory"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Issue Category</span>
+                      <span class="detail-value" id="detailIssueCategory"></span>
+                    </div>
+                    <div class="detail-item" id="detailDetailsItem" style="display: none;">
+                      <span class="detail-label">Details</span>
+                      <span class="detail-value" id="detailDetails"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- Segment & Assignee Section -->
+                <section class="details-section">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">people</span>
+                    Segment & Assignee
+                  </h3>
+                  <div class="details-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Incoming Segment</span>
+                      <span class="detail-value segment-badge" id="detailIncomingSegment"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Final Segment</span>
+                      <span class="detail-value segment-badge" id="detailFinalSegment"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">1st Assignee</span>
+                      <span class="detail-value" id="detailFirstAssignee"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Final Assignee</span>
+                      <span class="detail-value" id="detailFinalAssignee"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- IRT Information Section -->
+                <section class="details-section">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">schedule</span>
+                    IRT Information
+                  </h3>
+                  <div class="details-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">IRT Hours</span>
+                      <span class="detail-value" id="detailIRTHours"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">IRT Remaining</span>
+                      <span class="detail-value" id="detailIRTRemaining"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">ReOpen Count</span>
+                      <span class="detail-value" id="detailReopenCount"></span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">SO Period Hours</span>
+                      <span class="detail-value" id="detailSOPeriod"></span>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- Flags Section -->
+                <section class="details-section">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">flag</span>
+                    Flags & Options
+                  </h3>
+                  <div class="details-flags" id="detailFlags">
+                    <!-- Flags populated by JavaScript -->
+                  </div>
+                </section>
+
+                <!-- Additional Info Section -->
+                <section class="details-section" id="detailAdditionalSection" style="display: none;">
+                  <h3 class="details-section-title">
+                    <span class="material-icons">more_horiz</span>
+                    Additional Information
+                  </h3>
+                  <div class="details-grid" id="detailAdditional">
+                    <!-- Additional info populated by JavaScript -->
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+              <button class="btn-secondary" onclick="closeCaseDetailsModal()">
+                <span class="material-icons">close</span>
+                Close
+              </button>
+              <button class="btn-primary" onclick="editCaseFromModal()">
+                <span class="material-icons">edit</span>
+                Edit Case
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   <? } ?>
 
@@ -408,5 +580,6 @@
   <?!= include('frontend/js/settings.js'); ?>
   <?!= include('frontend/js/cases.js'); ?>
   <?!= include('frontend/js/mycases.js'); ?>
+  <?!= include('frontend/js/caseDetailsModal.js'); ?>
 </body>
 </html>
