@@ -534,7 +534,7 @@ function isRecentlyNotified(lastNotifiedDate) {
 function getCaseDetailsByCaseId(caseId, sourceSheet) {
   try {
     // Use existing CaseService function
-    const caseData = getCaseByCaseId(caseId, sourceSheet);
+    const caseData = getCase(caseId, sourceSheet);
 
     if (caseData && caseData.case) {
       return caseData.case;
