@@ -144,8 +144,12 @@ class Case {
         // Convert Date object to YYYY/MM/DD string format if needed
         let dateStr;
         if (this.date instanceof Date) {
-          dateStr = `${this.date.getFullYear()}/${String(this.date.getMonth() + 1).padStart(2, '0')}/${String(this.date.getDate()).padStart(2, '0')}`;
-          Logger.log(`[toSheetRow] Converted Date object to string for ${this.caseId}: ${dateStr}`);
+          // Use UTC methods to match how Google Sheets stores dates
+          const year = this.date.getUTCFullYear();
+          const month = String(this.date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(this.date.getUTCDate()).padStart(2, '0');
+          dateStr = `${year}/${month}/${day}`;
+          Logger.log(`[toSheetRow] Converted Date object (UTC) to string for ${this.caseId}: ${dateStr} (from ${this.date.toISOString()})`);
         } else if (typeof this.date === 'string') {
           dateStr = this.date;
           Logger.log(`[toSheetRow] Using existing date string for ${this.caseId}: ${dateStr}`);
@@ -155,7 +159,7 @@ class Case {
         }
         row[columnMap.DATE] = dateStr;
       } else {
-        // New case: use today's date
+        // New case: use today's date (in JST/local timezone for new cases)
         Logger.log(`[toSheetRow] Setting new DATE for ${this.caseId}: this.date is empty/null`);
         const today = new Date();
         const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;

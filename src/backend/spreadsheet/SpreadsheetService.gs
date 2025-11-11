@@ -213,6 +213,12 @@ function updateCaseRow(sheetName, rowIndex, rowData) {
     const sheet = getSheet(sheetName);
     const numCols = rowData.length;
 
+    // Debug: Log the DATE value being written (Column A for Email sheets)
+    if (sheetName.includes('Email')) {
+      Logger.log(`[updateCaseRow] Writing DATE to ${sheetName} row ${rowIndex}: "${rowData[0]}" (type: ${typeof rowData[0]})`);
+      Logger.log(`[updateCaseRow] Case ID: ${rowData[2]}`); // Column C is Case ID for Email sheets
+    }
+
     sheet.getRange(rowIndex, 1, 1, numCols).setValues([rowData]);
 
     Logger.log(`Updated case in ${sheetName} row ${rowIndex}`);
