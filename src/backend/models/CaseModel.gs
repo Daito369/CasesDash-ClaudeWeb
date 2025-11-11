@@ -14,6 +14,7 @@
 class Case {
   constructor(data) {
     // Basic Info
+    this.date = data.date || null;                    // Column A (Email sheets only)
     this.caseId = data.caseId || '';
     this.sourceSheet = data.sourceSheet || '';
     this.caseOpenDate = data.caseOpenDate || null;
@@ -137,10 +138,16 @@ class Case {
 
     // Fill in values based on column mapping
     if (sheetName.includes('Email')) {
-      // Column A (DATE): Today's date per specification
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
-      row[columnMap.DATE] = todayStr;
+      // Column A (DATE): Use existing date or today's date for new cases
+      if (this.date) {
+        // Existing case: preserve original date
+        row[columnMap.DATE] = this.date;
+      } else {
+        // New case: use today's date
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+        row[columnMap.DATE] = todayStr;
+      }
 
       // Column B (CASES): Leave empty - sheet has default formula
       row[columnMap.CASES] = '';
@@ -230,6 +237,12 @@ class Case {
 
     data.sourceSheet = sheetName;
     data.rowIndex = rowIndex;
+
+    // Read DATE column (Email sheets only, column A)
+    if (columnMap.DATE !== undefined) {
+      data.date = row[columnMap.DATE] || null;
+    }
+
     data.caseId = row[columnMap.CASE_ID] || '';
     data.caseOpenDate = row[columnMap.CASE_OPEN_DATE] || null;
     data.caseOpenTime = row[columnMap.CASE_OPEN_TIME] || null;
