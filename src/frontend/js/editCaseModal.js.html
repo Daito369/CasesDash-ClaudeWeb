@@ -180,31 +180,36 @@ function populateEditForm(caseData, sheetName, irtData) {
   const reopenCount = irtData ? (irtData.reopenCount || 0) : 0;
   const isReopen = reopenCount > 0;
 
+  // Get current date and time for defaults
+  const now = new Date();
+  const currentDate = formatDateFromDateObject(now);
+  const currentTime = formatTimeFromDateObject(now);
+
   // Update labels based on reopen status
   if (isReopen) {
     document.getElementById('closeDateTimeTitle').textContent = 'Reopen Close Date & Time';
     document.getElementById('closeDateLabel').textContent = 'Reopen Close Date';
     document.getElementById('closeTimeLabel').textContent = 'Reopen Close Time';
 
-    // Set values for reopen close
-    if (caseData.reopenCloseDate) {
-      document.getElementById('inputCloseDate').value = formatDateForInput(caseData.reopenCloseDate);
-    }
-    if (caseData.reopenCloseTime) {
-      document.getElementById('inputCloseTime').value = formatTimeForInput(caseData.reopenCloseTime);
-    }
+    // Set values for reopen close (default to current date/time if not set)
+    document.getElementById('inputCloseDate').value = caseData.reopenCloseDate
+      ? formatDateForInput(caseData.reopenCloseDate)
+      : currentDate;
+    document.getElementById('inputCloseTime').value = caseData.reopenCloseTime
+      ? formatTimeForInput(caseData.reopenCloseTime)
+      : currentTime;
   } else {
     document.getElementById('closeDateTimeTitle').textContent = '1st Close Date & Time';
     document.getElementById('closeDateLabel').textContent = '1st Close Date';
     document.getElementById('closeTimeLabel').textContent = '1st Close Time';
 
-    // Set values for first close
-    if (caseData.firstCloseDate) {
-      document.getElementById('inputCloseDate').value = formatDateForInput(caseData.firstCloseDate);
-    }
-    if (caseData.firstCloseTime) {
-      document.getElementById('inputCloseTime').value = formatTimeForInput(caseData.firstCloseTime);
-    }
+    // Set values for first close (default to current date/time if not set)
+    document.getElementById('inputCloseDate').value = caseData.firstCloseDate
+      ? formatDateForInput(caseData.firstCloseDate)
+      : currentDate;
+    document.getElementById('inputCloseTime').value = caseData.firstCloseTime
+      ? formatTimeForInput(caseData.firstCloseTime)
+      : currentTime;
   }
 }
 
