@@ -141,8 +141,19 @@ class Case {
       // Column A (DATE): Use existing date or today's date for new cases
       if (this.date) {
         // Existing case: preserve original date
-        Logger.log(`[toSheetRow] Preserving existing DATE for ${this.caseId}: ${JSON.stringify(this.date)} (type: ${typeof this.date})`);
-        row[columnMap.DATE] = this.date;
+        // Convert Date object to YYYY/MM/DD string format if needed
+        let dateStr;
+        if (this.date instanceof Date) {
+          dateStr = `${this.date.getFullYear()}/${String(this.date.getMonth() + 1).padStart(2, '0')}/${String(this.date.getDate()).padStart(2, '0')}`;
+          Logger.log(`[toSheetRow] Converted Date object to string for ${this.caseId}: ${dateStr}`);
+        } else if (typeof this.date === 'string') {
+          dateStr = this.date;
+          Logger.log(`[toSheetRow] Using existing date string for ${this.caseId}: ${dateStr}`);
+        } else {
+          Logger.log(`[toSheetRow] WARNING: Unexpected date type for ${this.caseId}: ${typeof this.date}, value: ${JSON.stringify(this.date)}`);
+          dateStr = this.date;
+        }
+        row[columnMap.DATE] = dateStr;
       } else {
         // New case: use today's date
         Logger.log(`[toSheetRow] Setting new DATE for ${this.caseId}: this.date is empty/null`);
