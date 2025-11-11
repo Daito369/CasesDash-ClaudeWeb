@@ -497,30 +497,45 @@ function frontendUpdateCase(caseId, updates) {
  */
 function frontendGetCase(caseId) {
   try {
+    Logger.log(`frontendGetCase called for: ${caseId}`);
+
     // Check authentication
     const authCheck = requireAuth();
     if (!authCheck.success) {
+      Logger.log('Auth check failed');
       return authCheck;
     }
 
+    Logger.log('Auth check passed, calling getCase()');
+
     const caseData = getCase(caseId);
 
+    Logger.log(`getCase returned: ${caseData ? 'data' : 'null'}`);
+
     if (!caseData) {
+      Logger.log(`Case not found: ${caseId}`);
       return {
         success: false,
         error: 'Case not found'
       };
     }
 
-    return {
+    Logger.log(`Serializing case: ${caseData.case.caseId}`);
+
+    const response = {
       success: true,
       case: serializeCase(caseData.case),
       irtData: caseData.irtData,
       sheetName: caseData.sheetName
     };
 
+    Logger.log(`Response prepared, returning`);
+
+    return response;
+
   } catch (error) {
     Logger.log(`Error in frontendGetCase: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
     return {
       success: false,
       error: error.message
