@@ -1,0 +1,360 @@
+<script>
+/**
+ * Case Details Modal Module
+ *
+ * Handles display of case details in a modal dialog
+ * Implements accessibility features: keyboard navigation, focus trap, ESC to close
+ *
+ * @author CasesDash v3.0.0
+ */
+
+// Global state for modal
+let currentCaseId = null;
+let modalFocusTrap = null;
+
+/**
+ * Open case details modal
+ * @param {string} caseId - Case ID to display
+ */
+function viewCaseDetails(caseId) {
+  console.log('Opening case details modal for:', caseId);
+
+  currentCaseId = caseId;
+  const modal = document.getElementById('caseDetailsModal');
+
+  // Show modal
+  modal.style.display = 'flex';
+
+  // Set up keyboard listeners
+  setupModalKeyboardListeners();
+
+  // Set up focus trap
+  setupFocusTrap();
+
+  // Load case details
+  loadCaseDetails(caseId);
+}
+
+/**
+ * Close case details modal
+ */
+function closeCaseDetailsModal() {
+  console.log('Closing case details modal');
+
+  const modal = document.getElementById('caseDetailsModal');
+  modal.style.display = 'none';
+
+  // Clean up
+  currentCaseId = null;
+  teardownModalKeyboardListeners();
+  teardownFocusTrap();
+
+  // Clear content
+  document.getElementById('caseDetailsData').style.display = 'none';
+  document.getElementById('caseDetailsLoading').style.display = 'flex';
+  document.getElementById('caseDetailsError').style.display = 'none';
+}
+
+/**
+ * Load case details from backend
+ * @param {string} caseId - Case ID
+ */
+async function loadCaseDetails(caseId) {
+  console.log('Loading case details for:', caseId);
+
+  // Show loading state
+  document.getElementById('caseDetailsLoading').style.display = 'flex';
+  document.getElementById('caseDetailsData').style.display = 'none';
+  document.getElementById('caseDetailsError').style.display = 'none';
+
+  try {
+    // Call backend API
+    const result = await API.cases.get(caseId);
+
+    if (!result) {
+      throw new Error('No response from server');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load case details');
+    }
+
+    console.log('Case details loaded:', result);
+
+    // Hide loading, show content
+    document.getElementById('caseDetailsLoading').style.display = 'none';
+    document.getElementById('caseDetailsData').style.display = 'block';
+
+    // Populate modal with data
+    populateCaseDetails(result.case, result.irtData, result.sheetName);
+
+  } catch (error) {
+    console.error('Error loading case details:', error);
+
+    // Show error state
+    document.getElementById('caseDetailsLoading').style.display = 'none';
+    document.getElementById('caseDetailsError').style.display = 'block';
+    document.getElementById('caseDetailsError').textContent =
+      `Failed to load case details: ${error.message}`;
+  }
+}
+
+/**
+ * Populate modal with case details
+ * @param {Object} caseData - Case data
+ * @param {Object} irtData - IRT data
+ * @param {string} sheetName - Sheet name
+ */
+function populateCaseDetails(caseData, irtData, sheetName) {
+  // Basic Information
+  document.getElementById('detailCaseId').textContent = caseData.caseId;
+  document.getElementById('detailSheet').textContent = sheetName;
+
+  const statusEl = document.getElementById('detailStatus');
+  statusEl.textContent = caseData.caseStatus;
+  statusEl.setAttribute('data-status', caseData.caseStatus);
+
+  const caseOpenedText = `${caseData.caseOpenDate || ''} ${caseData.caseOpenTime || ''}`.trim();
+  document.getElementById('detailCaseOpened').textContent = caseOpenedText || 'N/A';
+
+  // Product & Category
+  document.getElementById('detailProductCategory').textContent = caseData.productCategory || 'N/A';
+  document.getElementById('detailIssueCategory').textContent = caseData.issueCategory || 'N/A';
+
+  // Sub Category (OT only)
+  if (caseData.subCategory) {
+    document.getElementById('detailSubCategoryItem').style.display = 'block';
+    document.getElementById('detailSubCategory').textContent = caseData.subCategory;
+  } else {
+    document.getElementById('detailSubCategoryItem').style.display = 'none';
+  }
+
+  // Details (3PO only)
+  if (caseData.details) {
+    document.getElementById('detailDetailsItem').style.display = 'block';
+    document.getElementById('detailDetails').textContent = caseData.details;
+  } else {
+    document.getElementById('detailDetailsItem').style.display = 'none';
+  }
+
+  // Segment & Assignee
+  const incomingSegmentEl = document.getElementById('detailIncomingSegment');
+  incomingSegmentEl.textContent = caseData.incomingSegment || 'N/A';
+  incomingSegmentEl.setAttribute('data-segment', caseData.incomingSegment || '');
+
+  const finalSegmentEl = document.getElementById('detailFinalSegment');
+  finalSegmentEl.textContent = caseData.finalSegment || 'N/A';
+  finalSegmentEl.setAttribute('data-segment', caseData.finalSegment || '');
+
+  document.getElementById('detailFirstAssignee').textContent = caseData.firstAssignee || 'N/A';
+  document.getElementById('detailFinalAssignee').textContent = caseData.finalAssignee || 'N/A';
+
+  // IRT Information
+  if (irtData) {
+    document.getElementById('detailIRTHours').textContent =
+      irtData.irtHours ? `${irtData.irtHours}h` : 'N/A';
+
+    const remainingEl = document.getElementById('detailIRTRemaining');
+    if (irtData.irtRemainingHours !== null && irtData.irtRemainingHours !== undefined) {
+      const remaining = irtData.irtRemainingHours;
+      let icon = '🟢';
+      if (remaining <= 0) icon = '⚫';
+      else if (remaining <= 2) icon = '🔴';
+      else if (remaining <= 24) icon = '🟡';
+
+      remainingEl.textContent = `${icon} ${remaining.toFixed(1)}h`;
+    } else {
+      remainingEl.textContent = 'N/A';
+    }
+
+    document.getElementById('detailReopenCount').textContent =
+      irtData.reopenCount || '0';
+
+    document.getElementById('detailSOPeriod').textContent =
+      irtData.totalSOPeriodHours ? `${irtData.totalSOPeriodHours}h` : '0h';
+  } else {
+    document.getElementById('detailIRTHours').textContent = 'N/A';
+    document.getElementById('detailIRTRemaining').textContent = 'N/A';
+    document.getElementById('detailReopenCount').textContent = 'N/A';
+    document.getElementById('detailSOPeriod').textContent = 'N/A';
+  }
+
+  // Flags
+  const flagsContainer = document.getElementById('detailFlags');
+  flagsContainer.innerHTML = '';
+
+  const flags = [
+    { name: 'Triage', value: caseData.triage, icon: 'filter_list' },
+    { name: 'AM Initiated', value: caseData.amInitiated, icon: 'contact_mail' },
+    { name: 'Is 3.0', value: caseData.is30, icon: 'new_releases' },
+    { name: 'MCC', value: caseData.mcc, icon: 'account_tree' },
+    { name: 'Change to Child', value: caseData.changeToChild, icon: 'child_care' },
+    { name: 'Bug/L2', value: caseData.bugL2, icon: 'bug_report' }
+  ];
+
+  flags.forEach(flag => {
+    const chip = document.createElement('div');
+    chip.className = 'flag-chip' + (flag.value ? ' active' : '');
+    chip.innerHTML = `
+      <span class="material-icons">${flag.icon}</span>
+      ${flag.name}
+    `;
+    flagsContainer.appendChild(chip);
+  });
+
+  // Additional Information
+  const additionalSection = document.getElementById('detailAdditionalSection');
+  const additionalContainer = document.getElementById('detailAdditional');
+  additionalContainer.innerHTML = '';
+
+  let hasAdditional = false;
+
+  // AM Transfer
+  if (caseData.amTransfer) {
+    hasAdditional = true;
+    additionalContainer.innerHTML += `
+      <div class="detail-item">
+        <span class="detail-label">AM Transfer</span>
+        <span class="detail-value">${caseData.amTransfer}</span>
+      </div>
+    `;
+  }
+
+  // non NCC
+  if (caseData.nonNCC) {
+    hasAdditional = true;
+    additionalContainer.innerHTML += `
+      <div class="detail-item">
+        <span class="detail-label">non NCC</span>
+        <span class="detail-value">${caseData.nonNCC}</span>
+      </div>
+    `;
+  }
+
+  // Sales Channel
+  if (caseData.salesChannel) {
+    hasAdditional = true;
+    additionalContainer.innerHTML += `
+      <div class="detail-item">
+        <span class="detail-label">Sales Channel</span>
+        <span class="detail-value">${caseData.salesChannel}</span>
+      </div>
+    `;
+  }
+
+  // Close dates
+  if (caseData.firstCloseDate) {
+    hasAdditional = true;
+    const closeText = `${caseData.firstCloseDate} ${caseData.firstCloseTime || ''}`.trim();
+    additionalContainer.innerHTML += `
+      <div class="detail-item">
+        <span class="detail-label">First Close</span>
+        <span class="detail-value">${closeText}</span>
+      </div>
+    `;
+  }
+
+  additionalSection.style.display = hasAdditional ? 'block' : 'none';
+}
+
+/**
+ * Edit case from modal
+ */
+function editCaseFromModal() {
+  if (!currentCaseId) {
+    console.error('No case ID available');
+    return;
+  }
+
+  // Close details modal
+  closeCaseDetailsModal();
+
+  // TODO: Open edit modal (to be implemented)
+  alert(`Edit functionality will be implemented soon.\n\nCase ID: ${currentCaseId}`);
+}
+
+/**
+ * Setup keyboard listeners for modal
+ */
+function setupModalKeyboardListeners() {
+  document.addEventListener('keydown', handleModalKeyDown);
+}
+
+/**
+ * Teardown keyboard listeners
+ */
+function teardownModalKeyboardListeners() {
+  document.removeEventListener('keydown', handleModalKeyDown);
+}
+
+/**
+ * Handle keyboard events in modal
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleModalKeyDown(event) {
+  // ESC key closes modal
+  if (event.key === 'Escape') {
+    closeCaseDetailsModal();
+  }
+}
+
+/**
+ * Setup focus trap for accessibility
+ */
+function setupFocusTrap() {
+  const modal = document.getElementById('caseDetailsModal');
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+
+  if (focusableElements.length === 0) return;
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  // Focus first element
+  firstElement.focus();
+
+  // Trap focus within modal
+  modalFocusTrap = function(event) {
+    if (event.key !== 'Tab') return;
+
+    if (event.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  };
+
+  modal.addEventListener('keydown', modalFocusTrap);
+}
+
+/**
+ * Teardown focus trap
+ */
+function teardownFocusTrap() {
+  if (modalFocusTrap) {
+    const modal = document.getElementById('caseDetailsModal');
+    modal.removeEventListener('keydown', modalFocusTrap);
+    modalFocusTrap = null;
+  }
+}
+
+/**
+ * Initialize Case Details Modal module
+ */
+function initCaseDetailsModal() {
+  console.log('Case Details Modal module initialized');
+}
+
+// Initialize on load
+initCaseDetailsModal();
+</script>

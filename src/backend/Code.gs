@@ -779,14 +779,13 @@ function loadAllIRTDataIntoMap() {
  * @return {Object} Serialized case - plain object with primitives only
  */
 function serializeCase(caseObj) {
-  // Helper function to safely convert Date to ISO string
+  // Helper function to safely convert Date to string
   const dateToString = (value) => {
     if (!value) return null;
     if (value instanceof Date) {
       return value.toISOString();
     }
     if (typeof value === 'string') return value;
-    // Try to convert to Date and then to string
     try {
       const date = new Date(value);
       return isNaN(date.getTime()) ? null : date.toISOString();
@@ -795,7 +794,7 @@ function serializeCase(caseObj) {
     }
   };
 
-  // Return ONLY the data needed by frontend, with explicit type conversion
+  // Return ALL the data needed by frontend, with explicit type conversion
   return {
     // Basic Info
     caseId: String(caseObj.caseId || ''),
@@ -812,16 +811,32 @@ function serializeCase(caseObj) {
 
     // Flags (convert to boolean)
     triage: Boolean(caseObj.triage),
+    amInitiated: Boolean(caseObj.amInitiated),
     is30: Boolean(caseObj.is30),
     mcc: Boolean(caseObj.mcc),
+    changeToChild: Boolean(caseObj.changeToChild),
+    bugL2: Boolean(caseObj.bugL2),
 
     // Assignee
     firstAssignee: String(caseObj.firstAssignee || ''),
     finalAssignee: String(caseObj.finalAssignee || ''),
     finalSegment: String(caseObj.finalSegment || ''),
+    salesChannel: caseObj.salesChannel ? String(caseObj.salesChannel) : null,
 
-    // Status
+    // Status and Transfer
     caseStatus: String(caseObj.caseStatus || 'Assigned'),
+    amTransfer: caseObj.amTransfer ? String(caseObj.amTransfer) : null,
+    nonNCC: caseObj.nonNCC ? String(caseObj.nonNCC) : null,
+
+    // Close dates
+    firstCloseDate: caseObj.firstCloseDate ? String(caseObj.firstCloseDate) : null,
+    firstCloseTime: caseObj.firstCloseTime ? String(caseObj.firstCloseTime) : null,
+    reopenCloseDate: caseObj.reopenCloseDate ? String(caseObj.reopenCloseDate) : null,
+    reopenCloseTime: caseObj.reopenCloseTime ? String(caseObj.reopenCloseTime) : null,
+
+    // Timers (read-only from sheet)
+    trtTimer: caseObj.trtTimer ? String(caseObj.trtTimer) : null,
+    irtTimer: caseObj.irtTimer ? String(caseObj.irtTimer) : null,
 
     // Row index for reference
     rowIndex: caseObj.rowIndex ? Number(caseObj.rowIndex) : null
