@@ -862,29 +862,31 @@ function formatTimeForInput(date) {
 
 /**
  * Handle keyboard events for Case Open Date input
+ * Ctrl+; inserts today's date in YYYY-MM-DD format
  * @param {KeyboardEvent} event - Keyboard event
  */
 function handleCaseOpenDateKeyDown(event) {
-  // Ctrl+; sets today's date
   if (event.ctrlKey && event.key === ';') {
     event.preventDefault();
     const today = new Date();
-    event.target.value = formatDateForInput(today);
-    console.log('Today\'s date inserted:', event.target.value);
+    const formattedDate = formatDateForInput(today);
+    event.target.value = formattedDate;
+    console.log('[CREATE CASE] Date shortcut used - inserted:', formattedDate);
   }
 }
 
 /**
  * Handle keyboard events for Case Open Time input
+ * Ctrl+Shift+; inserts current time in HH:MM:SS format
  * @param {KeyboardEvent} event - Keyboard event
  */
 function handleCaseOpenTimeKeyDown(event) {
-  // Ctrl+Shift+; sets current time (use code instead of key for better compatibility)
   if (event.ctrlKey && event.shiftKey && (event.code === 'Semicolon' || event.key === ':' || event.key === ';')) {
     event.preventDefault();
     const now = new Date();
-    event.target.value = formatTimeForInput(now);
-    console.log('Current time inserted:', event.target.value);
+    const formattedTime = formatTimeForInput(now);
+    event.target.value = formattedTime;
+    console.log('[CREATE CASE] Time shortcut used - inserted:', formattedTime);
   }
 }
 
