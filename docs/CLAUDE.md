@@ -671,19 +671,29 @@ Testing:
 - [x] Fixed: getCaseByRowIndex to read directly from sheet
 - [x] Fixed: Time extraction from Date objects
 
+#### 11. Email Notification System
+- [x] Backend: NotificationService.gs with full alert system
+- [x] sendIRTAlertEmail() - HTML email with professional template
+- [x] getTeamLeaderEmail() - TL lookup from Configuration sheet
+- [x] logNotification() - Notification logging to spreadsheet
+- [x] checkAndSendIRTAlerts() - Hourly scheduled function
+- [x] Smart alerting: Only for Assigned cases with IRT ≤ 2 hours
+- [x] Duplicate prevention: 6-hour cooldown between alerts
+- [x] Setup documentation: docs/EMAIL_NOTIFICATION_SETUP.md
+
 ### 🔄 Known Limitations / Future Enhancements
+- [ ] Email notification settings UI in Settings screen (currently via script properties)
 - [ ] Analytics/Dashboard with IRT metrics visualization
 - [ ] Bulk operations (bulk edit, bulk status change)
 - [ ] Advanced filtering and search in My Cases
-- [ ] Email notifications for IRT alerts (GmailApp integration)
 - [ ] Comprehensive automated testing suite
 - [ ] ReOpen case functionality (frontend implementation)
 - [ ] Status History tracking UI
 
 ### 📝 Next Development Priorities
-1. **Email Notification System** (Section 7) - IRT alert emails via GmailApp
-2. **Analytics Dashboard** - IRT metrics, trends, team performance
-3. **ReOpen Case UI** - Frontend for reopening closed cases
+1. ~~**Email Notification System** (Section 7) - IRT alert emails via GmailApp~~ ✅ **COMPLETED**
+2. **ReOpen Case UI** - Frontend for reopening closed cases
+3. **Analytics Dashboard** - IRT metrics, trends, team performance
 4. **Advanced Filters** - Filter My Cases by segment, product, urgency
 5. **Automated Testing** - Integration tests for critical workflows
 
