@@ -563,7 +563,7 @@ function testSendIRTAlert() {
     caseOpenTime: '09:00:00'
   };
 
-  const testTLEmail = 'your-test-email@google.com'; // Replace with actual test email
+  const testTLEmail = 'daito@google.com'; // Replace with actual test email
 
   const result = sendIRTAlertEmail(testCaseData, testTLEmail);
 
