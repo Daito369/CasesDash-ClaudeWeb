@@ -292,38 +292,61 @@ See [docs/casesdash-specification.md Section 11](./docs/casesdash-specification.
 ## 📈 Current Status
 
 **Version**: 3.0.0
-**Phase**: Phase 1 - Foundation (In Progress)
-**Branch**: `claude/phase1-foundation-implementation-011CUr7FEU6rWiswmbqKYvHa`
+**Phase**: Core Features Complete ✅
+**Branch**: `claude/fix-my-cases-timeout-011CV14Ry2QDQDp1c79wqFzS`
+**Last Updated**: 2025-11-11
 
-### Completed
-- [x] Project structure
-- [x] Documentation (CLAUDE.md, AGENTS.md)
-- [ ] Authentication system (Backend + Frontend)
-- [ ] Spreadsheet connection
-- [ ] Basic case creation
-- [ ] Dashboard UI
+### ✅ Completed Features
 
-### Roadmap
+#### Foundation
+- [x] Project structure and directory organization
+- [x] Complete documentation (CLAUDE.md, AGENTS.md, specification)
+- [x] Authentication system with @google.com domain restriction
+- [x] Spreadsheet connection and configuration management
+- [x] Session management and persistence
 
-**Phase 1: Foundation (3 weeks)**
-- User authentication system
-- Spreadsheet connection
-- Basic case creation
-- Dark mode / Light mode toggle
+#### Case Management
+- [x] **Create Case**: Dynamic forms for all 6 sheet types with validation
+- [x] **My Cases**: Real-time IRT timer, color-coded urgency, auto-refresh
+- [x] **Case Details Modal**: Comprehensive read-only case view
+- [x] **Edit Case Modal**: Full editing with Close Date/Time, keyboard shortcuts
+- [x] **rowIndex-based Updates**: Prevents data loss from wrong row overwrites
+- [x] **IRT Tracking**: Real-time calculation with Solution Offered period exclusion
+- [x] **ReOpen Workflow**: Backend support with JSON history (frontend UI pending)
 
-**Phase 2: Core Features (3 weeks)**
-- IRT exclusion case management
-- Gmail notification system
-- Live Mode functionality
-- Analytics enhancement
+#### UI/UX
+- [x] Material Design compliance with Google's design system
+- [x] Toast notifications (non-blocking, auto-dismissing)
+- [x] Keyboard shortcuts (Ctrl+; for date, Ctrl+Shift+; for time)
+- [x] Sheet badge color coding (Blue/Red/Green)
+- [x] IRT除外対象 tooltip with exclusion criteria
+- [x] Loading states and comprehensive error handling
+- [x] Focus trap for modals (accessibility)
 
-**Phase 3: Analytics & UI (2 weeks)**
-- Sentiment Score in Reports
-- Period selection
-- Advanced filtering
-- Export functionality
+#### Data Integrity
+- [x] UTC timezone handling for DATE fields
+- [x] Time extraction fix for 1899 date display
+- [x] Direct sheet reading via getCaseByRowIndex
+- [x] DATE field preservation for Email sheets
+- [x] Duplicate row prevention
 
-See [docs/casesdash-specification.md Section 13](./docs/casesdash-specification.md#13-今後の開発ロードマップ) for complete roadmap.
+### 🔄 Next Development Priorities
+
+**Phase 2: Advanced Features**
+- [ ] **Email Notification System** (Section 7) - IRT alert emails via GmailApp
+- [ ] **ReOpen Case UI** - Frontend modal for reopening closed cases
+- [ ] **Analytics Dashboard** - IRT metrics visualization with charts
+- [ ] **Advanced Filters** - Filter My Cases by segment, product, urgency, sheet type
+- [ ] **Bulk Operations** - Bulk edit, bulk status change
+
+**Phase 3: Enhancement & Polish**
+- [ ] **Status History UI** - Visual timeline of case status changes
+- [ ] **Dark Mode** - Theme toggle for better accessibility
+- [ ] **Export Functionality** - Export cases to CSV/Excel
+- [ ] **Search Enhancement** - Global search across all sheets
+- [ ] **Automated Testing Suite** - Integration tests for critical workflows
+
+See [docs/CLAUDE.md](./docs/CLAUDE.md) for detailed implementation status and [docs/casesdash-specification.md Section 13](./docs/casesdash-specification.md#13-今後の開発ロードマップ) for complete roadmap.
 
 ---
 
@@ -364,17 +387,48 @@ For questions or issues:
 
 ## 📝 Changelog
 
-### v3.0.0 (2025-11-06)
-- ✨ NEW: IRT (Internal Resolution Time) support
-- ✨ NEW: Unlimited ReOpen tracking with JSON format
-- ✨ NEW: Gmail notification system (replaces Google Chat)
-- ✨ NEW: Configuration sheet for quarterly management
-- ✨ NEW: Select2 for large dropdown fields
-- 🔧 FIX: Column mappings (added irtTimer at column O)
-- 🔧 FIX: IRT calculation reads from IRT RAW data sheet
-- 🔧 FIX: Security policy compliance (@google.com domain only)
-- 📚 DOC: Complete specification rewrite (v3.0.0)
-- 📚 DOC: Added CLAUDE.md and AGENTS.md
+### v3.0.0 (2025-11-11) - Core Features Complete
+
+#### 🎉 Major Features
+- ✨ **NEW**: Complete case management system (Create, View, Edit)
+- ✨ **NEW**: My Cases screen with real-time IRT timer
+- ✨ **NEW**: Case Details Modal with comprehensive information display
+- ✨ **NEW**: Edit Case Modal with full editing capabilities
+- ✨ **NEW**: IRT (Internal Resolution Time) tracking and calculation
+- ✨ **NEW**: Unlimited ReOpen tracking with JSON history (backend)
+- ✨ **NEW**: Authentication system with @google.com domain restriction
+- ✨ **NEW**: Spreadsheet connection and configuration management
+- ✨ **NEW**: Toast notification system (non-blocking)
+
+#### 🎨 UI/UX Enhancements
+- ✨ Material Design compliance throughout the application
+- ✨ Color-coded urgency levels (Normal/Warning/Critical/Missed)
+- ✨ Sheet badge color coding (Blue for Email, Red for Chat, Green for Phone)
+- ✨ Keyboard shortcuts (Ctrl+; for date, Ctrl+Shift+; for time)
+- ✨ IRT除外対象 tooltip with detailed exclusion criteria
+- ✨ Focus trap for modals (accessibility)
+- ✨ Loading states and comprehensive error handling
+
+#### 🔧 Critical Bug Fixes
+- 🔧 **FIX**: Edit Modal creating duplicate rows (DATE field preservation)
+- 🔧 **FIX**: Edit Modal updating wrong rows - rowIndex-based updates (CRITICAL)
+- 🔧 **FIX**: UTC timezone issues with DATE field
+- 🔧 **FIX**: 1899 date display in time fields (time extraction)
+- 🔧 **FIX**: getCaseByRowIndex to read directly from sheet
+- 🔧 **FIX**: Column mappings (added irtTimer at column O)
+- 🔧 **FIX**: Security policy compliance (@google.com domain only)
+
+#### 📚 Documentation
+- 📚 **DOC**: Complete specification rewrite (v3.0.0)
+- 📚 **DOC**: Added CLAUDE.md (Developer Guide)
+- 📚 **DOC**: Added AGENTS.md (Automation Guide)
+- 📚 **DOC**: Updated README.md with current status
+
+#### 🏗️ Architecture
+- 🏗️ Backend: Complete service layer (Authentication, Case, IRT, Spreadsheet)
+- 🏗️ Frontend: Modular JavaScript architecture with API layer
+- 🏗️ Models: Case model with serialization and validation
+- 🏗️ Utils: Constants for column mappings, Config for settings
 
 ### v2.0.0 (Legacy)
 - Basic case management
