@@ -184,7 +184,7 @@ function createCaseCard(caseItem) {
       <button class="btn-secondary btn-sm" onclick="viewCaseDetails('${caseData.caseId}')">
         Details
       </button>
-      <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}', '${sheetName}')">
+      <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex})">
         Edit
       </button>
     </div>

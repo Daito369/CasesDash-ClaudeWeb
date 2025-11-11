@@ -132,12 +132,21 @@ function createCase(caseData, sheetName, createdBy) {
  * @param {Object} updates - Fields to update
  * @param {string} updatedBy - User email
  * @param {string} sheetName - Optional: specific sheet name to update
+ * @param {number} rowIndex - Optional: specific row index to update (most accurate)
  * @return {Object} Result { success: boolean }
  */
-function updateCase(caseId, updates, updatedBy, sheetName) {
+function updateCase(caseId, updates, updatedBy, sheetName, rowIndex) {
   try {
-    // Find case in specific sheet or across all sheets
-    const caseData = findCaseById(caseId, sheetName);
+    // If rowIndex and sheetName are provided, use them directly (most accurate)
+    let caseData;
+    if (rowIndex && sheetName) {
+      Logger.log(`updateCase: Using rowIndex ${rowIndex} in ${sheetName} to update case ${caseId}`);
+      caseData = getCaseByRowIndex(sheetName, rowIndex);
+    } else {
+      // Fallback to Case ID search
+      Logger.log(`updateCase: Searching for case ${caseId} in sheet ${sheetName || 'all sheets'}`);
+      caseData = findCaseById(caseId, sheetName);
+    }
 
     if (!caseData) {
       return {

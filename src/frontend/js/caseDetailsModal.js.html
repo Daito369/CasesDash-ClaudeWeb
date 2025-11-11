@@ -11,6 +11,7 @@
 // Global state for modal
 let currentCaseId = null;
 let currentSheetName = null;
+let currentRowIndex = null;
 let modalFocusTrap = null;
 
 /**
@@ -48,6 +49,7 @@ function closeCaseDetailsModal() {
   // Clean up
   currentCaseId = null;
   currentSheetName = null;
+  currentRowIndex = null;
   teardownModalKeyboardListeners();
   teardownFocusTrap();
 
@@ -83,8 +85,9 @@ async function loadCaseDetails(caseId) {
 
     console.log('Case details loaded:', result);
 
-    // Store sheet name for edit functionality
+    // Store sheet name and row index for edit functionality
     currentSheetName = result.sheetName;
+    currentRowIndex = result.case.rowIndex;
 
     // Hide loading, show content
     document.getElementById('caseDetailsLoading').style.display = 'none';
@@ -279,8 +282,8 @@ function editCaseFromModal() {
   // Close details modal
   closeCaseDetailsModal();
 
-  // Open edit modal with correct sheet name (implemented in editCaseModal.js.html)
-  editCase(currentCaseId, currentSheetName);
+  // Open edit modal with correct sheet name and row index (implemented in editCaseModal.js.html)
+  editCase(currentCaseId, currentSheetName, currentRowIndex);
 }
 
 /**

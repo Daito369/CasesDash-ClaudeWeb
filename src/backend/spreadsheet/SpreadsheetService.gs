@@ -166,6 +166,41 @@ function getCaseByCaseId(sheetName, caseId) {
 }
 
 /**
+ * Get a case by direct row index (most accurate method)
+ * @param {string} sheetName - Sheet name
+ * @param {number} rowIndex - Row index (1-based, including header)
+ * @return {Object|null} { sheetName, rowIndex, data } or null if not found
+ */
+function getCaseByRowIndex(sheetName, rowIndex) {
+  try {
+    Logger.log(`getCaseByRowIndex: Reading from ${sheetName} row ${rowIndex}`);
+    const sheet = getSheet(sheetName);
+    const data = getCasesFromSheet(sheetName);
+
+    // Convert 1-based rowIndex to 0-based array index
+    // rowIndex includes header row, so subtract 2 (1 for header, 1 for 0-based)
+    const arrayIndex = rowIndex - 2;
+
+    if (arrayIndex < 0 || arrayIndex >= data.length) {
+      Logger.log(`getCaseByRowIndex: Row ${rowIndex} out of bounds for ${sheetName}`);
+      return null;
+    }
+
+    const row = data[arrayIndex];
+
+    return {
+      rowIndex: rowIndex,
+      data: row,
+      sheetName: sheetName
+    };
+
+  } catch (error) {
+    Logger.log(`Error getting case from ${sheetName} row ${rowIndex}: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
  * Search for a case across all 6 sheets (or specific sheet if provided)
  * @param {string} caseId - Case ID to find
  * @param {string} sheetName - Optional: specific sheet name to search
