@@ -171,18 +171,12 @@ function getCaseByCaseId(sheetName, caseId) {
  * @return {Object|null} { sheetName, rowIndex, data } or null if not found
  */
 function findCaseById(caseId) {
-  Logger.log(`findCaseById: Searching for case ID: ${caseId}`);
-
   const sheets = SheetNames.getAllCaseSheets();
-
-  Logger.log(`findCaseById: Searching in ${sheets.length} sheets: ${sheets.join(', ')}`);
 
   for (const sheetName of sheets) {
     try {
-      Logger.log(`findCaseById: Checking sheet: ${sheetName}`);
       const result = getCaseByCaseId(sheetName, caseId);
       if (result) {
-        Logger.log(`findCaseById: Found in ${sheetName} at row ${result.rowIndex}`);
         return result;
       }
     } catch (error) {
@@ -191,7 +185,6 @@ function findCaseById(caseId) {
     }
   }
 
-  Logger.log(`findCaseById: Case not found in any sheet: ${caseId}`);
   return null;
 }
 
