@@ -247,7 +247,15 @@ function getTeamLeaderEmail(assigneeLdap) {
   try {
     Logger.log(`Getting team leader email for assignee: ${assigneeLdap}`);
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Get spreadsheet ID from Config
+    const spreadsheetId = getSpreadsheetId();
+    if (!spreadsheetId) {
+      Logger.log('WARNING: Spreadsheet ID not configured, using default TL email');
+      return getDefaultTeamLeaderEmail();
+    }
+
+    // Open spreadsheet by ID
+    const ss = SpreadsheetApp.openById(spreadsheetId);
 
     // Try to get from Configuration sheet first
     let settingsSheet = ss.getSheetByName('Configuration');
@@ -320,7 +328,15 @@ function getDefaultTeamLeaderEmail() {
  */
 function logNotification(caseId, recipient, notificationType, status, errorMsg = '') {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Get spreadsheet ID from Config
+    const spreadsheetId = getSpreadsheetId();
+    if (!spreadsheetId) {
+      Logger.log('WARNING: Cannot log notification - Spreadsheet ID not configured');
+      return;
+    }
+
+    // Open spreadsheet by ID
+    const ss = SpreadsheetApp.openById(spreadsheetId);
     let logSheet = ss.getSheetByName('Notification Log');
 
     // Create Notification Log sheet if it doesn't exist
@@ -373,7 +389,15 @@ function checkAndSendIRTAlerts() {
   try {
     Logger.log('=== Starting IRT Alert Check ===');
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Get spreadsheet ID from Config
+    const spreadsheetId = getSpreadsheetId();
+    if (!spreadsheetId) {
+      Logger.log('ERROR: Spreadsheet ID not configured');
+      return { success: false, error: 'Spreadsheet ID not configured' };
+    }
+
+    // Open spreadsheet by ID (required for trigger-based execution)
+    const ss = SpreadsheetApp.openById(spreadsheetId);
     const irtSheet = ss.getSheetByName('IRT RAW data');
 
     if (!irtSheet) {
