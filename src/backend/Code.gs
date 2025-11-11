@@ -463,7 +463,7 @@ function frontendCreateCase(caseData, sheetName) {
  * @param {string} sheetName - Optional: specific sheet name to update
  * @return {Object} Update result
  */
-function frontendUpdateCase(caseId, updates, sheetName) {
+function frontendUpdateCase(caseId, updates, sheetName, rowIndex) {
   try {
     // Check authentication
     const authCheck = requireAuth();
@@ -472,7 +472,7 @@ function frontendUpdateCase(caseId, updates, sheetName) {
     }
 
     const user = authCheck.data;
-    const result = updateCase(caseId, updates, user.email, sheetName);
+    const result = updateCase(caseId, updates, user.email, sheetName, rowIndex);
 
     if (result.success) {
       result.case = serializeCase(result.case);
@@ -492,12 +492,13 @@ function frontendUpdateCase(caseId, updates, sheetName) {
 }
 
 /**
- * Get a single case (optionally from specific sheet)
+ * Get a single case (optionally from specific sheet and row)
  * @param {string} caseId - Case ID
  * @param {string} sheetName - Optional: specific sheet name to search
+ * @param {number} rowIndex - Optional: specific row index to read
  * @return {Object} Case data
  */
-function frontendGetCase(caseId, sheetName) {
+function frontendGetCase(caseId, sheetName, rowIndex) {
   try {
     // Check authentication
     const authCheck = requireAuth();
@@ -505,7 +506,16 @@ function frontendGetCase(caseId, sheetName) {
       return authCheck;
     }
 
-    const caseData = getCase(caseId, sheetName);
+    // If rowIndex is provided, read directly from that row (most accurate)
+    let caseData;
+    if (rowIndex && sheetName) {
+      Logger.log(`frontendGetCase: Reading case directly from ${sheetName} row ${rowIndex}`);
+      caseData = getCaseByRowIndex(sheetName, rowIndex);
+    } else {
+      // Fallback to Case ID search
+      Logger.log(`frontendGetCase: Searching for case ${caseId} in sheet ${sheetName || 'all sheets'}`);
+      caseData = getCase(caseId, sheetName);
+    }
 
     if (!caseData) {
       return {

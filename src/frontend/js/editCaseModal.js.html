@@ -11,6 +11,7 @@
 // Global state for Edit Case Modal
 let editingCaseId = null;
 let editingSheetName = null;
+let editingRowIndex = null;
 let originalCaseData = null;
 let editingIrtData = null;
 let editModalFocusTrap = null;
@@ -19,12 +20,14 @@ let editModalFocusTrap = null;
  * Open edit case modal
  * @param {string} caseId - Case ID to edit
  * @param {string} sheetName - Sheet name where the case is located
+ * @param {number} rowIndex - Row index of the case in the sheet
  */
-function editCase(caseId, sheetName) {
-  console.log('Opening edit case modal for:', caseId, 'from sheet:', sheetName);
+function editCase(caseId, sheetName, rowIndex) {
+  console.log('Opening edit case modal for:', caseId, 'from sheet:', sheetName, 'row:', rowIndex);
 
   editingCaseId = caseId;
   editingSheetName = sheetName;
+  editingRowIndex = rowIndex;
   const modal = document.getElementById('editCaseModal');
 
   // Show modal
@@ -40,7 +43,7 @@ function editCase(caseId, sheetName) {
   setupEditModalFocusTrap();
 
   // Load case data
-  loadCaseForEdit(caseId, sheetName);
+  loadCaseForEdit(caseId, sheetName, rowIndex);
 }
 
 /**
@@ -55,6 +58,7 @@ function closeEditCaseModal() {
   // Clean up
   editingCaseId = null;
   editingSheetName = null;
+  editingRowIndex = null;
   originalCaseData = null;
   editingIrtData = null;
   teardownEditModalKeyboardListeners();
@@ -77,9 +81,10 @@ function closeEditCaseModal() {
  * Load case data for editing
  * @param {string} caseId - Case ID
  * @param {string} sheetName - Sheet name
+ * @param {number} rowIndex - Row index of the case
  */
-async function loadCaseForEdit(caseId, sheetName) {
-  console.log('Loading case data for editing:', caseId, 'from sheet:', sheetName);
+async function loadCaseForEdit(caseId, sheetName, rowIndex) {
+  console.log('Loading case data for editing:', caseId, 'from sheet:', sheetName, 'row:', rowIndex);
 
   // Show loading state
   document.getElementById('editCaseLoading').style.display = 'flex';
@@ -87,8 +92,8 @@ async function loadCaseForEdit(caseId, sheetName) {
   document.getElementById('editCaseError').style.display = 'none';
 
   try {
-    // Call backend API with sheetName to get the correct case
-    const result = await API.cases.get(caseId, sheetName);
+    // Call backend API with sheetName and rowIndex to get the correct case
+    const result = await API.cases.get(caseId, sheetName, rowIndex);
 
     if (!result) {
       throw new Error('No response from server');
@@ -379,8 +384,8 @@ async function saveEditCase() {
   saveBtn.classList.add('saving');
 
   try {
-    // Call backend API with sheetName to update the correct sheet
-    const result = await API.cases.update(editingCaseId, updates, editingSheetName);
+    // Call backend API with sheetName and rowIndex to update the correct row
+    const result = await API.cases.update(editingCaseId, updates, editingSheetName, editingRowIndex);
 
     if (!result) {
       throw new Error('No response from server');
