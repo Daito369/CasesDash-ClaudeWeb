@@ -141,9 +141,11 @@ class Case {
       // Column A (DATE): Use existing date or today's date for new cases
       if (this.date) {
         // Existing case: preserve original date
+        Logger.log(`[toSheetRow] Preserving existing DATE for ${this.caseId}: ${JSON.stringify(this.date)} (type: ${typeof this.date})`);
         row[columnMap.DATE] = this.date;
       } else {
         // New case: use today's date
+        Logger.log(`[toSheetRow] Setting new DATE for ${this.caseId}: this.date is empty/null`);
         const today = new Date();
         const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
         row[columnMap.DATE] = todayStr;
@@ -241,6 +243,7 @@ class Case {
     // Read DATE column (Email sheets only, column A)
     if (columnMap.DATE !== undefined) {
       data.date = row[columnMap.DATE] || null;
+      Logger.log(`[fromSheetRow] Reading DATE from ${sheetName} row ${rowIndex}: ${JSON.stringify(row[columnMap.DATE])} (type: ${typeof row[columnMap.DATE]})`);
     }
 
     data.caseId = row[columnMap.CASE_ID] || '';
