@@ -510,7 +510,27 @@ function frontendGetCase(caseId, sheetName, rowIndex) {
     let caseData;
     if (rowIndex && sheetName) {
       Logger.log(`frontendGetCase: Reading case directly from ${sheetName} row ${rowIndex}`);
-      caseData = getCaseByRowIndex(sheetName, rowIndex);
+      const rowData = getCaseByRowIndex(sheetName, rowIndex);
+
+      if (!rowData) {
+        return {
+          success: false,
+          error: 'Case not found'
+        };
+      }
+
+      // Convert row data to Case object
+      const caseObj = Case.fromSheetRow(rowData.data, rowData.sheetName, rowData.rowIndex);
+
+      // Get IRT data
+      const irtData = getOrCreateIRTData(caseId);
+
+      caseData = {
+        case: caseObj,
+        irtData: irtData,
+        sheetName: rowData.sheetName,
+        rowIndex: rowData.rowIndex
+      };
     } else {
       // Fallback to Case ID search
       Logger.log(`frontendGetCase: Searching for case ${caseId} in sheet ${sheetName || 'all sheets'}`);

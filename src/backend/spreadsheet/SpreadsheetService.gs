@@ -175,22 +175,40 @@ function getCaseByRowIndex(sheetName, rowIndex) {
   try {
     Logger.log(`getCaseByRowIndex: Reading from ${sheetName} row ${rowIndex}`);
     const sheet = getSheet(sheetName);
-    const data = getCasesFromSheet(sheetName);
 
-    // Convert 1-based rowIndex to 0-based array index
-    // rowIndex includes header row, so subtract 2 (1 for header, 1 for 0-based)
-    const arrayIndex = rowIndex - 2;
-
-    if (arrayIndex < 0 || arrayIndex >= data.length) {
-      Logger.log(`getCaseByRowIndex: Row ${rowIndex} out of bounds for ${sheetName}`);
+    // Validate rowIndex
+    if (rowIndex < 2) {
+      Logger.log(`getCaseByRowIndex: Invalid row ${rowIndex} (must be >= 2)`);
       return null;
     }
 
-    const row = data[arrayIndex];
+    // Get the maximum number of columns from column mapping
+    const columnMap = getColumnMapping(sheetName);
+    const maxColumn = Math.max(...Object.values(columnMap));
+    const numCols = maxColumn + 1;
+
+    // Check if row exists
+    const lastRow = sheet.getLastRow();
+    if (rowIndex > lastRow) {
+      Logger.log(`getCaseByRowIndex: Row ${rowIndex} exceeds last row ${lastRow} for ${sheetName}`);
+      return null;
+    }
+
+    // Read the specific row directly from the sheet
+    const rowData = sheet.getRange(rowIndex, 1, 1, numCols).getValues()[0];
+
+    // Check if the row is empty (all cells are empty or null)
+    const isEmpty = rowData.every(cell => cell === '' || cell === null || cell === undefined);
+    if (isEmpty) {
+      Logger.log(`getCaseByRowIndex: Row ${rowIndex} is empty in ${sheetName}`);
+      return null;
+    }
+
+    Logger.log(`getCaseByRowIndex: Successfully read row ${rowIndex} from ${sheetName}`);
 
     return {
       rowIndex: rowIndex,
-      data: row,
+      data: rowData,
       sheetName: sheetName
     };
 
