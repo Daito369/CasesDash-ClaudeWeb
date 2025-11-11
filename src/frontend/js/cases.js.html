@@ -44,6 +44,7 @@ async function loadCreateCaseScreen() {
   }
 
   // Setup keyboard shortcuts for date/time inputs
+  // (removeEventListener is called inside setupKeyboardShortcuts to avoid duplicates)
   setupKeyboardShortcuts();
 
   // Auto-focus on first required field (Target Sheet)
@@ -860,34 +861,68 @@ function formatTimeForInput(date) {
 }
 
 /**
- * Add keyboard shortcuts for date/time inputs
+ * Handle keyboard events for Case Open Date input
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleCaseOpenDateKeyDown(event) {
+  // Ctrl+; sets today's date
+  if (event.ctrlKey && event.key === ';') {
+    event.preventDefault();
+    const today = new Date();
+    event.target.value = formatDateForInput(today);
+    console.log('Today\'s date inserted:', event.target.value);
+  }
+}
+
+/**
+ * Handle keyboard events for Case Open Time input
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleCaseOpenTimeKeyDown(event) {
+  // Ctrl+Shift+; sets current time (use code instead of key for better compatibility)
+  if (event.ctrlKey && event.shiftKey && (event.code === 'Semicolon' || event.key === ':' || event.key === ';')) {
+    event.preventDefault();
+    const now = new Date();
+    event.target.value = formatTimeForInput(now);
+    console.log('Current time inserted:', event.target.value);
+  }
+}
+
+/**
+ * Setup keyboard shortcuts for Case Open Date/Time inputs
+ * Ctrl+; inserts today's date
+ * Ctrl+Shift+; inserts current time
  */
 function setupKeyboardShortcuts() {
-  // Add event listeners for date and time inputs
   const dateInput = document.getElementById('caseOpenDate');
   const timeInput = document.getElementById('caseOpenTime');
 
   if (dateInput) {
-    dateInput.addEventListener('keydown', (e) => {
-      // Ctrl+; sets today's date
-      if (e.ctrlKey && e.key === ';') {
-        e.preventDefault();
-        const today = new Date();
-        dateInput.value = formatDateForInput(today);
-      }
-    });
+    // Remove existing listener first to avoid duplicates
+    dateInput.removeEventListener('keydown', handleCaseOpenDateKeyDown);
+    dateInput.addEventListener('keydown', handleCaseOpenDateKeyDown);
   }
 
   if (timeInput) {
-    timeInput.addEventListener('keydown', (e) => {
-      // Ctrl+Shift+; sets current time (use code instead of key for better compatibility)
-      if (e.ctrlKey && e.shiftKey && (e.code === 'Semicolon' || e.key === ':' || e.key === ';')) {
-        e.preventDefault();
-        const now = new Date();
-        timeInput.value = formatTimeForInput(now);
-        console.log('Current time inserted:', timeInput.value);
-      }
-    });
+    // Remove existing listener first to avoid duplicates
+    timeInput.removeEventListener('keydown', handleCaseOpenTimeKeyDown);
+    timeInput.addEventListener('keydown', handleCaseOpenTimeKeyDown);
+  }
+}
+
+/**
+ * Teardown keyboard shortcuts for Create Case inputs
+ */
+function teardownKeyboardShortcuts() {
+  const dateInput = document.getElementById('caseOpenDate');
+  const timeInput = document.getElementById('caseOpenTime');
+
+  if (dateInput) {
+    dateInput.removeEventListener('keydown', handleCaseOpenDateKeyDown);
+  }
+
+  if (timeInput) {
+    timeInput.removeEventListener('keydown', handleCaseOpenTimeKeyDown);
   }
 }
 

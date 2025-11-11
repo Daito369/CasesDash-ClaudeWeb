@@ -18,6 +18,8 @@
 function sendIRTAlertEmail(caseData, teamLeaderEmail) {
   try {
     Logger.log(`Sending IRT alert email for case ${caseData.caseId} to ${teamLeaderEmail}`);
+    Logger.log(`[DEBUG] caseOpenDate: "${caseData.caseOpenDate}" (type: ${typeof caseData.caseOpenDate})`);
+    Logger.log(`[DEBUG] caseOpenTime: "${caseData.caseOpenTime}" (type: ${typeof caseData.caseOpenTime})`);
 
     // Validate inputs
     if (!caseData || !caseData.caseId) {
