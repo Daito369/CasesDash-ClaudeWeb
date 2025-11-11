@@ -686,6 +686,42 @@
                 </div>
               </section>
 
+              <!-- Close Date/Time Section (Editable) -->
+              <section class="details-section" id="closeDateTimeSection">
+                <h3 class="section-title">
+                  <span class="material-icons">event_available</span>
+                  <span id="closeDateTimeTitle">Close Date & Time</span>
+                </h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="inputCloseDate" class="form-label">
+                      <span id="closeDateLabel">Close Date</span>
+                    </label>
+                    <input
+                      type="date"
+                      id="inputCloseDate"
+                      class="form-control"
+                      placeholder="YYYY-MM-DD"
+                    />
+                    <small class="form-hint">Date when case was closed (YYYY-MM-DD)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="inputCloseTime" class="form-label">
+                      <span id="closeTimeLabel">Close Time</span>
+                    </label>
+                    <input
+                      type="time"
+                      id="inputCloseTime"
+                      class="form-control"
+                      step="1"
+                      placeholder="HH:MM:SS"
+                    />
+                    <small class="form-hint">Time when case was closed (HH:MM:SS)</small>
+                  </div>
+                </div>
+              </section>
+
               <!-- Flags Section (Editable) -->
               <section class="details-section">
                 <h3 class="section-title">
@@ -784,42 +820,6 @@
                       <option value="Transfer to GMB Team">Transfer to GMB Team</option>
                       <option value="Transfer to Other Team (not AM)">Transfer to Other Team (not AM)</option>
                     </select>
-                  </div>
-                </div>
-              </section>
-
-              <!-- Close Date/Time Section (Editable) -->
-              <section class="details-section" id="closeDateTimeSection">
-                <h3 class="section-title">
-                  <span class="material-icons">event_available</span>
-                  <span id="closeDateTimeTitle">Close Date & Time</span>
-                </h3>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="inputCloseDate" class="form-label">
-                      <span id="closeDateLabel">Close Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      id="inputCloseDate"
-                      class="form-control"
-                      placeholder="YYYY-MM-DD"
-                    />
-                    <small class="form-hint">Date when case was closed (YYYY-MM-DD)</small>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="inputCloseTime" class="form-label">
-                      <span id="closeTimeLabel">Close Time</span>
-                    </label>
-                    <input
-                      type="time"
-                      id="inputCloseTime"
-                      class="form-control"
-                      step="1"
-                      placeholder="HH:MM:SS"
-                    />
-                    <small class="form-hint">Time when case was closed (HH:MM:SS)</small>
                   </div>
                 </div>
               </section>

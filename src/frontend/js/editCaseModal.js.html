@@ -33,6 +33,9 @@ function editCase(caseId, sheetName) {
   // Set up keyboard listeners
   setupEditModalKeyboardListeners();
 
+  // Set up keyboard shortcuts for date/time inputs
+  setupEditModalKeyboardShortcuts();
+
   // Set up focus trap
   setupEditModalFocusTrap();
 
@@ -55,6 +58,7 @@ function closeEditCaseModal() {
   originalCaseData = null;
   editingIrtData = null;
   teardownEditModalKeyboardListeners();
+  teardownEditModalKeyboardShortcuts();
   teardownEditModalFocusTrap();
 
   // Reset form
@@ -218,6 +222,32 @@ function formatDateForInput(date) {
 function formatTimeForInput(time) {
   if (!time) return '';
   return String(time);
+}
+
+/**
+ * Format Date object to date string for HTML date input (YYYY-MM-DD)
+ * Used for keyboard shortcuts to insert current date
+ * @param {Date} date - Date object
+ * @return {string} Formatted date string
+ */
+function formatDateFromDateObject(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Format Date object to time string for HTML time input (HH:MM:SS)
+ * Used for keyboard shortcuts to insert current time
+ * @param {Date} date - Date object
+ * @return {string} Formatted time string
+ */
+function formatTimeFromDateObject(date) {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 /**
@@ -507,6 +537,68 @@ function teardownEditModalFocusTrap() {
     const modal = document.getElementById('editCaseModal');
     modal.removeEventListener('keydown', editModalFocusTrap);
     editModalFocusTrap = null;
+  }
+}
+
+/**
+ * Setup keyboard shortcuts for Close Date/Time inputs
+ * Ctrl+; inserts today's date
+ * Ctrl+Shift+; inserts current time
+ */
+function setupEditModalKeyboardShortcuts() {
+  const dateInput = document.getElementById('inputCloseDate');
+  const timeInput = document.getElementById('inputCloseTime');
+
+  if (dateInput) {
+    dateInput.addEventListener('keydown', handleCloseDateKeyDown);
+  }
+
+  if (timeInput) {
+    timeInput.addEventListener('keydown', handleCloseTimeKeyDown);
+  }
+}
+
+/**
+ * Teardown keyboard shortcuts
+ */
+function teardownEditModalKeyboardShortcuts() {
+  const dateInput = document.getElementById('inputCloseDate');
+  const timeInput = document.getElementById('inputCloseTime');
+
+  if (dateInput) {
+    dateInput.removeEventListener('keydown', handleCloseDateKeyDown);
+  }
+
+  if (timeInput) {
+    timeInput.removeEventListener('keydown', handleCloseTimeKeyDown);
+  }
+}
+
+/**
+ * Handle keyboard events for Close Date input
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleCloseDateKeyDown(event) {
+  // Ctrl+; sets today's date
+  if (event.ctrlKey && event.key === ';') {
+    event.preventDefault();
+    const today = new Date();
+    event.target.value = formatDateFromDateObject(today);
+    console.log('Today\'s date inserted:', event.target.value);
+  }
+}
+
+/**
+ * Handle keyboard events for Close Time input
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleCloseTimeKeyDown(event) {
+  // Ctrl+Shift+; sets current time (use code instead of key for better compatibility)
+  if (event.ctrlKey && event.shiftKey && (event.code === 'Semicolon' || event.key === ':' || event.key === ';')) {
+    event.preventDefault();
+    const now = new Date();
+    event.target.value = formatTimeFromDateObject(now);
+    console.log('Current time inserted:', event.target.value);
   }
 }
 
