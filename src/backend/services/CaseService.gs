@@ -199,13 +199,14 @@ function updateCase(caseId, updates, updatedBy) {
 }
 
 /**
- * Get a single case by ID
+ * Get a single case by ID (optionally from specific sheet)
  * @param {string} caseId - Case ID
+ * @param {string} sheetName - Optional: specific sheet name to search
  * @return {Object|null} Case data or null
  */
-function getCase(caseId) {
+function getCase(caseId, sheetName) {
   try {
-    const caseData = findCaseById(caseId);
+    const caseData = findCaseById(caseId, sheetName);
 
     if (!caseData) {
       return null;

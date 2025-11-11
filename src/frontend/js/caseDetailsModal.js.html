@@ -10,6 +10,7 @@
 
 // Global state for modal
 let currentCaseId = null;
+let currentSheetName = null;
 let modalFocusTrap = null;
 
 /**
@@ -46,6 +47,7 @@ function closeCaseDetailsModal() {
 
   // Clean up
   currentCaseId = null;
+  currentSheetName = null;
   teardownModalKeyboardListeners();
   teardownFocusTrap();
 
@@ -80,6 +82,9 @@ async function loadCaseDetails(caseId) {
     }
 
     console.log('Case details loaded:', result);
+
+    // Store sheet name for edit functionality
+    currentSheetName = result.sheetName;
 
     // Hide loading, show content
     document.getElementById('caseDetailsLoading').style.display = 'none';
@@ -266,11 +271,16 @@ function editCaseFromModal() {
     return;
   }
 
+  if (!currentSheetName) {
+    console.error('No sheet name available');
+    return;
+  }
+
   // Close details modal
   closeCaseDetailsModal();
 
-  // Open edit modal (implemented in editCaseModal.js.html)
-  editCase(currentCaseId);
+  // Open edit modal with correct sheet name (implemented in editCaseModal.js.html)
+  editCase(currentCaseId, currentSheetName);
 }
 
 /**

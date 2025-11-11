@@ -17,11 +17,13 @@ let editModalFocusTrap = null;
 /**
  * Open edit case modal
  * @param {string} caseId - Case ID to edit
+ * @param {string} sheetName - Sheet name where the case is located
  */
-function editCase(caseId) {
-  console.log('Opening edit case modal for:', caseId);
+function editCase(caseId, sheetName) {
+  console.log('Opening edit case modal for:', caseId, 'from sheet:', sheetName);
 
   editingCaseId = caseId;
+  editingSheetName = sheetName;
   const modal = document.getElementById('editCaseModal');
 
   // Show modal
@@ -34,7 +36,7 @@ function editCase(caseId) {
   setupEditModalFocusTrap();
 
   // Load case data
-  loadCaseForEdit(caseId);
+  loadCaseForEdit(caseId, sheetName);
 }
 
 /**
@@ -68,9 +70,10 @@ function closeEditCaseModal() {
 /**
  * Load case data for editing
  * @param {string} caseId - Case ID
+ * @param {string} sheetName - Sheet name
  */
-async function loadCaseForEdit(caseId) {
-  console.log('Loading case data for editing:', caseId);
+async function loadCaseForEdit(caseId, sheetName) {
+  console.log('Loading case data for editing:', caseId, 'from sheet:', sheetName);
 
   // Show loading state
   document.getElementById('editCaseLoading').style.display = 'flex';
@@ -78,8 +81,8 @@ async function loadCaseForEdit(caseId) {
   document.getElementById('editCaseError').style.display = 'none';
 
   try {
-    // Call backend API
-    const result = await API.cases.get(caseId);
+    // Call backend API with sheetName to get the correct case
+    const result = await API.cases.get(caseId, sheetName);
 
     if (!result) {
       throw new Error('No response from server');

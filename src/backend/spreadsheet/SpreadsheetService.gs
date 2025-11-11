@@ -166,21 +166,34 @@ function getCaseByCaseId(sheetName, caseId) {
 }
 
 /**
- * Search for a case across all 6 sheets
+ * Search for a case across all 6 sheets (or specific sheet if provided)
  * @param {string} caseId - Case ID to find
+ * @param {string} sheetName - Optional: specific sheet name to search
  * @return {Object|null} { sheetName, rowIndex, data } or null if not found
  */
-function findCaseById(caseId) {
-  const sheets = SheetNames.getAllCaseSheets();
-
-  for (const sheetName of sheets) {
+function findCaseById(caseId, sheetName) {
+  // If sheetName is provided, search only that sheet
+  if (sheetName) {
     try {
       const result = getCaseByCaseId(sheetName, caseId);
+      return result; // Returns result or null
+    } catch (error) {
+      Logger.log(`Error searching ${sheetName} for case ${caseId}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Otherwise, search all sheets (original behavior)
+  const sheets = SheetNames.getAllCaseSheets();
+
+  for (const sheet of sheets) {
+    try {
+      const result = getCaseByCaseId(sheet, caseId);
       if (result) {
         return result;
       }
     } catch (error) {
-      Logger.log(`Error searching ${sheetName} for case ${caseId}: ${error.message}`);
+      Logger.log(`Error searching ${sheet} for case ${caseId}: ${error.message}`);
       // Continue searching other sheets
     }
   }
