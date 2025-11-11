@@ -313,6 +313,7 @@ See [docs/casesdash-specification.md Section 11](./docs/casesdash-specification.
 - [x] **rowIndex-based Updates**: Prevents data loss from wrong row overwrites
 - [x] **IRT Tracking**: Real-time calculation with Solution Offered period exclusion
 - [x] **ReOpen Workflow**: Backend support with JSON history (frontend UI pending)
+- [x] **Email Notifications**: Automated IRT alerts to team leaders via GmailApp
 
 #### UI/UX
 - [x] Material Design compliance with Google's design system
@@ -333,7 +334,7 @@ See [docs/casesdash-specification.md Section 11](./docs/casesdash-specification.
 ### 🔄 Next Development Priorities
 
 **Phase 2: Advanced Features**
-- [ ] **Email Notification System** (Section 7) - IRT alert emails via GmailApp
+- [x] ~~**Email Notification System** (Section 7) - IRT alert emails via GmailApp~~ ✅
 - [ ] **ReOpen Case UI** - Frontend modal for reopening closed cases
 - [ ] **Analytics Dashboard** - IRT metrics visualization with charts
 - [ ] **Advanced Filters** - Filter My Cases by segment, product, urgency, sheet type
@@ -399,6 +400,7 @@ For questions or issues:
 - ✨ **NEW**: Authentication system with @google.com domain restriction
 - ✨ **NEW**: Spreadsheet connection and configuration management
 - ✨ **NEW**: Toast notification system (non-blocking)
+- ✨ **NEW**: Email notification system for IRT alerts (GmailApp)
 
 #### 🎨 UI/UX Enhancements
 - ✨ Material Design compliance throughout the application
