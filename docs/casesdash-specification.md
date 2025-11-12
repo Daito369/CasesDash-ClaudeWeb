@@ -819,7 +819,7 @@ Case Statusタブで「Assigned（アクティブ）」「Solution Offered」「
 | **Finished** | Case Status = "Finished"のケース | 完了ケースの確認・ReOpen |
 | **All** | すべてのステータスのケース | 全体俯瞰 |
 
-**デフォルト表示**: Assignedタブ
+**デフォルト表示**: Allタブ *(2025/11/12更新: Assignedタブから変更)*
 
 #### 4.1.4 リアルタイムタイマー表示
 
@@ -882,13 +882,24 @@ Case Statusタブで「Assigned（アクティブ）」「Solution Offered」「
    │       [Cancel]  [Confirm ReOpen]   │
    └────────────────────────────────────┘
    ```
-4. **Confirm ReOpenクリック時の処理**:
+4. **キーボードショートカット** *(2025/11/12追加)*:
+   - **Ctrl+;** (Mac: Cmd+;): ReOpen Date フィールドに現在の日付を挿入
+   - **Ctrl+Shift+;** (Mac: Cmd+Shift+;): ReOpen Time フィールドに現在の時刻を挿入
+   - 各フィールドにフォーカスがある状態で使用可能
+5. **Confirm ReOpenクリック時の処理**:
    - Case Statusを「Assigned」に変更
    - IRT RAW dataシートのReOpen History JSONに新規エントリを追加
    - Status History JSONに新規エントリを追加
    - IRTタイマー再開
    - 元の6シートのCase Status列も「Assigned」に更新
-   - ReOpen後は自動的にAssignedタブに表示
+   - **ATTENTION モーダルを表示** *(2025/11/12追加)*
+   - ReOpen後は自動的にAllタブに表示（Dashboard全体がリフレッシュ）
+6. **ATTENTION モーダル（ReOpen成功後）** *(2025/11/12追加)*:
+   - ReOpen成功後、重要な注意事項を表示
+   - **内容**: ReOpen後にClose時間が更新される4つのアクション（Status変更、RB、Phone Note保存、Email送信）の説明
+   - **警告**: IRT Missed時は事前にJTL/TLへ相談が必要
+   - **例示**: in-IRT扱い vs IRT Missed扱いの具体例
+   - 赤色ヘッダーで視覚的に注意を促す
 
 **IRT Exclusions切り替え:**
 - 各Exclusionチェックボックスをクリックで ON/OFF 切り替え
@@ -898,6 +909,7 @@ Case Statusタブで「Assigned（アクティブ）」「Solution Offered」「
 **自動更新:**
 - タイマー: 1秒間隔で更新（クライアントサイド）
 - ケースリスト: 1分間隔で自動リフレッシュ
+- **手動リフレッシュ**: ケース編集/ReOpen後に自動的にDashboard全体をリフレッシュ *(2025/11/12追加)*
 
 ### 4.2 My Cases（マイケース）
 
@@ -4033,6 +4045,17 @@ const CONFIG = {
 **バージョン**: 3.0.0（IRT対応版 - 2025Q4完全移行）
 
 ## 📝 更新履歴
+
+### v3.0.1 (2025/11/12) - Dashboard UX改善
+- **Dashboard デフォルトタブ変更**: AssignedタブからAllタブへ変更（全体俯瞰を優先）
+- **Dashboard 自動リフレッシュ**: ケース編集/ReOpen後に自動的にDashboard全体をリフレッシュ
+- **ReOpen キーボードショートカット追加**:
+  - Ctrl+; (Cmd+;): 現在の日付を挿入
+  - Ctrl+Shift+; (Cmd+Shift+;): 現在の時刻を挿入
+- **ATTENTION モーダル追加**: ReOpen成功後に重要な注意事項を表示
+  - ReOpen後にClose時間が更新される4つのアクション説明
+  - IRT Missed時の相談フロー説明
+  - in-IRT vs IRT Missed の具体例
 
 ### v3.0.0 (2025/11/6) - IRT対応版
 - **IRT RAW dataシート追加**: ReOpen履歴管理とIRT正確計算に対応
