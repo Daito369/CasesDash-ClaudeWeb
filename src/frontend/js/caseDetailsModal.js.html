@@ -263,6 +263,16 @@ function populateCaseDetails(caseData, irtData, sheetName) {
   }
 
   additionalSection.style.display = hasAdditional ? 'block' : 'none';
+
+  // Show/hide ReOpen button based on case status
+  const reopenBtn = document.getElementById('reopenCaseBtn');
+  if (reopenBtn) {
+    if (caseData.caseStatus === 'Solution Offered' || caseData.caseStatus === 'Finished') {
+      reopenBtn.style.display = 'inline-flex';
+    } else {
+      reopenBtn.style.display = 'none';
+    }
+  }
 }
 
 /**
@@ -284,6 +294,27 @@ function editCaseFromModal() {
 
   // Open edit modal with correct sheet name and row index (implemented in editCaseModal.js.html)
   editCase(currentCaseId, currentSheetName, currentRowIndex);
+}
+
+/**
+ * ReOpen case from modal
+ */
+function reopenCaseFromModal() {
+  if (!currentCaseId) {
+    console.error('No case ID available');
+    return;
+  }
+
+  if (!currentSheetName) {
+    console.error('No sheet name available');
+    return;
+  }
+
+  // Get current case status from the modal
+  const caseStatus = document.getElementById('detailStatus').textContent;
+
+  // Open reopen modal (implemented in reopenCaseModal.js.html)
+  openReopenCaseModal(currentCaseId, currentSheetName, currentRowIndex, caseStatus);
 }
 
 /**

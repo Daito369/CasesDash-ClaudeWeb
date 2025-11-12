@@ -184,6 +184,11 @@ function createCaseCard(caseItem) {
       <button class="btn-secondary btn-sm" onclick="viewCaseDetails('${caseData.caseId}')">
         Details
       </button>
+      ${(caseData.caseStatus === 'Solution Offered' || caseData.caseStatus === 'Finished') ? `
+      <button class="btn-secondary btn-sm" onclick="openReopenCaseModal('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex}, '${caseData.caseStatus}')">
+        <span class="material-icons" style="font-size: 16px;">refresh</span> ReOpen
+      </button>
+      ` : ''}
       <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex})">
         Edit
       </button>

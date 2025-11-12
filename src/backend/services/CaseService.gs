@@ -209,6 +209,103 @@ function updateCase(caseId, updates, updatedBy, sheetName, rowIndex) {
 }
 
 /**
+ * Reopen a closed case
+ * @param {string} caseId - Case ID to reopen
+ * @param {string} reopenDate - ReOpen date (YYYY/MM/DD)
+ * @param {string} reopenTime - ReOpen time (HH:MM:SS)
+ * @param {string} reopenedBy - User email
+ * @param {string} sheetName - Sheet name (optional)
+ * @param {number} rowIndex - Row index (optional, most accurate)
+ * @return {Object} Result { success: boolean, case?: Object, irtData?: Object }
+ */
+function reopenCase(caseId, reopenDate, reopenTime, reopenedBy, sheetName, rowIndex) {
+  try {
+    // 1. Get current case data
+    let caseData;
+    if (rowIndex && sheetName) {
+      Logger.log(`reopenCase: Using rowIndex ${rowIndex} in ${sheetName}`);
+      caseData = getCaseByRowIndex(sheetName, rowIndex);
+    } else {
+      Logger.log(`reopenCase: Searching for case ${caseId}`);
+      caseData = findCaseById(caseId, sheetName);
+    }
+
+    if (!caseData) {
+      return {
+        success: false,
+        error: `Case not found: ${caseId}`
+      };
+    }
+
+    // Create Case object
+    const caseObj = Case.fromSheetRow(caseData.data, caseData.sheetName, caseData.rowIndex);
+
+    // 2. Verify case is in Solution Offered or Finished status
+    if (caseObj.caseStatus !== CaseStatus.SOLUTION_OFFERED &&
+        caseObj.caseStatus !== CaseStatus.FINISHED) {
+      return {
+        success: false,
+        error: `Cannot reopen case with status: ${caseObj.caseStatus}. Must be Solution Offered or Finished.`
+      };
+    }
+
+    // 3. Get the last SO datetime from case
+    const soDateTime = caseObj.getFirstCloseDateTime();
+    if (!soDateTime) {
+      return {
+        success: false,
+        error: 'Cannot determine Solution Offered datetime. First Close Date/Time not found.'
+      };
+    }
+
+    // 4. Combine reopenDate + reopenTime to create reopenDateTime
+    const reopenDateTime = combineDateAndTime(reopenDate, reopenTime);
+
+    // 5. Update case status to "Assigned"
+    caseObj.caseStatus = CaseStatus.ASSIGNED;
+    caseObj.updatedAt = new Date();
+    caseObj.updatedBy = reopenedBy;
+
+    // 6. Get IRT data
+    const irtData = getOrCreateIRTData(caseId);
+
+    // 7. Add reopen event to IRT history
+    irtData.addReopen(soDateTime, reopenDateTime, reopenedBy);
+
+    // Recalculate IRT
+    irtData.calculateIRT();
+
+    // 8. Save IRT data
+    updateIRTDataInSheet(irtData);
+
+    // 9. Update source sheet
+    const rowData = caseObj.toSheetRow(caseData.sheetName);
+    const updateResult = updateCaseRow(caseData.sheetName, caseData.rowIndex, rowData);
+
+    if (!updateResult.success) {
+      return updateResult;
+    }
+
+    Logger.log(`Case reopened: ${caseId} in ${caseData.sheetName}`);
+
+    return {
+      success: true,
+      message: 'Case reopened successfully',
+      case: caseObj,
+      irtData: irtData
+    };
+
+  } catch (error) {
+    Logger.log(`Error reopening case: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Get a single case by ID (optionally from specific sheet)
  * @param {string} caseId - Case ID
  * @param {string} sheetName - Optional: specific sheet name to search

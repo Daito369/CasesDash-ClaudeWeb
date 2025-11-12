@@ -492,6 +492,44 @@ function frontendUpdateCase(caseId, updates, sheetName, rowIndex) {
 }
 
 /**
+ * Reopen a closed case
+ * @param {string} caseId - Case ID to reopen
+ * @param {string} reopenDate - ReOpen date (YYYY/MM/DD)
+ * @param {string} reopenTime - ReOpen time (HH:MM:SS)
+ * @param {string} sheetName - Sheet name (optional)
+ * @param {number} rowIndex - Row index (optional, most accurate)
+ * @return {Object} Result { success: boolean }
+ */
+function frontendReopenCase(caseId, reopenDate, reopenTime, sheetName, rowIndex) {
+  try {
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const result = reopenCase(caseId, reopenDate, reopenTime, user.email, sheetName, rowIndex);
+
+    if (result.success) {
+      result.case = serializeCase(result.case);
+      result.irtData = serializeIRTData(result.irtData);
+    }
+
+    Logger.log(`Case ${caseId} reopened by ${user.email}`);
+
+    return result;
+
+  } catch (error) {
+    Logger.log(`Error in frontendReopenCase: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Get a single case (optionally from specific sheet and row)
  * @param {string} caseId - Case ID
  * @param {string} sheetName - Optional: specific sheet name to search
