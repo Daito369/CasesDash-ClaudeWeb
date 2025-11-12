@@ -1065,3 +1065,36 @@ function serializeCase(caseObj) {
   };
 }
 
+/**
+ * Serialize IRT data object for frontend transfer
+ * Converts all Date objects and ensures clean data types
+ * @param {IRTData} irtData - IRT data object
+ * @return {Object} Serialized IRT data
+ */
+function serializeIRTData(irtData) {
+  if (!irtData) return null;
+
+  return {
+    caseId: String(irtData.caseId || ''),
+    sourceSheet: String(irtData.sourceSheet || ''),
+    caseOpenDateTime: irtData.caseOpenDateTime ?
+      (irtData.caseOpenDateTime instanceof Date ?
+        irtData.caseOpenDateTime.toISOString() :
+        String(irtData.caseOpenDateTime)) : null,
+    currentStatus: String(irtData.currentStatus || ''),
+    reopenCount: Number(irtData.reopenCount || 0),
+    totalSOPeriodHours: Number(irtData.totalSOPeriodHours || 0),
+    irtHours: Number(irtData.irtHours || 0),
+    irtRemainingHours: Number(irtData.irtRemainingHours || 0),
+    reopenHistoryJSON: irtData.reopenHistoryJSON ? String(irtData.reopenHistoryJSON) : null,
+    statusHistoryJSON: irtData.statusHistoryJSON ? String(irtData.statusHistoryJSON) : null,
+    lastUpdated: irtData.lastUpdated ?
+      (irtData.lastUpdated instanceof Date ?
+        irtData.lastUpdated.toISOString() :
+        String(irtData.lastUpdated)) : null,
+    excludeBugL2: Boolean(irtData.excludeBugL2 || false),
+    excludeAMTransfer: Boolean(irtData.excludeAMTransfer || false),
+    excludeNonNCC: Boolean(irtData.excludeNonNCC || false)
+  };
+}
+
