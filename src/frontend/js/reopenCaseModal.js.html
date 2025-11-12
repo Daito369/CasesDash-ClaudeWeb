@@ -125,6 +125,9 @@ async function confirmReopenCase() {
       showToast(`Case ${reopeningCaseId} reopened successfully`, 'success');
       closeReopenCaseModal();
 
+      // Show ATTENTION modal
+      openReopenAttentionModal();
+
       // Refresh the current view
       if (typeof refreshDashboard === 'function') {
         refreshDashboard();
@@ -149,13 +152,72 @@ async function confirmReopenCase() {
 }
 
 /**
- * Handle Escape key to close modal
+ * Open ATTENTION modal after ReOpen success
+ */
+function openReopenAttentionModal() {
+  const modal = document.getElementById('reopenAttentionModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+/**
+ * Close ATTENTION modal
+ */
+function closeReopenAttentionModal() {
+  const modal = document.getElementById('reopenAttentionModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Handle keyboard shortcuts
  */
 document.addEventListener('keydown', function(event) {
+  const reopenModal = document.getElementById('reopenCaseModal');
+  const attentionModal = document.getElementById('reopenAttentionModal');
+  const isReopenModalOpen = reopenModal && reopenModal.style.display === 'flex';
+  const isAttentionModalOpen = attentionModal && attentionModal.style.display === 'flex';
+
+  // Escape key to close modals
   if (event.key === 'Escape') {
-    const modal = document.getElementById('reopenCaseModal');
-    if (modal && modal.style.display === 'flex') {
+    if (isReopenModalOpen) {
       closeReopenCaseModal();
+      return;
+    }
+    if (isAttentionModalOpen) {
+      closeReopenAttentionModal();
+      return;
+    }
+  }
+
+  // Keyboard shortcuts only work when ReOpen modal is open
+  if (!isReopenModalOpen) return;
+
+  // Ctrl+; or Cmd+; → Insert current date
+  if ((event.ctrlKey || event.metaKey) && event.key === ';' && !event.shiftKey) {
+    event.preventDefault();
+    const reopenDateInput = document.getElementById('reopenDate');
+    if (reopenDateInput && document.activeElement === reopenDateInput) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      reopenDateInput.value = `${year}-${month}-${day}`;
+    }
+  }
+
+  // Ctrl+Shift+; or Cmd+Shift+; → Insert current time
+  if ((event.ctrlKey || event.metaKey) && event.key === ';' && event.shiftKey) {
+    event.preventDefault();
+    const reopenTimeInput = document.getElementById('reopenTime');
+    if (reopenTimeInput && document.activeElement === reopenTimeInput) {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      reopenTimeInput.value = `${hours}:${minutes}:${seconds}`;
     }
   }
 });

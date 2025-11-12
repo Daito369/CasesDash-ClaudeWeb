@@ -138,7 +138,7 @@
 
           <!-- Case Status Tabs -->
           <div class="case-status-tabs">
-            <button class="status-tab active" data-status="Assigned" onclick="switchDashboardTab('Assigned')">
+            <button class="status-tab" data-status="Assigned" onclick="switchDashboardTab('Assigned')">
               <span class="material-icons">assignment</span>
               Assigned
             </button>
@@ -150,7 +150,7 @@
               <span class="material-icons">check_circle</span>
               Finished
             </button>
-            <button class="status-tab" data-status="All" onclick="switchDashboardTab('All')">
+            <button class="status-tab active" data-status="All" onclick="switchDashboardTab('All')">
               <span class="material-icons">view_list</span>
               All
             </button>
@@ -982,6 +982,60 @@
             <button type="button" class="btn-primary" onclick="confirmReopenCase()" id="confirmReopenBtn">
               <span class="material-icons">refresh</span>
               Confirm ReOpen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ReOpen ATTENTION Modal -->
+    <div id="reopenAttentionModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="reopenAttentionModalTitle">
+      <div class="modal-overlay" onclick="closeReopenAttentionModal()"></div>
+      <div class="modal-dialog" style="max-width: 600px;">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header" style="background-color: #ea4335; color: white;">
+            <h2 id="reopenAttentionModalTitle" class="modal-title">
+              <span class="material-icons">warning</span>
+              ATTENTION
+            </h2>
+            <button class="modal-close-btn" onclick="closeReopenAttentionModal()" aria-label="Close modal" style="color: white;">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body" style="padding: 24px;">
+            <p style="margin-bottom: 16px; font-weight: 500;">Reopen した後、以下 4 つのアクションを行うと、Close 時間が更新されます</p>
+
+            <ul style="margin-left: 20px; margin-bottom: 16px; line-height: 1.8;">
+              <li>Case Status を Solution Offered に変更</li>
+              <li>RB</li>
+              <li>Phone Note を保存</li>
+              <li>Email 送信</li>
+            </ul>
+
+            <p style="margin-bottom: 16px; font-weight: 500; color: #ea4335;">
+              Reopen 後に IRT Missed したケースで、上記 4 つのいずれかのアクションが必要となった場合、事前に JTL / TL へ相談しましょう
+            </p>
+
+            <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; border-left: 4px solid #1a73e8;">
+              <p style="margin-bottom: 8px; font-weight: 600;">【 in-IRT / IRT Missed の一例】</p>
+              <p style="margin-bottom: 8px;"><strong>Reopen 後に IRT Missed した場合:</strong></p>
+              <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><strong>in-IRT 扱い:</strong> 何もせずそのまま Finished Close した<br>
+                    <span style="color: #5f6368;">(例: サンクスメール受信後など)</span></li>
+                <li><strong>IRT Missed 扱い:</strong> TAT 設定のメールを送信した<br>
+                    <span style="color: #5f6368;">(例: 追加質問があったのでとりあえず TAT 設定したが、Product Scope 外のため Split して転送した)</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            <button type="button" class="btn-primary" onclick="closeReopenAttentionModal()" style="width: 100%;">
+              <span class="material-icons">check</span>
+              了解しました
             </button>
           </div>
         </div>
