@@ -272,13 +272,16 @@ function reopenCase(caseId, reopenDate, reopenTime, reopenedBy, sheetName, rowIn
     // 7. Add reopen event to IRT history
     irtData.addReopen(soDateTime, reopenDateTime, reopenedBy);
 
-    // Recalculate IRT
+    // 8. Update IRT current status to Assigned
+    irtData.addStatusChange(CaseStatus.ASSIGNED, reopenedBy);
+
+    // 9. Recalculate IRT
     irtData.calculateIRT();
 
-    // 8. Save IRT data
+    // 10. Save IRT data
     updateIRTDataInSheet(irtData);
 
-    // 9. Update source sheet
+    // 11. Update source sheet
     const rowData = caseObj.toSheetRow(caseData.sheetName);
     const updateResult = updateCaseRow(caseData.sheetName, caseData.rowIndex, rowData);
 
