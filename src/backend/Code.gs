@@ -680,6 +680,125 @@ function frontendGetLowIRTCases(thresholdHours) {
 }
 
 /**
+ * Get All My Cases (for Dashboard - all statuses)
+ * Returns all cases (any status) where Final Assignee = current user
+ * Uses batch reads and in-memory filtering to minimize service calls
+ * @return {Object} Result with user's cases (all statuses)
+ */
+function frontendGetAllMyCases() {
+  try {
+    Logger.log('frontendGetAllMyCases called');
+
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    const ldap = user.email.split('@')[0];
+
+    Logger.log(`Fetching all cases for LDAP: ${ldap}`);
+
+    // OPTIMIZATION 1: Read IRT data ONCE and create a Map for O(1) lookup
+    const irtDataMap = loadAllIRTDataIntoMap();
+    Logger.log(`Loaded ${irtDataMap.size} IRT entries into memory`);
+
+    const allCases = [];
+    const sheets = SheetNames.getAllCaseSheets();
+
+    // OPTIMIZATION 2: Read all sheets using batch operations
+    for (const sheetName of sheets) {
+      try {
+        const sheet = getSheet(sheetName);
+        const lastRow = sheet.getLastRow();
+
+        if (lastRow < 2) {
+          // No data rows (only header or empty)
+          continue;
+        }
+
+        // Get column mapping for this sheet
+        const columnMap = getColumnMapping(sheetName);
+        const numCols = sheet.getLastColumn();
+
+        // Read all data at once (batch operation)
+        const data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+
+        // OPTIMIZATION 3: Filter in memory (JavaScript is fast)
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          const caseId = row[columnMap.CASE_ID];
+          const finalAssignee = row[columnMap.FINAL_ASSIGNEE];
+
+          // Skip empty rows
+          if (!caseId || caseId.toString().trim() === '') {
+            continue;
+          }
+
+          // Filter: Final Assignee = current user (ALL STATUSES for Dashboard)
+          if (finalAssignee === ldap) {
+            // Create Case object
+            const caseObj = Case.fromSheetRow(row, sheetName, i + 2);
+
+            // OPTIMIZATION 4: O(1) lookup from Map instead of reading sheet again
+            const irtData = irtDataMap.get(caseId);
+
+            // Calculate current IRT if IRT data exists
+            if (irtData) {
+              irtData.calculateIRT();
+            }
+
+            // Serialize IRT data to ensure clean transfer
+            const serializedIRTData = irtData ? {
+              caseId: String(irtData.caseId || ''),
+              sourceSheet: String(irtData.sourceSheet || ''),
+              caseOpenDateTime: irtData.caseOpenDateTime ?
+                (irtData.caseOpenDateTime instanceof Date ?
+                  irtData.caseOpenDateTime.toISOString() :
+                  String(irtData.caseOpenDateTime)) : null,
+              currentStatus: String(irtData.currentStatus || ''),
+              reopenCount: Number(irtData.reopenCount || 0),
+              totalSOPeriodHours: Number(irtData.totalSOPeriodHours || 0),
+              irtHours: Number(irtData.irtHours || 0),
+              irtRemainingHours: Number(irtData.irtRemainingHours || 0),
+              lastUpdated: irtData.lastUpdated ?
+                (irtData.lastUpdated instanceof Date ?
+                  irtData.lastUpdated.toISOString() :
+                  String(irtData.lastUpdated)) : null
+            } : null;
+
+            allCases.push({
+              case: serializeCase(caseObj),
+              irtData: serializedIRTData,
+              sheetName: String(sheetName)
+            });
+          }
+        }
+      } catch (sheetError) {
+        Logger.log(`Error reading sheet ${sheetName}: ${sheetError.message}`);
+        // Continue to next sheet
+      }
+    }
+
+    Logger.log(`Found ${allCases.length} total cases for ${ldap} (all statuses)`);
+
+    return {
+      success: true,
+      cases: allCases
+    };
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetAllMyCases: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Get My Active Cases (OPTIMIZED for performance)
  * Returns all Assigned cases for the current user
  * Uses batch reads and in-memory filtering to minimize service calls

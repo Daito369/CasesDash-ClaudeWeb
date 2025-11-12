@@ -1,0 +1,382 @@
+<script>
+/**
+ * Dashboard Module
+ *
+ * Handles display and management of all user's cases across all statuses.
+ * Features: Case Status tabs, search, filters, IRT timer, ReOpen functionality.
+ *
+ * @author CasesDash v3.0.0
+ * @specification docs/casesdash-specification.md Section 4.1
+ */
+
+// Global state
+let dashboardCasesData = [];
+let filteredCasesData = [];
+let currentStatusTab = 'Assigned';
+let dashboardTimerInterval = null;
+
+// Sheet type color mapping (per specification)
+const DASHBOARD_SHEET_COLORS = {
+  'OT Email': '#4285f4',    // Blue
+  '3PO Email': '#4285f4',   // Blue
+  'OT Chat': '#ea4335',     // Red
+  '3PO Chat': '#ea4335',    // Red
+  'OT Phone': '#34a853',    // Green
+  '3PO Phone': '#34a853'    // Green
+};
+
+// Sheet type icons
+const DASHBOARD_SHEET_ICONS = {
+  'OT Email': '📧',
+  '3PO Email': '📧',
+  'OT Chat': '💬',
+  '3PO Chat': '💬',
+  'OT Phone': '📞',
+  '3PO Phone': '📞'
+};
+
+/**
+ * Load Dashboard screen
+ */
+async function loadDashboardScreen() {
+  console.log('Loading Dashboard screen...');
+
+  showLoading('dashboardLoading');
+  hideError('dashboardError');
+
+  try {
+    // Fetch all cases from backend (all statuses for Dashboard)
+    console.log('Calling API.cases.getAllMyCases()...');
+    const result = await API.cases.getAllMyCases();
+    console.log('API response received:', result);
+
+    if (!result) {
+      throw new Error('No response from server. The request may have timed out or failed.');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load cases');
+    }
+
+    dashboardCasesData = result.cases || [];
+    console.log(`Loaded ${dashboardCasesData.length} cases`);
+
+    // Apply initial filters (default: Assigned tab)
+    applyDashboardFilters();
+
+    // Start real-time timer updates (every 1 second)
+    startDashboardTimerUpdates();
+
+  } catch (error) {
+    console.error('Error loading dashboard:', error);
+    const errorMessage = error.message || 'Unknown error occurred';
+    showError('dashboardError', `Failed to load cases: ${errorMessage}`);
+  } finally {
+    hideLoading('dashboardLoading');
+  }
+}
+
+/**
+ * Switch Case Status tab
+ * @param {string} status - Status to switch to ('Assigned', 'Solution Offered', 'Finished', 'All')
+ */
+function switchDashboardTab(status) {
+  console.log('Switching to tab:', status);
+
+  // Update active tab styling
+  document.querySelectorAll('.status-tab').forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.getAttribute('data-status') === status) {
+      tab.classList.add('active');
+    }
+  });
+
+  currentStatusTab = status;
+  applyDashboardFilters();
+}
+
+/**
+ * Apply all filters (status, sheet type, segment, search)
+ */
+function applyDashboardFilters() {
+  console.log('Applying dashboard filters...');
+
+  // Start with all cases
+  let filtered = [...dashboardCasesData];
+
+  // Filter by status tab
+  if (currentStatusTab !== 'All') {
+    filtered = filtered.filter(item => item.case.caseStatus === currentStatusTab);
+  }
+
+  // Filter by sheet type
+  const sheetTypeFilter = document.getElementById('sheetTypeFilter').value;
+  if (sheetTypeFilter !== 'all') {
+    filtered = filtered.filter(item => item.sheetName === sheetTypeFilter);
+  }
+
+  // Filter by segment
+  const segmentFilter = document.getElementById('segmentFilter').value;
+  if (segmentFilter !== 'all') {
+    filtered = filtered.filter(item =>
+      (item.case.finalSegment === segmentFilter) ||
+      (item.case.incomingSegment === segmentFilter)
+    );
+  }
+
+  // Filter by search query
+  const searchQuery = document.getElementById('dashboardSearchInput').value.trim();
+  if (searchQuery) {
+    filtered = filtered.filter(item =>
+      item.case.caseId.includes(searchQuery)
+    );
+  }
+
+  filteredCasesData = filtered;
+  console.log(`Filtered to ${filteredCasesData.length} cases`);
+
+  // Display filtered cases
+  displayDashboardCases(filteredCasesData);
+  updateDashboardSummary(filteredCasesData);
+}
+
+/**
+ * Perform search
+ */
+function performDashboardSearch() {
+  const searchInput = document.getElementById('dashboardSearchInput');
+  const clearBtn = document.querySelector('.clear-search-btn');
+
+  if (searchInput.value.trim()) {
+    clearBtn.style.display = 'inline-flex';
+  } else {
+    clearBtn.style.display = 'none';
+  }
+
+  applyDashboardFilters();
+}
+
+/**
+ * Clear search
+ */
+function clearDashboardSearch() {
+  document.getElementById('dashboardSearchInput').value = '';
+  document.querySelector('.clear-search-btn').style.display = 'none';
+  applyDashboardFilters();
+}
+
+/**
+ * Display dashboard cases
+ * @param {Array} cases - Array of case objects
+ */
+function displayDashboardCases(cases) {
+  const container = document.getElementById('dashboardCasesContainer');
+  if (!container) {
+    console.error('Dashboard cases container not found');
+    return;
+  }
+
+  // Clear container
+  container.innerHTML = '';
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>No cases found</h3>
+        <p>No cases match the current filters.</p>
+        <p>Try adjusting your search or filter criteria.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render each case card
+  cases.forEach(caseItem => {
+    const card = createDashboardCaseCard(caseItem);
+    container.appendChild(card);
+  });
+}
+
+/**
+ * Create dashboard case card element
+ * @param {Object} caseItem - Case item with case and irtData
+ * @return {HTMLElement} Card element
+ */
+function createDashboardCaseCard(caseItem) {
+  const { case: caseData, irtData, sheetName } = caseItem;
+
+  const card = document.createElement('div');
+  card.className = 'case-card';
+  card.setAttribute('data-case-id', caseData.caseId);
+  card.setAttribute('data-sheet-name', sheetName);
+
+  // Calculate urgency level
+  const urgency = getUrgencyLevel(irtData);
+  card.classList.add(`urgency-${urgency.level}`);
+
+  const sheetColor = DASHBOARD_SHEET_COLORS[sheetName] || '#666';
+  const sheetIcon = DASHBOARD_SHEET_ICONS[sheetName] || '📄';
+
+  // Determine if ReOpen button should be shown
+  const showReopenBtn = (caseData.caseStatus === 'Solution Offered' || caseData.caseStatus === 'Finished');
+
+  card.innerHTML = `
+    <div class="case-card-header" style="border-left: 4px solid ${sheetColor};">
+      <div class="case-sheet-badge" style="background-color: ${sheetColor};">
+        ${sheetIcon} ${sheetName}
+      </div>
+      <div class="case-timer ${urgency.level}">
+        <span class="timer-value" data-case-id="${caseData.caseId}">
+          ${urgency.icon} ${formatIRTTimer(irtData)}
+        </span>
+      </div>
+    </div>
+
+    <div class="case-card-body">
+      <div class="case-id">
+        <strong>Case ID:</strong> ${caseData.caseId}
+      </div>
+
+      <div class="case-details">
+        <div class="case-detail-item">
+          <span class="detail-label">Status:</span>
+          <span class="detail-value status-badge" data-status="${caseData.caseStatus}">${caseData.caseStatus}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Segment:</span>
+          <span class="detail-value">${caseData.finalSegment || caseData.incomingSegment || 'N/A'}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Product:</span>
+          <span class="detail-value">${caseData.productCategory || 'N/A'}</span>
+        </div>
+        ${caseData.subCategory ? `
+        <div class="case-detail-item">
+          <span class="detail-label">Sub Category:</span>
+          <span class="detail-value">${caseData.subCategory}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="case-meta">
+        <div class="case-meta-item">
+          📅 Opened: ${caseData.caseOpenDate} ${caseData.caseOpenTime || ''}
+        </div>
+        ${irtData && irtData.reopenCount > 0 ? `
+        <div class="case-meta-item">
+          🔄 RO x${irtData.reopenCount}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="case-card-footer">
+      <button class="btn-secondary btn-sm" onclick="viewCaseDetails('${caseData.caseId}')">
+        Details
+      </button>
+      ${showReopenBtn ? `
+      <button class="btn-secondary btn-sm" onclick="openReopenCaseModal('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex}, '${caseData.caseStatus}')">
+        <span class="material-icons" style="font-size: 16px;">refresh</span> ReOpen
+      </button>
+      ` : ''}
+      <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex})">
+        Edit
+      </button>
+    </div>
+  `;
+
+  return card;
+}
+
+/**
+ * Update dashboard summary statistics
+ * @param {Array} cases - Cases array
+ */
+function updateDashboardSummary(cases) {
+  const summaryElement = document.getElementById('dashboardSummary');
+  if (!summaryElement) return;
+
+  let assignedCount = 0;
+  let soCount = 0;
+  let finishedCount = 0;
+
+  cases.forEach(caseItem => {
+    if (caseItem.case.caseStatus === 'Assigned') assignedCount++;
+    else if (caseItem.case.caseStatus === 'Solution Offered') soCount++;
+    else if (caseItem.case.caseStatus === 'Finished') finishedCount++;
+  });
+
+  summaryElement.innerHTML = `
+    <div class="summary-stat">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">${cases.length}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Assigned:</span>
+      <span class="stat-value">${assignedCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Solution Offered:</span>
+      <span class="stat-value">${soCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Finished:</span>
+      <span class="stat-value">${finishedCount}</span>
+    </div>
+  `;
+}
+
+/**
+ * Start real-time timer updates
+ */
+function startDashboardTimerUpdates() {
+  if (dashboardTimerInterval) {
+    clearInterval(dashboardTimerInterval);
+  }
+
+  dashboardTimerInterval = setInterval(() => {
+    updateDashboardTimers();
+  }, 1000);
+}
+
+/**
+ * Update dashboard IRT timers
+ */
+function updateDashboardTimers() {
+  filteredCasesData.forEach(caseItem => {
+    const timerElement = document.querySelector(
+      `#dashboardCasesContainer .timer-value[data-case-id="${caseItem.case.caseId}"]`
+    );
+
+    if (timerElement && caseItem.irtData) {
+      // Recalculate IRT remaining hours
+      if (caseItem.irtData.irtRemainingHours !== null && caseItem.irtData.irtRemainingHours !== undefined) {
+        // Decrease by 1 second (1/3600 hours)
+        caseItem.irtData.irtRemainingHours -= (1 / 3600);
+
+        const urgency = getUrgencyLevel(caseItem.irtData);
+        timerElement.textContent = `${urgency.icon} ${formatIRTTimer(caseItem.irtData)}`;
+
+        // Update urgency class on parent card
+        const card = timerElement.closest('.case-card');
+        if (card) {
+          card.className = card.className.replace(/urgency-\w+/, `urgency-${urgency.level}`);
+          const timerContainer = timerElement.closest('.case-timer');
+          if (timerContainer) {
+            timerContainer.className = `case-timer ${urgency.level}`;
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Refresh dashboard cases
+ */
+async function refreshDashboard() {
+  await loadDashboardScreen();
+}
+
+console.log('Dashboard module loaded');
+</script>

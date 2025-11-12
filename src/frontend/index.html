@@ -88,33 +88,93 @@
       <main class="main-content">
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="screen active">
-          <h1>Welcome to CasesDash</h1>
-          <p>Multi-Sheet Case Management System with IRT Support</p>
+          <h1>📊 Dashboard</h1>
+          <p>Search and manage all your cases across all statuses</p>
 
-          <div class="info-card">
-            <h3>🎯 System Status</h3>
-            <ul id="systemStatus">
-              <li>✅ Authentication: Active</li>
-              <li>✅ Session: Valid</li>
-              <li id="spreadsheetStatus">⏳ Spreadsheet Connection: Checking...</li>
-            </ul>
+          <!-- Search and Filters -->
+          <div class="dashboard-search-container">
+            <div class="search-bar">
+              <span class="material-icons">search</span>
+              <input
+                type="text"
+                id="dashboardSearchInput"
+                class="search-input"
+                placeholder="Search by Case ID..."
+                onkeyup="performDashboardSearch()"
+              />
+              <button class="clear-search-btn" onclick="clearDashboardSearch()" style="display: none;">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+
+            <div class="filter-controls">
+              <div class="filter-group">
+                <label class="filter-label">Sheet Type:</label>
+                <select id="sheetTypeFilter" class="filter-select" onchange="applyDashboardFilters()">
+                  <option value="all">All Sheets</option>
+                  <option value="OT Email">OT Email</option>
+                  <option value="3PO Email">3PO Email</option>
+                  <option value="OT Chat">OT Chat</option>
+                  <option value="3PO Chat">3PO Chat</option>
+                  <option value="OT Phone">OT Phone</option>
+                  <option value="3PO Phone">3PO Phone</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label">Segment:</label>
+                <select id="segmentFilter" class="filter-select" onchange="applyDashboardFilters()">
+                  <option value="all">All Segments</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Titanium">Titanium</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Bronze - Low">Bronze - Low</option>
+                  <option value="Bronze - High">Bronze - High</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div class="info-card">
-            <h3>📋 Next Steps</h3>
-            <ol>
-              <li>Configure spreadsheet connection in Settings</li>
-              <li>Test connection with your 6 case sheets</li>
-              <li>Start managing cases with IRT tracking</li>
-            </ol>
+          <!-- Case Status Tabs -->
+          <div class="case-status-tabs">
+            <button class="status-tab active" data-status="Assigned" onclick="switchDashboardTab('Assigned')">
+              <span class="material-icons">assignment</span>
+              Assigned
+            </button>
+            <button class="status-tab" data-status="Solution Offered" onclick="switchDashboardTab('Solution Offered')">
+              <span class="material-icons">mail</span>
+              Solution Offered
+            </button>
+            <button class="status-tab" data-status="Finished" onclick="switchDashboardTab('Finished')">
+              <span class="material-icons">check_circle</span>
+              Finished
+            </button>
+            <button class="status-tab" data-status="All" onclick="switchDashboardTab('All')">
+              <span class="material-icons">view_list</span>
+              All
+            </button>
           </div>
 
-          <div class="user-info-card">
-            <h3>👤 Current User</h3>
-            <p><strong>Email:</strong> <span id="currentUserEmail"><? if (user) { ?><?= user.email ?><? } ?></span></p>
-            <p><strong>LDAP:</strong> <span id="currentUserLdap"><? if (user) { ?><?= user.ldap ?><? } ?></span></p>
-            <p><strong>Domain:</strong> <span id="currentUserDomain"><? if (user) { ?><?= user.domain ?><? } ?></span></p>
+          <!-- Dashboard Summary -->
+          <div class="cases-summary-card">
+            <div id="dashboardSummary" class="summary-stats">
+              <div class="summary-stat">
+                <span class="stat-label">Total Cases:</span>
+                <span class="stat-value">0</span>
+              </div>
+            </div>
           </div>
+
+          <!-- Error and Loading States -->
+          <div id="dashboardError" class="error-message" style="display: none;"></div>
+          <div id="dashboardLoading" class="loading" style="display: none;">
+            <span class="spinner"></span>
+            <span>Loading cases...</span>
+          </div>
+
+          <!-- Cases Container -->
+          <div id="dashboardCasesContainer" class="cases-container"></div>
         </div>
 
         <!-- Settings Screen -->
@@ -938,6 +998,7 @@
   <?!= include('frontend/js/auth.js'); ?>
   <?!= include('frontend/js/settings.js'); ?>
   <?!= include('frontend/js/cases.js'); ?>
+  <?!= include('frontend/js/dashboard.js'); ?>
   <?!= include('frontend/js/mycases.js'); ?>
   <?!= include('frontend/js/caseDetailsModal.js'); ?>
   <?!= include('frontend/js/editCaseModal.js'); ?>

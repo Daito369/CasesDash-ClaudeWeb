@@ -224,7 +224,7 @@ const API = {
     },
 
     /**
-     * Get current user's cases
+     * Get current user's active cases (Assigned only)
      * @return {Promise<Object>} Cases result
      */
     getMyCases: async function() {
@@ -233,6 +233,20 @@ const API = {
         return result;
       } catch (error) {
         console.error('Get my cases error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get all current user's cases (all statuses) for Dashboard
+     * @return {Promise<Object>} Cases result
+     */
+    getAllMyCases: async function() {
+      try {
+        const result = await callBackend('frontendGetAllMyCases');
+        return result;
+      } catch (error) {
+        console.error('Get all my cases error:', error);
         throw error;
       }
     },
