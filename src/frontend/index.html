@@ -563,6 +563,10 @@
                 <span class="material-icons">close</span>
                 Close
               </button>
+              <button id="reopenCaseBtn" class="btn-secondary" onclick="reopenCaseFromModal()" style="display: none;">
+                <span class="material-icons">refresh</span>
+                ReOpen Case
+              </button>
               <button class="btn-primary" onclick="editCaseFromModal()">
                 <span class="material-icons">edit</span>
                 Edit Case
@@ -854,6 +858,76 @@
       </div>
     </div>
 
+    <!-- ReOpen Case Modal -->
+    <div id="reopenCaseModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="reopenCaseModalTitle">
+      <div class="modal-overlay" onclick="closeReopenCaseModal()"></div>
+      <div class="modal-dialog" style="max-width: 500px;">
+        <div class="modal-content">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h2 id="reopenCaseModalTitle" class="modal-title">
+              <span class="material-icons">refresh</span>
+              ReOpen Case
+            </h2>
+            <button class="modal-close-btn" onclick="closeReopenCaseModal()" aria-label="Close modal">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            <div class="details-section">
+              <h3 class="section-title">
+                <span class="material-icons">info</span>
+                Case Information
+              </h3>
+              <div class="details-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Case ID</span>
+                  <span class="detail-value" id="reopenCaseId">-</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Current Status</span>
+                  <span class="detail-value" id="reopenCurrentStatus">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-section">
+              <h3 class="section-title">
+                <span class="material-icons">event</span>
+                ReOpen Date and Time
+              </h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="reopenDate" class="form-label">ReOpen Date *</label>
+                  <input type="date" id="reopenDate" class="form-input" required
+                         title="Select ReOpen date">
+                </div>
+                <div class="form-group">
+                  <label for="reopenTime" class="form-label">ReOpen Time *</label>
+                  <input type="time" id="reopenTime" class="form-input" required step="1"
+                         title="Select ReOpen time">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeReopenCaseModal()">
+              <span class="material-icons">close</span>
+              Cancel
+            </button>
+            <button type="button" class="btn-primary" onclick="confirmReopenCase()" id="confirmReopenBtn">
+              <span class="material-icons">refresh</span>
+              Confirm ReOpen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   <? } ?>
 
   <!-- Toast Notification Container -->
@@ -867,5 +941,6 @@
   <?!= include('frontend/js/mycases.js'); ?>
   <?!= include('frontend/js/caseDetailsModal.js'); ?>
   <?!= include('frontend/js/editCaseModal.js'); ?>
+  <?!= include('frontend/js/reopenCaseModal.js'); ?>
 </body>
 </html>

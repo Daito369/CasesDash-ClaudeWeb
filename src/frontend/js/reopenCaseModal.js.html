@@ -1,0 +1,161 @@
+<script>
+/**
+ * ReOpen Case Modal Module
+ *
+ * Handles reopening of closed cases through a modal dialog
+ * Implements form validation, API integration, and accessibility features
+ *
+ * @author CasesDash v3.0.0
+ */
+
+// Global state for ReOpen Case Modal
+let reopeningCaseId = null;
+let reopeningSheetName = null;
+let reopeningRowIndex = null;
+
+/**
+ * Open reopen case modal
+ * @param {string} caseId - Case ID to reopen
+ * @param {string} sheetName - Sheet name where the case is located
+ * @param {number} rowIndex - Row index of the case in the sheet
+ * @param {string} caseStatus - Current case status
+ */
+function openReopenCaseModal(caseId, sheetName, rowIndex, caseStatus) {
+  console.log('Opening reopen case modal for:', caseId, 'from sheet:', sheetName, 'row:', rowIndex);
+
+  // Verify case can be reopened
+  if (caseStatus !== 'Solution Offered' && caseStatus !== 'Finished') {
+    showToast(`Cannot reopen case with status: ${caseStatus}. Only Solution Offered or Finished cases can be reopened.`, 'error');
+    return;
+  }
+
+  reopeningCaseId = caseId;
+  reopeningSheetName = sheetName;
+  reopeningRowIndex = rowIndex;
+
+  const modal = document.getElementById('reopenCaseModal');
+
+  // Populate case information
+  document.getElementById('reopenCaseId').textContent = caseId;
+  document.getElementById('reopenCurrentStatus').textContent = caseStatus;
+
+  // Set default values - today's date and current time
+  const now = new Date();
+
+  // Format date as YYYY-MM-DD for HTML5 date input
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  document.getElementById('reopenDate').value = `${year}-${month}-${day}`;
+
+  // Format time as HH:MM:SS for HTML5 time input
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('reopenTime').value = `${hours}:${minutes}:${seconds}`;
+
+  // Show modal
+  modal.style.display = 'flex';
+
+  // Focus on first input
+  document.getElementById('reopenDate').focus();
+}
+
+/**
+ * Close reopen case modal
+ */
+function closeReopenCaseModal() {
+  console.log('Closing reopen case modal');
+
+  const modal = document.getElementById('reopenCaseModal');
+  modal.style.display = 'none';
+
+  // Clean up
+  reopeningCaseId = null;
+  reopeningSheetName = null;
+  reopeningRowIndex = null;
+
+  // Reset form
+  document.getElementById('reopenDate').value = '';
+  document.getElementById('reopenTime').value = '';
+}
+
+/**
+ * Confirm reopen case
+ */
+async function confirmReopenCase() {
+  console.log('Confirming reopen case:', reopeningCaseId);
+
+  // Validate inputs
+  const reopenDate = document.getElementById('reopenDate').value;
+  const reopenTime = document.getElementById('reopenTime').value;
+
+  if (!reopenDate) {
+    showToast('Please select a ReOpen date', 'error');
+    document.getElementById('reopenDate').focus();
+    return;
+  }
+
+  if (!reopenTime) {
+    showToast('Please select a ReOpen time', 'error');
+    document.getElementById('reopenTime').focus();
+    return;
+  }
+
+  // Disable button and show loading state
+  const confirmBtn = document.getElementById('confirmReopenBtn');
+  const originalBtnText = confirmBtn.innerHTML;
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<span class="material-icons spinning">refresh</span> Reopening...';
+
+  try {
+    // Convert date format from YYYY-MM-DD to YYYY/MM/DD for backend
+    const reopenDateFormatted = reopenDate.replace(/-/g, '/');
+
+    // Call backend API
+    const result = await API.cases.reopen(
+      reopeningCaseId,
+      reopenDateFormatted,
+      reopenTime,
+      reopeningSheetName,
+      reopeningRowIndex
+    );
+
+    if (result.success) {
+      showToast(`Case ${reopeningCaseId} reopened successfully`, 'success');
+      closeReopenCaseModal();
+
+      // Refresh the current view
+      if (typeof refreshMyCases === 'function') {
+        refreshMyCases();
+      }
+      if (typeof closeCaseDetailsModal === 'function') {
+        closeCaseDetailsModal();
+      }
+    } else {
+      showToast(`Failed to reopen case: ${result.error || 'Unknown error'}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error reopening case:', error);
+    showToast(`Error reopening case: ${error.message || 'Unknown error'}`, 'error');
+  } finally {
+    // Re-enable button
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = originalBtnText;
+  }
+}
+
+/**
+ * Handle Escape key to close modal
+ */
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    const modal = document.getElementById('reopenCaseModal');
+    if (modal && modal.style.display === 'flex') {
+      closeReopenCaseModal();
+    }
+  }
+});
+
+console.log('ReOpen Case Modal module loaded');
+</script>

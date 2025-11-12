@@ -256,6 +256,25 @@ const API = {
     },
 
     /**
+     * Reopen a closed case
+     * @param {string} caseId - Case ID to reopen
+     * @param {string} reopenDate - ReOpen date (YYYY/MM/DD)
+     * @param {string} reopenTime - ReOpen time (HH:MM:SS)
+     * @param {string} sheetName - Optional: specific sheet name
+     * @param {number} rowIndex - Optional: specific row index
+     * @return {Promise<Object>} Reopen result
+     */
+    reopen: async function(caseId, reopenDate, reopenTime, sheetName, rowIndex) {
+      try {
+        const result = await callBackend('frontendReopenCase', caseId, reopenDate, reopenTime, sheetName, rowIndex);
+        return result;
+      } catch (error) {
+        console.error('Reopen case error:', error);
+        throw error;
+      }
+    },
+
+    /**
      * Get a single case (optionally from specific sheet and row)
      * @param {string} caseId - Case ID
      * @param {string} sheetName - Optional: specific sheet name to search
