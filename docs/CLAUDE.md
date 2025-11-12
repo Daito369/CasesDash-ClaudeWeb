@@ -628,7 +628,9 @@ Testing:
 - [x] Sheet-specific field visibility (OT vs 3PO)
 - [x] Product Category → Sub Category → Issue Category cascading
 - [x] Details autocomplete for 3PO sheets
+- [x] Native HTML5 date/time pickers (type="date" and type="time")
 - [x] Keyboard shortcuts (Ctrl+; for date, Ctrl+Shift+; for time)
+- [x] Dual input method: Picker UI + Keyboard shortcuts
 - [x] Form validation with real-time feedback
 
 #### 6. My Cases Screen
@@ -649,11 +651,13 @@ Testing:
 - [x] Status & Assignment editing
 - [x] Close Date/Time fields with dynamic labels (1st Close vs Reopen Close)
 - [x] Default current date/time for empty Close Date/Time fields
+- [x] Native HTML5 date/time pickers (type="date" and type="time")
 - [x] Keyboard shortcuts for Close Date/Time (Ctrl+; and Ctrl+Shift+;)
 - [x] Case flags editing with IRT除外対象 tooltip
 - [x] Transfer & Disposition fields
 - [x] rowIndex-based updates to prevent wrong row overwrites
 - [x] Toast notifications (non-blocking)
+- [x] Fixed: Function name conflicts with Create Case (formatDateForInput/formatTimeForInput)
 
 #### 9. UI/UX Enhancements
 - [x] Material Design compliance
@@ -670,6 +674,9 @@ Testing:
 - [x] Fixed: 1899 date display in time fields
 - [x] Fixed: getCaseByRowIndex to read directly from sheet
 - [x] Fixed: Time extraction from Date objects
+- [x] Fixed: Function name conflicts between Create Case and Edit Case Modal
+- [x] Fixed: Date objects displaying as "Tue Nov 11 2025..." instead of "2025-11-11"
+- [x] Fixed: Time objects displaying incorrectly in Create Case keyboard shortcuts
 
 #### 11. Email Notification System
 - [x] Backend: NotificationService.gs with full alert system
@@ -679,7 +686,9 @@ Testing:
 - [x] checkAndSendIRTAlerts() - Hourly scheduled function
 - [x] Smart alerting: Only for Assigned cases with IRT ≤ 2 hours
 - [x] Duplicate prevention: 6-hour cooldown between alerts
-- [x] Setup documentation: docs/EMAIL_NOTIFICATION_SETUP.md
+- [x] formatDateForDisplay() and formatTimeForDisplay() - Proper date/time formatting in emails
+- [x] Email displays: "Case Opened: 2025/11/08 22:59:00" format
+- [x] Setup documentation: docs/EMAIL_NOTIFICATION_SETUP.md and EMAIL_NOTIFICATION_SETUP_JP.md
 
 ### 🔄 Known Limitations / Future Enhancements
 - [ ] Email notification settings UI in Settings screen (currently via script properties)
