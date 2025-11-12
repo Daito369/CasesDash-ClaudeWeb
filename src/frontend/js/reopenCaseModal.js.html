@@ -126,6 +126,9 @@ async function confirmReopenCase() {
       closeReopenCaseModal();
 
       // Refresh the current view
+      if (typeof refreshDashboard === 'function') {
+        refreshDashboard();
+      }
       if (typeof refreshMyCases === 'function') {
         refreshMyCases();
       }

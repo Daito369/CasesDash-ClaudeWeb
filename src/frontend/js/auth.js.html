@@ -236,7 +236,9 @@ function showScreen(screenName) {
         }
         break;
       case 'dashboard':
-        // Dashboard is static for now
+        if (typeof loadDashboardScreen === 'function') {
+          loadDashboardScreen();
+        }
         break;
       default:
         console.warn(`Unknown screen: ${screenName}`);
