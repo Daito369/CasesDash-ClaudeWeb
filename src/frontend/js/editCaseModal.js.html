@@ -409,7 +409,14 @@ async function saveEditCase() {
     // Close modal
     closeEditCaseModal();
 
-    // Refresh the cases list if we're on My Cases page
+    // Refresh Dashboard if available
+    if (typeof refreshDashboard === 'function') {
+      setTimeout(() => {
+        refreshDashboard();
+      }, 500);
+    }
+
+    // Refresh My Cases if available
     if (typeof refreshMyCases === 'function') {
       setTimeout(() => {
         refreshMyCases();
