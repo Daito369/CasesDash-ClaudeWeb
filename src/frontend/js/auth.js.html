@@ -149,6 +149,15 @@ async function checkAuthOnLoad() {
       }
     } else {
       console.log('User authenticated:', status.user);
+
+      // Load initial screen (Dashboard) after authentication
+      const activeScreen = document.querySelector('.screen.active');
+      if (activeScreen && activeScreen.id === 'dashboard-screen') {
+        console.log('Loading initial Dashboard screen');
+        if (typeof loadDashboardScreen === 'function') {
+          loadDashboardScreen();
+        }
+      }
     }
 
   } catch (error) {
