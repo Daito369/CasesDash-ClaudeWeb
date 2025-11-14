@@ -50,10 +50,50 @@
 
 - **必要なデータ:** 各ケースの「作成時刻(Case Open Date/Time)」「Solution Offered に変更した日時（1st Close Date/Time)」、「Reopen時刻(Reopen Close Date/Time)」、「最終クローズ時刻(前回のReopen時刻を上書きした"Reopen Close Date/Time"の値)」。
 - **計算式:** `(最終クローズ時刻 - 作成時刻) - SUM(Reopen時刻 - Solution Offered に変更した日時)`
-- 
-    
+-
+
     **リアルタイム監視:** IRTの残り時間は「Manual Tracker」で確認可能であり、これは1時間ごとに更新されます。ダッシュボードも同様の更新頻度、またはリアルタイムでの残り時間算出が求められます。
-    
+
+
+### 🕐 タイムゾーン処理の重要性
+
+**CasesDash v3.0.0で修正された重大なバグ:**
+
+IRT計測において、**タイムゾーンの不一致**が最も重大なバグの原因でした。
+
+#### 問題の詳細
+
+- **Case Open DateTime**: Local Time (日本時間 UTC+9) で保存
+- **Status History JSON datetime**: UTC で保存（toISOString()を使用）
+- **結果**: 9時間のズレが発生し、IRT Hours = -8.98、IRT Remaining = 80.98時間という異常値
+
+#### 修正内容 (2025-11-14)
+
+1. **Status History datetime を Local Time に統一**
+   - `toISOString()` (UTC) → `formatDateTime()` (Local Time)
+   - 新規作成されるStatus History entryはすべてLocal Timeで保存
+
+2. **既存データとの互換性確保**
+   - `parseDateTimeWithTimezone()` 関数を追加
+   - UTC形式 (YYYY-MM-DD) とLocal形式 (YYYY/MM/DD) を自動判別
+   - UTCデータは自動的にLocal Timeに変換されて計算
+
+3. **Date parsing の明示的な処理**
+   - `new Date(dateString)` は避け、明示的に year/month/day をパース
+   - `new Date(year, month, day)` constructorを使用してLocal timezone確保
+
+#### 実装上の注意点
+
+```javascript
+// ❌ BAD: タイムゾーン問題を引き起こす
+datetime: new Date().toISOString().replace('T', ' ').substring(0, 19)
+
+// ✅ GOOD: Local Timeを使用
+datetime: formatDateTime(new Date())
+
+// ✅ GOOD: 既存データとの互換性確保
+const parsedDateTime = parseDateTimeWithTimezone(statusHistory[i].datetime)
+```
 
 ---
 

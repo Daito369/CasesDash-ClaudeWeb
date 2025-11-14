@@ -380,11 +380,109 @@ Browser caching can hide deployment issues. Always test major changes in:
 
 ---
 
+## ⚠️ Date and Time Handling (Critical)
+
+### Rule 5: Always Use Local Time, Never UTC
+
+**❌ WRONG:**
+```javascript
+// Using toISOString() creates UTC timestamps
+const datetime = new Date().toISOString().replace('T', ' ').substring(0, 19);
+// Result: "2025-11-14 10:15:58" (UTC) when local time is 19:15:58 (JST)
+```
+
+**✅ CORRECT:**
+```javascript
+// Use formatDateTime() for Local Time
+function formatDateTime(datetime) {
+  if (!datetime) return '';
+  const date = datetime instanceof Date ? datetime : new Date(datetime);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+}
+
+const datetime = formatDateTime(new Date());
+// Result: "2025/11/14 19:15:58" (Local Time)
+```
+
+**Reason:** Using UTC causes timezone mismatch errors. In Japan (UTC+9), this creates a 9-hour offset, leading to incorrect IRT calculations (e.g., IRT Remaining = 80.98 hours instead of correct values).
+
+---
+
+### Rule 6: Parse Date Strings Explicitly
+
+**❌ WRONG:**
+```javascript
+// new Date() with string parsing can cause timezone issues
+const dateObj = new Date('2025/11/14');  // May parse as UTC
+```
+
+**✅ CORRECT:**
+```javascript
+// Explicitly parse date components
+function parseDate(dateStr) {
+  const dateParts = dateStr.replace(/-/g, '/').split('/');
+  const year = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10) - 1;  // 0-based
+  const day = parseInt(dateParts[2], 10);
+
+  return new Date(year, month, day);  // Uses local timezone
+}
+```
+
+**Reason:** The `new Date(year, month, day)` constructor guarantees local timezone interpretation, while `new Date(dateString)` behavior varies by browser and format.
+
+---
+
+### Rule 7: Handle Legacy UTC Data
+
+**Problem:** Existing data may contain UTC timestamps (YYYY-MM-DD format) while new data uses Local Time (YYYY/MM/DD format).
+
+**Solution:** Use timezone-aware parser:
+
+```javascript
+/**
+ * Parse datetime string with timezone awareness
+ * Handles both UTC format (YYYY-MM-DD HH:MM:SS) and Local format (YYYY/MM/DD HH:MM:SS)
+ */
+function parseDateTimeWithTimezone(datetimeStr) {
+  if (!datetimeStr) return null;
+
+  // Check if it's UTC format (YYYY-MM-DD with hyphens)
+  if (datetimeStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    // UTC format: "2025-11-14 10:15:58"
+    // Convert to ISO format and force UTC interpretation
+    const isoStr = datetimeStr.replace(' ', 'T') + 'Z';
+    return new Date(isoStr);  // Automatically converts UTC to local time
+  } else {
+    // Local format: "2025/11/14 19:15:58"
+    return new Date(datetimeStr);
+  }
+}
+
+// Usage
+const statusHistory = JSON.parse(statusHistoryJSON);
+for (const entry of statusHistory.history) {
+  const datetime = parseDateTimeWithTimezone(entry.datetime);
+  // Now guaranteed to be in local time regardless of storage format
+}
+```
+
+---
+
 ## 🔄 Version History
 
 | Date       | Version | Changes |
 |------------|---------|---------|
 | 2025-11-06 | 1.0.0   | Initial documentation created after fixing nested tag errors |
+| 2025-11-14 | 2.0.0   | Added Date/Time handling rules (Rules 5-7) after fixing IRT timezone bugs |
 
 ---
 
