@@ -67,8 +67,9 @@ class IRTData {
    */
   addStatusChange(status, changedBy) {
     const history = this.getStatusHistory();
+    const now = new Date();
     history.push({
-      datetime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      datetime: formatDateTime(now),  // Use Local Time instead of UTC
       status: status,
       changedBy: changedBy
     });
@@ -78,7 +79,7 @@ class IRTData {
 
     // Record first SO datetime
     if (status === CaseStatus.SOLUTION_OFFERED && !this.firstSODateTime) {
-      this.firstSODateTime = new Date();
+      this.firstSODateTime = now;
     }
   }
 
@@ -138,7 +139,8 @@ class IRTData {
       let lastSODateTime = null;
       for (let i = statusHistory.length - 1; i >= 0; i--) {
         if (statusHistory[i].status === CaseStatus.SOLUTION_OFFERED) {
-          lastSODateTime = new Date(statusHistory[i].datetime);
+          // Use timezone-aware parser to handle both UTC and Local format
+          lastSODateTime = parseDateTimeWithTimezone(statusHistory[i].datetime);
           break;
         }
       }
@@ -324,7 +326,8 @@ function updateCaseStatus(caseId, newStatus, updatedBy) {
       let lastSODateTime = null;
       for (let i = statusHistory.length - 1; i >= 0; i--) {
         if (statusHistory[i].status === CaseStatus.SOLUTION_OFFERED) {
-          lastSODateTime = new Date(statusHistory[i].datetime);
+          // Use timezone-aware parser to handle both UTC and Local format
+          lastSODateTime = parseDateTimeWithTimezone(statusHistory[i].datetime);
           break;
         }
       }
@@ -559,7 +562,28 @@ function syncAllCasesToIRTData() {
 }
 
 /**
- * Format datetime to YYYY/MM/DD HH:MM:SS
+ * Parse datetime string with timezone awareness
+ * Handles both UTC format (YYYY-MM-DD HH:MM:SS) and Local format (YYYY/MM/DD HH:MM:SS)
+ * @param {string} datetimeStr - Datetime string
+ * @return {Date|null}
+ */
+function parseDateTimeWithTimezone(datetimeStr) {
+  if (!datetimeStr) return null;
+
+  // Check if it's UTC format (YYYY-MM-DD with hyphens) from old toISOString() data
+  if (datetimeStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+    // UTC format: "2025-11-14 10:15:58"
+    // Convert to ISO format and force UTC interpretation
+    const isoStr = datetimeStr.replace(' ', 'T') + 'Z';
+    return new Date(isoStr);
+  } else {
+    // Local format: "2025/MM/DD HH:MM:SS" from formatDateTime()
+    return new Date(datetimeStr);
+  }
+}
+
+/**
+ * Format datetime to YYYY/MM/DD HH:MM:SS (Local Time)
  * @param {Date|string} datetime - Datetime
  * @return {string}
  */
