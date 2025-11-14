@@ -607,6 +607,8 @@ function frontendGetCase(caseId, sheetName, rowIndex) {
       totalSOPeriodHours: Number(caseData.irtData.totalSOPeriodHours || 0),
       irtHours: Number(caseData.irtData.irtHours || 0),
       irtRemainingHours: Number(caseData.irtData.irtRemainingHours || 0),
+      reopenHistoryJSON: caseData.irtData.reopenHistoryJSON ? String(caseData.irtData.reopenHistoryJSON) : null,
+      statusHistoryJSON: caseData.irtData.statusHistoryJSON ? String(caseData.irtData.statusHistoryJSON) : null,
       lastUpdated: caseData.irtData.lastUpdated ?
         (caseData.irtData.lastUpdated instanceof Date ?
           caseData.irtData.lastUpdated.toISOString() :

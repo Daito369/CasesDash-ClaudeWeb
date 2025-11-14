@@ -307,10 +307,31 @@ function editCaseFromModal() {
  * @param {Object} irtData - IRT data containing reopenHistoryJSON
  */
 function displayReopenHistory(irtData) {
+  console.log('[displayReopenHistory] Called with irtData:', irtData);
+
   const section = document.getElementById('detailReopenHistorySection');
   const container = document.getElementById('detailReopenHistoryContainer');
 
-  if (!irtData || !irtData.reopenHistoryJSON) {
+  if (!section) {
+    console.error('[displayReopenHistory] Section element not found: detailReopenHistorySection');
+    return;
+  }
+
+  if (!container) {
+    console.error('[displayReopenHistory] Container element not found: detailReopenHistoryContainer');
+    return;
+  }
+
+  if (!irtData) {
+    console.log('[displayReopenHistory] No irtData provided, hiding section');
+    section.style.display = 'none';
+    return;
+  }
+
+  console.log('[displayReopenHistory] irtData.reopenHistoryJSON:', irtData.reopenHistoryJSON);
+
+  if (!irtData.reopenHistoryJSON) {
+    console.log('[displayReopenHistory] No reopenHistoryJSON in irtData, hiding section');
     section.style.display = 'none';
     return;
   }
@@ -318,11 +339,15 @@ function displayReopenHistory(irtData) {
   try {
     // Parse ReOpen History JSON
     const reopenHistory = JSON.parse(irtData.reopenHistoryJSON);
+    console.log('[displayReopenHistory] Parsed reopenHistory:', reopenHistory);
 
     if (!reopenHistory.reopens || reopenHistory.reopens.length === 0) {
+      console.log('[displayReopenHistory] No reopens in history or empty array, hiding section');
       section.style.display = 'none';
       return;
     }
+
+    console.log('[displayReopenHistory] Found', reopenHistory.reopens.length, 'reopen entries, displaying section');
 
     // Show section
     section.style.display = 'block';
@@ -331,7 +356,9 @@ function displayReopenHistory(irtData) {
     container.innerHTML = '';
 
     // Display each ReOpen entry
-    reopenHistory.reopens.forEach((reopen) => {
+    reopenHistory.reopens.forEach((reopen, index) => {
+      console.log(`[displayReopenHistory] Rendering reopen #${index + 1}:`, reopen);
+
       const reopenCard = document.createElement('div');
       reopenCard.className = 'reopen-history-card';
       reopenCard.style.cssText = `
@@ -371,8 +398,11 @@ function displayReopenHistory(irtData) {
       container.appendChild(reopenCard);
     });
 
+    console.log('[displayReopenHistory] Successfully rendered all reopen entries');
+
   } catch (error) {
-    console.error('Error parsing ReOpen History JSON:', error);
+    console.error('[displayReopenHistory] Error parsing ReOpen History JSON:', error);
+    console.error('[displayReopenHistory] JSON string was:', irtData.reopenHistoryJSON);
     section.style.display = 'none';
   }
 }
