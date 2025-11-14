@@ -115,7 +115,7 @@ function switchDashboardTab(status) {
 }
 
 /**
- * Apply all filters (status, assignee, date range, sheet type, segment, search)
+ * Apply all filters (status, date range, sheet type, segment, search)
  */
 function applyDashboardFilters() {
   console.log('Applying dashboard filters...');
@@ -128,11 +128,7 @@ function applyDashboardFilters() {
     filtered = filtered.filter(item => item.case.caseStatus === currentStatusTab);
   }
 
-  // Filter by assignee (for unassigned filter - "my" and "all" handled in loadDashboardScreen)
-  const assigneeFilter = document.getElementById('assigneeFilter').value;
-  if (assigneeFilter === 'unassigned') {
-    filtered = filtered.filter(item => !item.case.finalAssignee || item.case.finalAssignee.trim() === '');
-  }
+  // Note: "my" and "all" are handled in loadDashboardScreen by calling different APIs
 
   // Filter by date range
   const dateRangeFilter = document.getElementById('dateRangeFilter').value;
@@ -331,6 +327,10 @@ function createDashboardCaseCard(caseItem) {
   // Determine if ReOpen button should be shown
   const showReopenBtn = (caseData.caseStatus === 'Solution Offered' || caseData.caseStatus === 'Finished');
 
+  // Check if we should show assignee (only for "All Team Cases" view)
+  const assigneeFilter = document.getElementById('assigneeFilter').value;
+  const showAssignee = (assigneeFilter === 'all');
+
   card.innerHTML = `
     <div class="case-card-header" style="border-left: 4px solid ${sheetColor};">
       <div class="case-sheet-badge" style="background-color: ${sheetColor};">
@@ -349,6 +349,12 @@ function createDashboardCaseCard(caseItem) {
       </div>
 
       <div class="case-details">
+        ${showAssignee ? `
+        <div class="case-detail-item">
+          <span class="detail-label">Assignee:</span>
+          <span class="detail-value" style="font-weight: 600; color: #1a73e8;">${caseData.finalAssignee || 'Unassigned'}</span>
+        </div>
+        ` : ''}
         <div class="case-detail-item">
           <span class="detail-label">Status:</span>
           <span class="detail-value status-badge" data-status="${caseData.caseStatus}">${caseData.caseStatus}</span>
