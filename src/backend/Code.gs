@@ -563,6 +563,12 @@ function frontendGetCase(caseId, sheetName, rowIndex) {
       // Get IRT data
       const irtData = getOrCreateIRTData(caseId);
 
+      // CRITICAL FIX: Sync case status with IRT data before calculating
+      if (irtData) {
+        irtData.currentStatus = caseObj.caseStatus;
+        irtData.calculateIRT();
+      }
+
       caseData = {
         case: caseObj,
         irtData: irtData,
@@ -573,6 +579,12 @@ function frontendGetCase(caseId, sheetName, rowIndex) {
       // Fallback to Case ID search
       Logger.log(`frontendGetCase: Searching for case ${caseId} in sheet ${sheetName || 'all sheets'}`);
       caseData = getCase(caseId, sheetName);
+
+      // CRITICAL FIX: Sync case status with IRT data before serializing
+      if (caseData && caseData.irtData && caseData.case) {
+        caseData.irtData.currentStatus = caseData.case.caseStatus;
+        caseData.irtData.calculateIRT();
+      }
     }
 
     if (!caseData) {
@@ -744,8 +756,13 @@ function frontendGetAllMyCases() {
             // OPTIMIZATION 4: O(1) lookup from Map instead of reading sheet again
             const irtData = irtDataMap.get(caseId);
 
-            // Calculate current IRT if IRT data exists
+            // CRITICAL FIX: Sync case status with IRT data before calculating
+            // IRT RAW data sheet might be out of sync with case sheet
             if (irtData) {
+              // Update IRT data's current status to match the case sheet
+              irtData.currentStatus = caseObj.caseStatus;
+
+              // Calculate current IRT with the correct status
               irtData.calculateIRT();
             }
 
@@ -864,8 +881,13 @@ function frontendGetMyCases() {
             // OPTIMIZATION 4: O(1) lookup from Map instead of reading sheet again
             const irtData = irtDataMap.get(caseId);
 
-            // Calculate current IRT if IRT data exists
+            // CRITICAL FIX: Sync case status with IRT data before calculating
+            // IRT RAW data sheet might be out of sync with case sheet
             if (irtData) {
+              // Update IRT data's current status to match the case sheet
+              irtData.currentStatus = caseObj.caseStatus;
+
+              // Calculate current IRT with the correct status
               irtData.calculateIRT();
             }
 
