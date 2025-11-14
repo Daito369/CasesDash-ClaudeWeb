@@ -45,9 +45,20 @@ async function loadDashboardScreen() {
   hideError('dashboardError');
 
   try {
-    // Fetch all cases from backend (all statuses for Dashboard)
-    console.log('Calling API.cases.getAllMyCases()...');
-    const result = await API.cases.getAllMyCases();
+    // Determine which API to call based on assignee filter
+    const assigneeFilter = document.getElementById('assigneeFilter').value;
+
+    let result;
+    if (assigneeFilter === 'all') {
+      // Fetch all team cases
+      console.log('Calling API.cases.getAllCases()...');
+      result = await API.cases.getAllCases();
+    } else {
+      // Fetch my cases (default)
+      console.log('Calling API.cases.getAllMyCases()...');
+      result = await API.cases.getAllMyCases();
+    }
+
     console.log('API response received:', result);
 
     if (!result) {
@@ -61,7 +72,7 @@ async function loadDashboardScreen() {
     dashboardCasesData = result.cases || [];
     console.log(`Loaded ${dashboardCasesData.length} cases`);
 
-    // Apply initial filters (default: Assigned tab)
+    // Apply initial filters (default: All tab)
     applyDashboardFilters();
 
     // Start real-time timer updates (every 1 second)
@@ -74,6 +85,14 @@ async function loadDashboardScreen() {
   } finally {
     hideLoading('dashboardLoading');
   }
+}
+
+/**
+ * Reload dashboard when assignee filter changes
+ */
+async function onAssigneeFilterChange() {
+  // Reload data with new assignee filter
+  await loadDashboardScreen();
 }
 
 /**
@@ -96,7 +115,7 @@ function switchDashboardTab(status) {
 }
 
 /**
- * Apply all filters (status, sheet type, segment, search)
+ * Apply all filters (status, assignee, date range, sheet type, segment, search)
  */
 function applyDashboardFilters() {
   console.log('Applying dashboard filters...');
@@ -107,6 +126,18 @@ function applyDashboardFilters() {
   // Filter by status tab
   if (currentStatusTab !== 'All') {
     filtered = filtered.filter(item => item.case.caseStatus === currentStatusTab);
+  }
+
+  // Filter by assignee (for unassigned filter - "my" and "all" handled in loadDashboardScreen)
+  const assigneeFilter = document.getElementById('assigneeFilter').value;
+  if (assigneeFilter === 'unassigned') {
+    filtered = filtered.filter(item => !item.case.finalAssignee || item.case.finalAssignee.trim() === '');
+  }
+
+  // Filter by date range
+  const dateRangeFilter = document.getElementById('dateRangeFilter').value;
+  if (dateRangeFilter !== 'all') {
+    filtered = filterByDateRange(filtered, dateRangeFilter);
   }
 
   // Filter by sheet type
@@ -138,6 +169,86 @@ function applyDashboardFilters() {
   // Display filtered cases
   displayDashboardCases(filteredCasesData);
   updateDashboardSummary(filteredCasesData);
+}
+
+/**
+ * Filter cases by date range
+ * @param {Array} cases - Cases to filter
+ * @param {string} rangeType - Date range type
+ * @return {Array} Filtered cases
+ */
+function filterByDateRange(cases, rangeType) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  return cases.filter(item => {
+    // Parse case open date
+    const caseOpenDate = parseCaseOpenDate(item.case);
+    if (!caseOpenDate) return false;
+
+    switch (rangeType) {
+      case 'today':
+        return caseOpenDate >= today;
+
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return caseOpenDate >= yesterday && caseOpenDate < today;
+
+      case 'current-week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Sunday
+        return caseOpenDate >= weekStart;
+
+      case 'last-7-days':
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        return caseOpenDate >= sevenDaysAgo;
+
+      case 'current-month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return caseOpenDate >= monthStart;
+
+      case 'last-30-days':
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        return caseOpenDate >= thirtyDaysAgo;
+
+      case 'current-quarter':
+        // 2025-Q4 starts on 10/1
+        const q4Start = new Date(2025, 9, 1); // Month is 0-indexed
+        return caseOpenDate >= q4Start;
+
+      default:
+        return true;
+    }
+  });
+}
+
+/**
+ * Parse case open date from case object
+ * @param {Object} caseObj - Case object
+ * @return {Date|null} Parsed date or null
+ */
+function parseCaseOpenDate(caseObj) {
+  if (!caseObj.caseOpenDate) return null;
+
+  try {
+    // Parse date string (expected format: YYYY/MM/DD or similar)
+    const dateStr = caseObj.caseOpenDate;
+    const timeStr = caseObj.caseOpenTime || '00:00:00';
+
+    // Combine date and time
+    const dateTimeStr = `${dateStr} ${timeStr}`;
+
+    // Parse as local time
+    const date = new Date(dateTimeStr.replace(/\//g, '-'));
+
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    console.error('Error parsing case open date:', error);
+    return null;
+  }
 }
 
 /**

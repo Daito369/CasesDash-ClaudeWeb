@@ -2080,43 +2080,52 @@ select.form-control::-ms-expand {
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
 }
 
-/* Case Status Tabs */
+/* Case Status Tabs - Material Design Style */
 .case-status-tabs {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 0;
   background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
+  border-radius: 0;
+  padding: 0;
   margin-bottom: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
+  border-bottom: 2px solid #e8eaed;
   overflow-x: auto;
 }
 
 .status-tab {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
-  padding: 10px 16px;
+  padding: 14px 24px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: #5f6368;
   font-family: var(--font-family-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  border-radius: var(--radius-sm);
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  min-width: 90px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
 }
 
 .status-tab:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(26, 115, 232, 0.04);
+  color: var(--primary-color);
 }
 
 .status-tab.active {
-  background: var(--primary-color);
-  color: var(--text-inverse);
+  background: transparent;
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: 600;
 }
 
 .status-tab .material-icons {
