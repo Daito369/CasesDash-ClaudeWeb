@@ -278,7 +278,8 @@ function reopenCase(caseId, reopenDate, reopenTime, reopenedBy, sheetName, rowIn
     let lastSODateTime = null;
     for (let i = statusHistory.length - 1; i >= 0; i--) {
       if (statusHistory[i].status === CaseStatus.SOLUTION_OFFERED) {
-        lastSODateTime = new Date(statusHistory[i].datetime);
+        // Use timezone-aware parser to handle both UTC and Local format
+        lastSODateTime = parseDateTimeWithTimezone(statusHistory[i].datetime);
         break;
       }
     }
