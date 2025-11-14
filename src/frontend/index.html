@@ -61,10 +61,6 @@
               <span class="material-icons">folder</span>
               My Cases
             </button>
-            <button id="navAllCases" class="nav-link" onclick="showScreen('allCases')">
-              <span class="material-icons">people</span>
-              All Cases
-            </button>
             <button id="navCreateCase" class="nav-link" onclick="showScreen('createCase')">
               <span class="material-icons">add_circle</span>
               Create Case
@@ -93,7 +89,7 @@
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="screen active">
           <h1>📊 Dashboard</h1>
-          <p>Search and manage all your cases across all statuses</p>
+          <p>Search and manage cases with powerful filters and real-time IRT tracking</p>
 
           <!-- Search and Filters -->
           <div class="dashboard-search-container">
@@ -112,6 +108,29 @@
             </div>
 
             <div class="filter-controls">
+              <div class="filter-group">
+                <label class="filter-label">Assignee:</label>
+                <select id="assigneeFilter" class="filter-select" onchange="onAssigneeFilterChange()">
+                  <option value="my">My Cases Only</option>
+                  <option value="all">All Team Cases</option>
+                  <option value="unassigned">Unassigned</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label">Date Range:</label>
+                <select id="dateRangeFilter" class="filter-select" onchange="applyDashboardFilters()">
+                  <option value="current-month">Current Month</option>
+                  <option value="current-week">Current Week</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last-7-days">Last 7 Days</option>
+                  <option value="last-30-days">Last 30 Days</option>
+                  <option value="current-quarter">Current Quarter (2025-Q4)</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+
               <div class="filter-group">
                 <label class="filter-label">Sheet Type:</label>
                 <select id="sheetTypeFilter" class="filter-select" onchange="applyDashboardFilters()">
@@ -259,96 +278,6 @@
 
           <!-- Cases Container -->
           <div id="myCasesContainer" class="cases-container">
-            <!-- Case cards populated by JavaScript -->
-          </div>
-        </div>
-
-        <!-- All Cases Screen (Team View) -->
-        <div id="allCases-screen" class="screen" style="display: none;">
-          <h1>👥 All Team Cases</h1>
-          <p>View all team cases with filters and real-time IRT tracking</p>
-
-          <div id="allCasesError" class="error-message" style="display: none;"></div>
-          <div id="allCasesLoading" class="loading" style="display: none;">
-            <span class="spinner"></span>
-            <span>Loading all cases...</span>
-          </div>
-
-          <!-- Filter Controls -->
-          <div class="dashboard-search-container">
-            <div class="search-bar">
-              <span class="material-icons">search</span>
-              <input
-                type="text"
-                id="allCasesSearchInput"
-                class="search-input"
-                placeholder="Search by Case ID..."
-                onkeyup="performAllCasesSearch()"
-              />
-              <button class="clear-search-btn" onclick="clearAllCasesSearch()" style="display: none;">
-                <span class="material-icons">close</span>
-              </button>
-            </div>
-
-            <div class="filter-controls">
-              <div class="filter-group">
-                <label class="filter-label">Assignee:</label>
-                <select id="allCasesAssigneeFilter" class="filter-select" onchange="applyAllCasesFilters()">
-                  <option value="all">All Assignees</option>
-                  <!-- Populated dynamically from cases data -->
-                </select>
-              </div>
-
-              <div class="filter-group">
-                <label class="filter-label">Sheet Type:</label>
-                <select id="allCasesSheetTypeFilter" class="filter-select" onchange="applyAllCasesFilters()">
-                  <option value="all">All Sheets</option>
-                  <option value="OT Email">OT Email</option>
-                  <option value="3PO Email">3PO Email</option>
-                  <option value="OT Chat">OT Chat</option>
-                  <option value="3PO Chat">3PO Chat</option>
-                  <option value="OT Phone">OT Phone</option>
-                  <option value="3PO Phone">3PO Phone</option>
-                </select>
-              </div>
-
-              <div class="filter-group">
-                <label class="filter-label">Segment:</label>
-                <select id="allCasesSegmentFilter" class="filter-select" onchange="applyAllCasesFilters()">
-                  <option value="all">All Segments</option>
-                  <option value="Platinum">Platinum</option>
-                  <option value="Titanium">Titanium</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Status Tabs -->
-          <div class="status-tabs">
-            <button class="status-tab" data-status="All" onclick="switchAllCasesTab('All')">
-              All
-            </button>
-            <button class="status-tab active" data-status="Assigned" onclick="switchAllCasesTab('Assigned')">
-              Assigned
-            </button>
-            <button class="status-tab" data-status="Solution Offered" onclick="switchAllCasesTab('Solution Offered')">
-              Solution Offered
-            </button>
-            <button class="status-tab" data-status="Finished" onclick="switchAllCasesTab('Finished')">
-              Finished
-            </button>
-          </div>
-
-          <!-- Summary Statistics -->
-          <div class="cases-summary-card">
-            <h3>📊 Team Summary</h3>
-            <div id="allCasesSummary" class="cases-summary">
-              <!-- Populated by JavaScript -->
-            </div>
-          </div>
-
-          <!-- Cases Container -->
-          <div id="allCasesContainer" class="cases-container">
             <!-- Case cards populated by JavaScript -->
           </div>
         </div>
@@ -1159,7 +1088,6 @@
   <?!= include('frontend/js/cases.js'); ?>
   <?!= include('frontend/js/dashboard.js'); ?>
   <?!= include('frontend/js/mycases.js'); ?>
-  <?!= include('frontend/js/allCases.js'); ?>
   <?!= include('frontend/js/caseDetailsModal.js'); ?>
   <?!= include('frontend/js/editCaseModal.js'); ?>
   <?!= include('frontend/js/reopenCaseModal.js'); ?>
