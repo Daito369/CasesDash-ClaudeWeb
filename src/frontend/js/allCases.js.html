@@ -1,0 +1,578 @@
+<script>
+/**
+ * All Cases Module (Team View)
+ *
+ * Handles display and management of all team cases with filters.
+ * Features: Real-time IRT timer, filters (Assignee, Sheet, Segment, Status), sorting.
+ *
+ * @author CasesDash v3.0.0
+ * @specification docs/casesdash-specification.md Section 4.3 (Priority 2)
+ */
+
+// Global state
+let allCasesData = [];
+let filteredAllCasesData = [];
+let currentAllCasesTab = 'Assigned';  // Default: Assigned tab
+let allCasesTimerInterval = null;
+let allCasesAutoRefreshInterval = null;
+
+// Sheet type color mapping (per specification)
+const ALL_CASES_SHEET_COLORS = {
+  'OT Email': '#4285f4',    // Blue
+  '3PO Email': '#4285f4',   // Blue
+  'OT Chat': '#ea4335',     // Red
+  '3PO Chat': '#ea4335',    // Red
+  'OT Phone': '#34a853',    // Green
+  '3PO Phone': '#34a853'    // Green
+};
+
+// Sheet type icons
+const ALL_CASES_SHEET_ICONS = {
+  'OT Email': '📧',
+  '3PO Email': '📧',
+  'OT Chat': '💬',
+  '3PO Chat': '💬',
+  'OT Phone': '📞',
+  '3PO Phone': '📞'
+};
+
+/**
+ * Load All Cases screen
+ */
+async function loadAllCasesScreen() {
+  console.log('Loading All Cases screen...');
+
+  showLoading('allCasesLoading');
+  hideError('allCasesError');
+
+  try {
+    // Fetch all cases from backend
+    console.log('Calling API.cases.getAllCases()...');
+    const result = await API.cases.getAllCases();
+    console.log('API response received:', result);
+
+    if (!result) {
+      throw new Error('No response from server. The request may have timed out or failed.');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load cases');
+    }
+
+    allCasesData = result.cases || [];
+    console.log(`Loaded ${allCasesData.length} total team cases`);
+
+    // Populate assignee filter dropdown
+    populateAssigneeFilter();
+
+    // Apply initial filters (default: Assigned tab)
+    applyAllCasesFilters();
+
+    // Start real-time timer updates (every 1 second)
+    startAllCasesTimerUpdates();
+
+    // Start auto-refresh (every 1 minute)
+    startAllCasesAutoRefresh();
+
+  } catch (error) {
+    console.error('Error loading all cases:', error);
+    const errorMessage = error.message || 'Unknown error occurred';
+    showError('allCasesError', `Failed to load cases: ${errorMessage}`);
+  } finally {
+    hideLoading('allCasesLoading');
+  }
+}
+
+/**
+ * Populate assignee filter dropdown dynamically from cases data
+ */
+function populateAssigneeFilter() {
+  const assigneeFilter = document.getElementById('allCasesAssigneeFilter');
+  if (!assigneeFilter) return;
+
+  // Get unique assignees
+  const assignees = new Set();
+  allCasesData.forEach(caseItem => {
+    const assignee = caseItem.case.finalAssignee;
+    if (assignee && assignee.trim() !== '') {
+      assignees.add(assignee);
+    }
+  });
+
+  // Clear existing options (except "All Assignees")
+  assigneeFilter.innerHTML = '<option value="all">All Assignees</option>';
+
+  // Add assignees alphabetically
+  Array.from(assignees).sort().forEach(assignee => {
+    const option = document.createElement('option');
+    option.value = assignee;
+    option.textContent = assignee;
+    assigneeFilter.appendChild(option);
+  });
+
+  console.log(`Populated ${assignees.size} assignees in filter`);
+}
+
+/**
+ * Switch All Cases Status tab
+ * @param {string} status - Status to switch to ('Assigned', 'Solution Offered', 'Finished', 'All')
+ */
+function switchAllCasesTab(status) {
+  console.log('Switching All Cases tab to:', status);
+
+  // Update active tab styling
+  document.querySelectorAll('#allCases-screen .status-tab').forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.getAttribute('data-status') === status) {
+      tab.classList.add('active');
+    }
+  });
+
+  currentAllCasesTab = status;
+  applyAllCasesFilters();
+}
+
+/**
+ * Apply all filters (status, assignee, sheet type, segment, search)
+ */
+function applyAllCasesFilters() {
+  console.log('Applying All Cases filters...');
+
+  const assigneeFilter = document.getElementById('allCasesAssigneeFilter').value;
+  const sheetFilter = document.getElementById('allCasesSheetTypeFilter').value;
+  const segmentFilter = document.getElementById('allCasesSegmentFilter').value;
+  const searchQuery = document.getElementById('allCasesSearchInput').value.trim().toLowerCase();
+
+  filteredAllCasesData = allCasesData.filter(caseItem => {
+    // Status filter (from tab)
+    if (currentAllCasesTab !== 'All' && caseItem.case.caseStatus !== currentAllCasesTab) {
+      return false;
+    }
+
+    // Assignee filter
+    if (assigneeFilter !== 'all' && caseItem.case.finalAssignee !== assigneeFilter) {
+      return false;
+    }
+
+    // Sheet filter
+    if (sheetFilter !== 'all' && caseItem.sheetName !== sheetFilter) {
+      return false;
+    }
+
+    // Segment filter
+    const segment = caseItem.case.finalSegment || caseItem.case.incomingSegment;
+    if (segmentFilter !== 'all' && segment !== segmentFilter) {
+      return false;
+    }
+
+    // Search query (Case ID)
+    if (searchQuery !== '' && !caseItem.case.caseId.toLowerCase().includes(searchQuery)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  console.log(`Filtered: ${filteredAllCasesData.length} / ${allCasesData.length} cases`);
+
+  // Display filtered cases
+  displayAllCases(filteredAllCasesData);
+}
+
+/**
+ * Perform search
+ */
+function performAllCasesSearch() {
+  const searchInput = document.getElementById('allCasesSearchInput');
+  const clearBtn = searchInput.nextElementSibling;
+
+  if (searchInput.value.trim() !== '') {
+    clearBtn.style.display = 'block';
+  } else {
+    clearBtn.style.display = 'none';
+  }
+
+  applyAllCasesFilters();
+}
+
+/**
+ * Clear search
+ */
+function clearAllCasesSearch() {
+  const searchInput = document.getElementById('allCasesSearchInput');
+  const clearBtn = searchInput.nextElementSibling;
+
+  searchInput.value = '';
+  clearBtn.style.display = 'none';
+
+  applyAllCasesFilters();
+}
+
+/**
+ * Display all cases
+ * @param {Array} cases - Array of case objects
+ */
+function displayAllCases(cases) {
+  const container = document.getElementById('allCasesContainer');
+  if (!container) {
+    console.error('All Cases container not found');
+    return;
+  }
+
+  // Update summary statistics
+  updateAllCasesSummary(cases);
+
+  // Clear container
+  container.innerHTML = '';
+
+  if (cases.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>📭 No cases found</h3>
+        <p>No cases match the current filters.</p>
+        <p>Try adjusting your filter settings.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render each case card
+  cases.forEach(caseItem => {
+    const card = createAllCasesCard(caseItem);
+    container.appendChild(card);
+  });
+}
+
+/**
+ * Create case card element
+ * @param {Object} caseItem - Case item with case and irtData
+ * @return {HTMLElement} Card element
+ */
+function createAllCasesCard(caseItem) {
+  const { case: caseData, irtData, sheetName } = caseItem;
+
+  const card = document.createElement('div');
+  card.className = 'case-card';
+  card.setAttribute('data-case-id', caseData.caseId);
+  card.setAttribute('data-sheet-name', sheetName);
+
+  // Calculate urgency level
+  const urgency = getAllCasesUrgencyLevel(irtData);
+  card.classList.add(`urgency-${urgency.level}`);
+
+  const sheetColor = ALL_CASES_SHEET_COLORS[sheetName] || '#666';
+  const sheetIcon = ALL_CASES_SHEET_ICONS[sheetName] || '📄';
+
+  card.innerHTML = `
+    <div class="case-card-header" style="border-left: 4px solid ${sheetColor};">
+      <div class="case-sheet-badge" style="background-color: ${sheetColor};">
+        ${sheetIcon} ${sheetName}
+      </div>
+      <div class="case-timer ${urgency.level}">
+        <span class="timer-value" data-case-id="${caseData.caseId}">
+          ${urgency.icon} ${formatAllCasesIRTTimer(irtData)}
+        </span>
+      </div>
+    </div>
+
+    <div class="case-card-body">
+      <div class="case-id">
+        <strong>Case ID:</strong> ${caseData.caseId}
+      </div>
+
+      <div class="case-details">
+        <div class="case-detail-item">
+          <span class="detail-label">Assignee:</span>
+          <span class="detail-value">${caseData.finalAssignee || 'Unassigned'}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Status:</span>
+          <span class="detail-value">${caseData.caseStatus || 'N/A'}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Segment:</span>
+          <span class="detail-value">${caseData.finalSegment || caseData.incomingSegment || 'N/A'}</span>
+        </div>
+        <div class="case-detail-item">
+          <span class="detail-label">Product:</span>
+          <span class="detail-value">${caseData.productCategory || 'N/A'}</span>
+        </div>
+      </div>
+
+      <div class="case-meta">
+        <div class="case-meta-item">
+          📅 Opened: ${caseData.caseOpenDate} ${caseData.caseOpenTime || ''}
+        </div>
+        ${irtData && irtData.reopenCount > 0 ? `
+        <div class="case-meta-item">
+          🔄 RO x${irtData.reopenCount}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="case-card-footer">
+      <button class="btn-secondary btn-sm" onclick="viewCaseDetails('${caseData.caseId}')">
+        Details
+      </button>
+      <button class="btn-primary btn-sm" onclick="editCase('${caseData.caseId}', '${sheetName}', ${caseData.rowIndex})">
+        Edit
+      </button>
+    </div>
+  `;
+
+  return card;
+}
+
+/**
+ * Update cases summary statistics
+ * @param {Array} cases - Cases array
+ */
+function updateAllCasesSummary(cases) {
+  const summaryElement = document.getElementById('allCasesSummary');
+  if (!summaryElement) return;
+
+  let criticalCount = 0;
+  let warningCount = 0;
+  let normalCount = 0;
+  let missedCount = 0;
+  let totalIRTRemaining = 0;
+  let assignedCount = 0;
+  let soCount = 0;
+  let finishedCount = 0;
+
+  cases.forEach(caseItem => {
+    const urgency = getAllCasesUrgencyLevel(caseItem.irtData);
+
+    if (urgency.level === 'critical') criticalCount++;
+    else if (urgency.level === 'warning') warningCount++;
+    else if (urgency.level === 'missed') missedCount++;
+    else normalCount++;
+
+    if (caseItem.irtData) {
+      totalIRTRemaining += caseItem.irtData.irtRemainingHours || 0;
+    }
+
+    // Count by status
+    if (caseItem.case.caseStatus === 'Assigned') assignedCount++;
+    else if (caseItem.case.caseStatus === 'Solution Offered') soCount++;
+    else if (caseItem.case.caseStatus === 'Finished') finishedCount++;
+  });
+
+  const avgIRT = cases.length > 0 ? (totalIRTRemaining / cases.length).toFixed(1) : 0;
+  const slaOnTrack = cases.length > 0 ? ((normalCount + warningCount) / cases.length * 100).toFixed(1) : 100;
+
+  summaryElement.innerHTML = `
+    <div class="summary-stat">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">${cases.length}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Assigned:</span>
+      <span class="stat-value">${assignedCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">SO:</span>
+      <span class="stat-value">${soCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Finished:</span>
+      <span class="stat-value">${finishedCount}</span>
+    </div>
+    <div class="summary-stat critical">
+      <span class="stat-label">🔴 Critical:</span>
+      <span class="stat-value">${criticalCount}</span>
+    </div>
+    <div class="summary-stat warning">
+      <span class="stat-label">🟡 Warning:</span>
+      <span class="stat-value">${warningCount}</span>
+    </div>
+    <div class="summary-stat normal">
+      <span class="stat-label">🟢 Normal:</span>
+      <span class="stat-value">${normalCount}</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">Avg IRT:</span>
+      <span class="stat-value">${avgIRT}h</span>
+    </div>
+    <div class="summary-stat">
+      <span class="stat-label">SLA On Track:</span>
+      <span class="stat-value">${slaOnTrack}%</span>
+    </div>
+  `;
+}
+
+/**
+ * Get urgency level based on IRT remaining
+ * @param {Object} irtData - IRT data
+ * @return {Object} Urgency info { level, icon, color }
+ */
+function getAllCasesUrgencyLevel(irtData) {
+  if (!irtData || irtData.irtRemainingHours === null || irtData.irtRemainingHours === undefined) {
+    return { level: 'normal', icon: '🟢', color: '#34a853' };
+  }
+
+  const remaining = irtData.irtRemainingHours;
+
+  if (remaining <= 0) {
+    return { level: 'missed', icon: '⚫', color: '#5f6368' };
+  } else if (remaining <= 2) {
+    return { level: 'critical', icon: '🔴', color: '#ea4335' };
+  } else if (remaining <= 24) {
+    return { level: 'warning', icon: '🟡', color: '#fbbc05' };
+  } else {
+    return { level: 'normal', icon: '🟢', color: '#34a853' };
+  }
+}
+
+/**
+ * Format IRT timer for display
+ * @param {Object} irtData - IRT data
+ * @return {string} Formatted timer string
+ */
+function formatAllCasesIRTTimer(irtData) {
+  if (!irtData || irtData.irtRemainingHours === null || irtData.irtRemainingHours === undefined) {
+    return '--:--:--';
+  }
+
+  const remaining = irtData.irtRemainingHours;
+
+  if (remaining <= 0) {
+    return 'MISSED';
+  }
+
+  // Convert hours to HH:MM:SS
+  const totalSeconds = Math.floor(remaining * 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Start real-time timer updates (every 1 second)
+ */
+function startAllCasesTimerUpdates() {
+  // Clear existing interval
+  if (allCasesTimerInterval) {
+    clearInterval(allCasesTimerInterval);
+  }
+
+  allCasesTimerInterval = setInterval(() => {
+    updateAllCasesTimers();
+  }, 1000);
+
+  console.log('Started All Cases real-time timer updates');
+}
+
+/**
+ * Update all timer displays
+ */
+function updateAllCasesTimers() {
+  const timerElements = document.querySelectorAll('#allCasesContainer .timer-value');
+
+  timerElements.forEach(element => {
+    const caseId = element.getAttribute('data-case-id');
+    const caseItem = filteredAllCasesData.find(item => item.case.caseId === caseId);
+
+    if (caseItem && caseItem.irtData) {
+      // Recalculate IRT remaining (client-side countdown)
+      const caseOpenTime = new Date(caseItem.irtData.caseOpenDateTime);
+      const now = new Date();
+      const elapsedMs = now - caseOpenTime;
+      const elapsedHours = elapsedMs / (1000 * 60 * 60);
+      const irtHours = elapsedHours - (caseItem.irtData.totalSOPeriodHours || 0);
+      const irtRemaining = 72 - irtHours;
+
+      // Update irtData in memory
+      caseItem.irtData.irtRemainingHours = irtRemaining;
+
+      // Update display
+      const urgency = getAllCasesUrgencyLevel(caseItem.irtData);
+      element.innerHTML = `${urgency.icon} ${formatAllCasesIRTTimer(caseItem.irtData)}`;
+
+      // Update card class
+      const card = element.closest('.case-card');
+      if (card) {
+        card.className = 'case-card';
+        card.classList.add(`urgency-${urgency.level}`);
+      }
+    }
+  });
+
+  // Update summary
+  updateAllCasesSummary(filteredAllCasesData);
+}
+
+/**
+ * Start auto-refresh (every 1 minute)
+ */
+function startAllCasesAutoRefresh() {
+  // Clear existing interval
+  if (allCasesAutoRefreshInterval) {
+    clearInterval(allCasesAutoRefreshInterval);
+  }
+
+  allCasesAutoRefreshInterval = setInterval(() => {
+    refreshAllCases();
+  }, 60000); // 60 seconds
+
+  console.log('Started All Cases auto-refresh (1 minute interval)');
+}
+
+/**
+ * Refresh all cases data from backend
+ */
+async function refreshAllCases() {
+  try {
+    console.log('Refreshing all cases...');
+
+    const result = await API.cases.getAllCases();
+
+    if (!result) {
+      console.warn('No response from server during refresh');
+      return;
+    }
+
+    if (result.success) {
+      allCasesData = result.cases || [];
+      populateAssigneeFilter();
+      applyAllCasesFilters();
+      console.log('All cases refreshed successfully');
+    } else {
+      console.warn('Refresh failed:', result.error);
+    }
+
+  } catch (error) {
+    console.error('Error refreshing all cases:', error);
+  }
+}
+
+/**
+ * Stop timers when leaving All Cases screen
+ */
+function stopAllCasesTimers() {
+  if (allCasesTimerInterval) {
+    clearInterval(allCasesTimerInterval);
+    allCasesTimerInterval = null;
+  }
+
+  if (allCasesAutoRefreshInterval) {
+    clearInterval(allCasesAutoRefreshInterval);
+    allCasesAutoRefreshInterval = null;
+  }
+
+  console.log('Stopped All Cases timers');
+}
+
+/**
+ * Initialize All Cases module
+ */
+function initAllCasesModule() {
+  console.log('All Cases module initialized');
+}
+
+// Initialize on load
+initAllCasesModule();
+</script>

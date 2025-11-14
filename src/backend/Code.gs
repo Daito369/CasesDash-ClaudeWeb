@@ -963,6 +963,148 @@ function frontendGetMyCases() {
 }
 
 /**
+ * Get All Cases (Team View) - OPTIMIZED for performance
+ * Returns all cases from all sheets regardless of assignee
+ * Uses batch reads and in-memory filtering to minimize service calls
+ * @return {Object} Result with all team cases
+ */
+function frontendGetAllCases() {
+  try {
+    Logger.log('frontendGetAllCases called');
+
+    // Check authentication
+    const authCheck = requireAuth();
+    if (!authCheck.success) {
+      return authCheck;
+    }
+
+    const user = authCheck.data;
+    Logger.log(`Fetching all cases for team view (user: ${user.email})`);
+
+    // OPTIMIZATION 1: Read IRT data ONCE and create a Map for O(1) lookup
+    const irtDataMap = loadAllIRTDataIntoMap();
+    Logger.log(`Loaded ${irtDataMap.size} IRT entries into memory`);
+
+    const allCases = [];
+    const sheets = SheetNames.getAllCaseSheets();
+
+    // OPTIMIZATION 2: Read all sheets using batch operations
+    for (const sheetName of sheets) {
+      try {
+        const sheet = getSheet(sheetName);
+        const lastRow = sheet.getLastRow();
+
+        if (lastRow < 2) {
+          // No data rows (only header or empty)
+          continue;
+        }
+
+        // Get column mapping for this sheet
+        const columnMap = getColumnMapping(sheetName);
+        const numCols = sheet.getLastColumn();
+
+        // Read all data at once (batch operation)
+        const data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+
+        // OPTIMIZATION 3: Filter in memory (JavaScript is fast)
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          const caseId = row[columnMap.CASE_ID];
+          const caseStatus = row[columnMap.CASE_STATUS];
+
+          // Skip empty rows
+          if (!caseId || caseId.toString().trim() === '') {
+            continue;
+          }
+
+          // NO FILTERING: Include all cases regardless of assignee or status
+          // Create Case object
+          const caseObj = Case.fromSheetRow(row, sheetName, i + 2);
+
+          // OPTIMIZATION 4: O(1) lookup from Map instead of reading sheet again
+          const irtData = irtDataMap.get(caseId);
+
+          // CRITICAL FIX: Sync case status with IRT data before calculating
+          // IRT RAW data sheet might be out of sync with case sheet
+          if (irtData) {
+            // Update IRT data's current status to match the case sheet
+            irtData.currentStatus = caseObj.caseStatus;
+
+            // Calculate current IRT with the correct status
+            irtData.calculateIRT();
+          }
+
+          // Serialize IRT data to ensure clean transfer (include history JSONs)
+          const serializedIRTData = irtData ? {
+            caseId: String(irtData.caseId || ''),
+            sourceSheet: String(irtData.sourceSheet || ''),
+            caseOpenDateTime: irtData.caseOpenDateTime ?
+              (irtData.caseOpenDateTime instanceof Date ?
+                irtData.caseOpenDateTime.toISOString() :
+                String(irtData.caseOpenDateTime)) : null,
+            currentStatus: String(irtData.currentStatus || ''),
+            reopenCount: Number(irtData.reopenCount || 0),
+            totalSOPeriodHours: Number(irtData.totalSOPeriodHours || 0),
+            irtHours: Number(irtData.irtHours || 0),
+            irtRemainingHours: Number(irtData.irtRemainingHours || 0),
+            reopenHistoryJSON: irtData.reopenHistoryJSON ? String(irtData.reopenHistoryJSON) : null,
+            statusHistoryJSON: irtData.statusHistoryJSON ? String(irtData.statusHistoryJSON) : null,
+            lastUpdated: irtData.lastUpdated ?
+              (irtData.lastUpdated instanceof Date ?
+                irtData.lastUpdated.toISOString() :
+                String(irtData.lastUpdated)) : null
+          } : null;
+
+          allCases.push({
+            case: serializeCase(caseObj),
+            irtData: serializedIRTData,
+            sheetName: String(sheetName)
+          });
+        }
+      } catch (error) {
+        Logger.log(`Error processing sheet ${sheetName}: ${error.message}`);
+        // Continue to next sheet
+      }
+    }
+
+    // Sort by IRT remaining (most urgent first)
+    allCases.sort((a, b) => {
+      const aRemaining = a.irtData ? a.irtData.irtRemainingHours : 999;
+      const bRemaining = b.irtData ? b.irtData.irtRemainingHours : 999;
+      return aRemaining - bRemaining;
+    });
+
+    Logger.log(`Found ${allCases.length} total cases across all sheets`);
+
+    // Prepare response
+    const response = {
+      success: true,
+      cases: allCases,
+      totalCases: allCases.length
+    };
+
+    // Log response size for debugging
+    try {
+      const jsonString = JSON.stringify(response);
+      Logger.log(`Response size: ${jsonString.length} characters`);
+      Logger.log(`Response size: ${(jsonString.length / 1024).toFixed(2)} KB`);
+    } catch (e) {
+      Logger.log(`Warning: Could not stringify response for size check: ${e.message}`);
+    }
+
+    return response;
+
+  } catch (error) {
+    Logger.log(`Error in frontendGetAllCases: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Load all IRT data into a Map for fast O(1) lookup
  * This is a key performance optimization - read once, lookup many times
  * @return {Map<string, IRTData>} Map of caseId -> IRTData
