@@ -720,10 +720,10 @@ Testing:
 - [ ] Advanced filtering and search in My Cases
 - [ ] Comprehensive automated testing suite
 - [ ] Status History tracking UI
-- [ ] Dashboard "All Cases" view with filters
-- [ ] Case search by Case ID across all sheets
+- [x] Dashboard "All Cases" view with filters (✅ Completed - Priority 2)
+- [x] Case search by Case ID across all sheets (✅ Completed - Available in All Cases view)
 
-### 📝 Next Development Priorities (2025-11-14)
+### 📝 Next Development Priorities (Updated: 2025-11-14)
 
 #### ~~**Priority 1: ReOpen Case UI**~~ ✅ **COMPLETED** (2025-11-14)
 **Status**: Fully implemented and tested
@@ -735,17 +735,27 @@ Testing:
 - **Actual Time**: ~2 hours (most components already existed)
 - **Commit**: fe44304
 
-#### **Priority 2: Dashboard "All Cases" View** (High Impact - Visibility)
+#### **✅ Priority 2: Dashboard "All Cases" View** (High Impact - Visibility) - COMPLETED
 **Why**: 現在My Casesは自分のケースのみ表示。チーム全体の状況を把握できない。
-- Display all team cases with filters (Assignee, Segment, Status)
-- Real-time IRT timer for all cases
-- Sort by IRT Remaining (Critical cases first)
-- Sheet filter (OT Email, 3PO Email, etc.)
-- **Estimated Time**: 6-8 hours
-- **Files to modify**:
-  - `src/backend/Code.gs` (add frontendGetAllCases function)
-  - `src/frontend/js/dashboard.js.html` (add All Cases view)
-  - `src/frontend/index.html` (add All Cases section)
+- ✅ Display all team cases with filters (Assignee, Segment, Status)
+- ✅ Real-time IRT timer for all cases (1-second countdown updates)
+- ✅ Sort by IRT Remaining (Critical cases first)
+- ✅ Sheet filter (OT Email, 3PO Email, etc.)
+- ✅ Status tabs (All, Assigned, Solution Offered, Finished)
+- ✅ Search by Case ID
+- ✅ Dynamic Assignee filter (populated from case data)
+- ✅ Team summary statistics with SLA tracking
+- ✅ Color-coded urgency indicators (Critical/Warning/Normal/Missed)
+- ✅ Auto-refresh every 1 minute
+- ✅ ReOpen count display in case cards
+- **Estimated Time**: 6-8 hours | **Actual Time**: ~4 hours
+- **Commit**: 2d507f2
+- **Files Modified**:
+  - `src/backend/Code.gs` (added frontendGetAllCases function, lines 971-1105)
+  - `src/frontend/index.html` (added All Cases navigation button and screen section)
+  - `src/frontend/js/allCases.js.html` (NEW FILE - complete All Cases module)
+  - `src/frontend/js/api.js.html` (added API.cases.getAllCases method)
+  - `src/frontend/js/auth.js.html` (added allCases screen support to showScreen)
 
 #### **Priority 3: Analytics Dashboard** (Medium Impact - Insights)
 **Why**: チームパフォーマンスとIRTトレンドの可視化が必要。
