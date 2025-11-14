@@ -194,11 +194,16 @@ function setupSessionRefresh() {
 function showScreen(screenName) {
   console.log(`Navigating to ${screenName} screen`);
 
-  // Stop My Cases timers if leaving My Cases screen
+  // Stop timers if leaving My Cases or All Cases screen
   const currentScreen = document.querySelector('.screen.active');
   if (currentScreen && currentScreen.id === 'myCases-screen') {
     if (typeof stopMyCasesTimers === 'function') {
       stopMyCasesTimers();
+    }
+  }
+  if (currentScreen && currentScreen.id === 'allCases-screen') {
+    if (typeof stopAllCasesTimers === 'function') {
+      stopAllCasesTimers();
     }
   }
 
@@ -232,6 +237,11 @@ function showScreen(screenName) {
       case 'myCases':
         if (typeof loadMyCasesScreen === 'function') {
           loadMyCasesScreen();
+        }
+        break;
+      case 'allCases':
+        if (typeof loadAllCasesScreen === 'function') {
+          loadAllCasesScreen();
         }
         break;
       case 'createCase':

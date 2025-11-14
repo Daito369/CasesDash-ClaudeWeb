@@ -252,6 +252,20 @@ const API = {
     },
 
     /**
+     * Get all team cases (all assignees, all statuses) for Team View
+     * @return {Promise<Object>} Cases result
+     */
+    getAllCases: async function() {
+      try {
+        const result = await callBackend('frontendGetAllCases');
+        return result;
+      } catch (error) {
+        console.error('Get all cases error:', error);
+        throw error;
+      }
+    },
+
+    /**
      * Update a case
      * @param {string} caseId - Case ID
      * @param {Object} updates - Updates to apply
