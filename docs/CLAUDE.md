@@ -702,30 +702,38 @@ Testing:
 - [x] Added: formatDateTime() using Local Time instead of toISOString()
 - [x] Documentation: Updated IRT.md and GAS_SPECIFICATION.md with timezone handling guidelines
 
+#### 13. ReOpen Case UI (2025-11-14) - Priority 1 COMPLETED ✅
+- [x] Frontend: ReOpen modal with date/time picker
+- [x] API Integration: frontendReopenCase backend function
+- [x] Keyboard shortcuts: Ctrl+; (date), Ctrl+Shift+; (time)
+- [x] ReOpen button in Case Details modal (visible for SO/Finished cases only)
+- [x] ReOpen History display in Case Details modal
+- [x] ATTENTION modal after successful ReOpen
+- [x] Auto-refresh Dashboard and My Cases after ReOpen
+- [x] Form validation and error handling
+- [x] Material Design consistent styling for ReOpen History cards
+
 ### 🔄 Known Limitations / Future Enhancements
 - [ ] Email notification settings UI in Settings screen (currently via script properties)
 - [ ] Analytics/Dashboard with IRT metrics visualization
 - [ ] Bulk operations (bulk edit, bulk status change)
 - [ ] Advanced filtering and search in My Cases
 - [ ] Comprehensive automated testing suite
-- [ ] ReOpen case functionality (frontend implementation - backend already complete)
 - [ ] Status History tracking UI
 - [ ] Dashboard "All Cases" view with filters
 - [ ] Case search by Case ID across all sheets
 
 ### 📝 Next Development Priorities (2025-11-14)
 
-#### **Priority 1: ReOpen Case UI** (High Impact - User Workflow)
-**Why**: ReOpen機能のバックエンドは完成しているが、フロントエンドUIがない。現在、ユーザーは手動でステータスを変更している。
-- Frontend: ReOpen modal with date/time picker
-- Integration with reopenCase() backend function
-- Display ReOpen history in Case Details modal
-- Keyboard shortcuts for ReOpen date/time (Ctrl+; and Ctrl+Shift+;)
-- **Estimated Time**: 4-6 hours
-- **Files to modify**:
-  - `src/frontend/index.html` (add ReOpen modal)
-  - `src/frontend/js/reopenCaseModal.js.html` (new file)
-  - `src/frontend/js/api.js.html` (add reopenCase API call)
+#### ~~**Priority 1: ReOpen Case UI**~~ ✅ **COMPLETED** (2025-11-14)
+**Status**: Fully implemented and tested
+- ✅ Frontend: ReOpen modal with date/time picker
+- ✅ Integration with reopenCase() backend function
+- ✅ Display ReOpen history in Case Details modal
+- ✅ Keyboard shortcuts for ReOpen date/time (Ctrl+; and Ctrl+Shift+;)
+- ✅ ATTENTION modal, form validation, error handling
+- **Actual Time**: ~2 hours (most components already existed)
+- **Commit**: fe44304
 
 #### **Priority 2: Dashboard "All Cases" View** (High Impact - Visibility)
 **Why**: 現在My Casesは自分のケースのみ表示。チーム全体の状況を把握できない。
