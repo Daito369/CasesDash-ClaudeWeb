@@ -103,10 +103,24 @@ function createCase(caseData, sheetName, createdBy) {
     Logger.log(`Case created: ${caseObj.caseId} in ${sheetName} at row ${result.rowIndex}`);
 
     // Create IRT data entry
-    const irtResult = createIRTDataEntry(caseObj, createdBy);
+    try {
+      Logger.log(`Creating IRT data entry for case ${caseObj.caseId}...`);
+      const irtResult = createIRTDataEntry(caseObj, createdBy);
 
-    if (!irtResult.success) {
-      Logger.log(`Warning: Failed to create IRT data entry: ${irtResult.error}`);
+      if (!irtResult.success) {
+        Logger.log(`ERROR: Failed to create IRT data entry: ${irtResult.error}`);
+        // Log the stack trace if available
+        if (irtResult.stack) {
+          Logger.log(`Stack trace: ${irtResult.stack}`);
+        }
+        // Continue even if IRT creation fails, but log the error
+      } else {
+        Logger.log(`IRT data entry created successfully for case ${caseObj.caseId}`);
+      }
+    } catch (irtError) {
+      Logger.log(`CRITICAL ERROR creating IRT data entry: ${irtError.message}`);
+      Logger.log(`Stack: ${irtError.stack}`);
+      // Continue even if IRT creation fails
     }
 
     return {
