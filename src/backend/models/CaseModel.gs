@@ -325,29 +325,58 @@ class Case {
 
 /**
  * Combine date and time into Date object
- * @param {Date|string} date - Date
+ * @param {Date|string} date - Date (YYYY/MM/DD or YYYY-MM-DD format)
  * @param {string|Date} time - Time (HH:MM:SS or Date object)
  * @return {Date}
  */
 function combineDateAndTime(date, time) {
-  let dateObj = date instanceof Date ? date : new Date(date);
+  let dateObj;
 
+  // Parse date to ensure correct timezone handling
+  if (date instanceof Date) {
+    // Create new Date object from existing Date to avoid mutation
+    dateObj = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  } else if (typeof date === 'string') {
+    // Parse date string explicitly (YYYY/MM/DD or YYYY-MM-DD format)
+    // Replace - with / and split
+    const dateParts = date.replace(/-/g, '/').split('/');
+    if (dateParts.length === 3) {
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1; // Month is 0-based in JavaScript
+      const day = parseInt(dateParts[2], 10);
+      // Use explicit constructor to ensure local timezone
+      dateObj = new Date(year, month, day);
+      Logger.log(`[combineDateAndTime] Parsed date string "${date}" to: ${dateObj.toISOString()} (local: ${dateObj.toString()})`);
+    } else {
+      // Fallback to default Date constructor
+      Logger.log(`[combineDateAndTime] WARNING: Unexpected date format "${date}", using fallback`);
+      dateObj = new Date(date);
+    }
+  } else {
+    Logger.log(`[combineDateAndTime] WARNING: Unexpected date type ${typeof date}, using current date`);
+    dateObj = new Date();
+  }
+
+  // Set time components
   if (time instanceof Date) {
     // Time is a Date object, extract time components
     const hours = time.getHours();
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();
     dateObj.setHours(hours, minutes, seconds, 0);
+    Logger.log(`[combineDateAndTime] Set time from Date object: ${hours}:${minutes}:${seconds}`);
   } else if (typeof time === 'string') {
     // Time is a string like "HH:MM:SS"
     const timeParts = time.split(':');
     if (timeParts.length >= 2) {
-      const hours = parseInt(timeParts[0]);
-      const minutes = parseInt(timeParts[1]);
-      const seconds = timeParts.length > 2 ? parseInt(timeParts[2]) : 0;
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = parseInt(timeParts[1], 10);
+      const seconds = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
       dateObj.setHours(hours, minutes, seconds, 0);
+      Logger.log(`[combineDateAndTime] Set time from string "${time}": ${hours}:${minutes}:${seconds}`);
     }
   }
 
+  Logger.log(`[combineDateAndTime] Final datetime: ${dateObj.toISOString()} (local: ${dateObj.toString()})`);
   return dateObj;
 }
