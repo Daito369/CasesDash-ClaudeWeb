@@ -263,28 +263,45 @@ function reopenCase(caseId, reopenDate, reopenTime, reopenedBy, sheetName, rowIn
       };
     }
 
-    // 3. Get the last SO datetime from case
-    const soDateTime = caseObj.getFirstCloseDateTime();
-    if (!soDateTime) {
+    // 3. Get IRT data to find the latest SO datetime
+    const irtData = getOrCreateIRTData(caseId);
+
+    if (!irtData) {
       return {
         success: false,
-        error: 'Cannot determine Solution Offered datetime. First Close Date/Time not found.'
+        error: `IRT data not found for case ${caseId}`
       };
     }
 
-    // 4. Combine reopenDate + reopenTime to create reopenDateTime
+    // 4. Find the most recent SO datetime from status history
+    const statusHistory = irtData.getStatusHistory();
+    let lastSODateTime = null;
+    for (let i = statusHistory.length - 1; i >= 0; i--) {
+      if (statusHistory[i].status === CaseStatus.SOLUTION_OFFERED) {
+        lastSODateTime = new Date(statusHistory[i].datetime);
+        break;
+      }
+    }
+
+    if (!lastSODateTime) {
+      return {
+        success: false,
+        error: 'Cannot determine Solution Offered datetime. No SO status found in history.'
+      };
+    }
+
+    Logger.log(`[reopenCase] Found latest SO datetime: ${lastSODateTime}`);
+
+    // 5. Combine reopenDate + reopenTime to create reopenDateTime
     const reopenDateTime = combineDateAndTime(reopenDate, reopenTime);
 
-    // 5. Update case status to "Assigned"
+    // 6. Update case status to "Assigned"
     caseObj.caseStatus = CaseStatus.ASSIGNED;
     caseObj.updatedAt = new Date();
     caseObj.updatedBy = reopenedBy;
 
-    // 6. Get IRT data
-    const irtData = getOrCreateIRTData(caseId);
-
     // 7. Add reopen event to IRT history
-    irtData.addReopen(soDateTime, reopenDateTime, reopenedBy);
+    irtData.addReopen(lastSODateTime, reopenDateTime, reopenedBy);
 
     // 8. Update IRT current status to Assigned
     irtData.addStatusChange(CaseStatus.ASSIGNED, reopenedBy);

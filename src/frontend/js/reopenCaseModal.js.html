@@ -196,7 +196,8 @@ document.addEventListener('keydown', function(event) {
   if (!isReopenModalOpen) return;
 
   // Ctrl+; or Cmd+; → Insert current date
-  if ((event.ctrlKey || event.metaKey) && event.key === ';' && !event.shiftKey) {
+  // Using event.code instead of event.key for better cross-browser compatibility
+  if ((event.ctrlKey || event.metaKey) && event.code === 'Semicolon' && !event.shiftKey) {
     event.preventDefault();
     const reopenDateInput = document.getElementById('reopenDate');
     if (reopenDateInput) {
@@ -211,7 +212,8 @@ document.addEventListener('keydown', function(event) {
   }
 
   // Ctrl+Shift+; or Cmd+Shift+; → Insert current time
-  if ((event.ctrlKey || event.metaKey) && event.key === ';' && event.shiftKey) {
+  // Using event.code instead of event.key for better cross-browser compatibility
+  if ((event.ctrlKey || event.metaKey) && event.code === 'Semicolon' && event.shiftKey) {
     event.preventDefault();
     const reopenTimeInput = document.getElementById('reopenTime');
     if (reopenTimeInput) {

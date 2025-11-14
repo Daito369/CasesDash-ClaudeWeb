@@ -113,10 +113,11 @@ class IRTData {
 
   /**
    * Calculate IRT based on status history
-   * IRT = Total time from case open to now - Total SO period hours
+   * IRT = Total time from case open to end time - Total SO period hours
    *
-   * IMPORTANT: When status is Solution Offered, the timer is PAUSED.
-   * We need to calculate total SO period including current SO period.
+   * IMPORTANT: When status is Solution Offered or Finished, the timer is PAUSED.
+   * End time = SO start time (not current time) for SO/Finished status.
+   * This ensures the timer stops when case enters SO status.
    */
   calculateIRT() {
     if (!this.caseOpenDateTime) {
@@ -125,12 +126,12 @@ class IRTData {
       return;
     }
 
-    const now = new Date();
     const caseOpenDate = new Date(this.caseOpenDateTime);
-    let totalSOPeriodHours = this.totalSOPeriodHours;
+    let endTime;
 
-    // If currently in Solution Offered status, add current SO period
-    if (this.currentStatus === CaseStatus.SOLUTION_OFFERED && this.firstSODateTime) {
+    // If currently in Solution Offered or Finished status, timer is PAUSED
+    // Use the SO start time as end time (timer stopped at that point)
+    if (this.currentStatus === CaseStatus.SOLUTION_OFFERED || this.currentStatus === CaseStatus.FINISHED) {
       const statusHistory = this.getStatusHistory();
 
       // Find the most recent SO datetime
@@ -142,18 +143,19 @@ class IRTData {
         }
       }
 
-      if (lastSODateTime) {
-        const currentSOPeriodMs = now.getTime() - lastSODateTime.getTime();
-        const currentSOPeriodHours = currentSOPeriodMs / (1000 * 60 * 60);
-        totalSOPeriodHours += currentSOPeriodHours;
-      }
+      // Use SO start time as end time (timer paused)
+      endTime = lastSODateTime || new Date();
+    } else {
+      // For Assigned status, timer is running - use current time
+      endTime = new Date();
     }
 
-    const totalMs = now.getTime() - caseOpenDate.getTime();
+    const totalMs = endTime.getTime() - caseOpenDate.getTime();
     const totalHours = totalMs / (1000 * 60 * 60);
 
     // IRT = Total hours - SO period hours
-    const irtHours = totalHours - totalSOPeriodHours;
+    // SO period hours are only added when case is Reopened (via addReopen)
+    const irtHours = totalHours - this.totalSOPeriodHours;
 
     this.irtHours = parseFloat(irtHours.toFixed(2));
     this.irtRemainingHours = parseFloat((72 - irtHours).toFixed(2));
