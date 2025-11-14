@@ -331,6 +331,9 @@ function createDashboardCaseCard(caseItem) {
   const assigneeFilter = document.getElementById('assigneeFilter').value;
   const showAssignee = (assigneeFilter === 'all');
 
+  // DEBUG: Log assignee display logic
+  console.log(`[Dashboard Card] Case ID: ${caseData.caseId}, Filter: ${assigneeFilter}, Show Assignee: ${showAssignee}, Assignee: ${caseData.finalAssignee}`);
+
   card.innerHTML = `
     <div class="case-card-header" style="border-left: 4px solid ${sheetColor};">
       <div class="case-sheet-badge" style="background-color: ${sheetColor};">
