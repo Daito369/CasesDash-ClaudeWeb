@@ -591,9 +591,9 @@ Testing:
 
 ## 🎯 Current Implementation Status
 
-**Phase**: Core Features Complete
-**Branch**: `claude/fix-my-cases-timeout-011CV14Ry2QDQDp1c79wqFzS`
-**Last Updated**: 2025-11-11
+**Phase**: Core Features Complete + IRT Timer Bugs Fixed
+**Branch**: `claude/fix-todo-mhyk9rrtk3pz7agu-01S1hHNfh14j7THE1xAHfdx9`
+**Last Updated**: 2025-11-14
 
 ### ✅ Completed Features
 
@@ -690,21 +690,84 @@ Testing:
 - [x] Email displays: "Case Opened: 2025/11/08 22:59:00" format
 - [x] Setup documentation: docs/EMAIL_NOTIFICATION_SETUP.md and EMAIL_NOTIFICATION_SETUP_JP.md
 
+#### 12. IRT Timer Bug Fixes (2025-11-14)
+- [x] **CRITICAL**: Fixed timezone mismatch (UTC vs Local Time) causing 80-hour IRT offset
+- [x] **CRITICAL**: Fixed date parsing in combineDateAndTime() causing 71-hour offset
+- [x] Fixed: Status sync between case sheets and IRT RAW data before calculateIRT()
+- [x] Fixed: ReOpen case retrieving incorrect SO datetime
+- [x] Fixed: Dashboard timer countdown not stopping for SO/Finished cases
+- [x] Fixed: Ctrl+Shift+; keyboard shortcut using event.code instead of event.key
+- [x] Fixed: ATTENTION modal color changed to yellow (#fbbc04)
+- [x] Added: parseDateTimeWithTimezone() for backward compatibility with UTC data
+- [x] Added: formatDateTime() using Local Time instead of toISOString()
+- [x] Documentation: Updated IRT.md and GAS_SPECIFICATION.md with timezone handling guidelines
+
 ### 🔄 Known Limitations / Future Enhancements
 - [ ] Email notification settings UI in Settings screen (currently via script properties)
 - [ ] Analytics/Dashboard with IRT metrics visualization
 - [ ] Bulk operations (bulk edit, bulk status change)
 - [ ] Advanced filtering and search in My Cases
 - [ ] Comprehensive automated testing suite
-- [ ] ReOpen case functionality (frontend implementation)
+- [ ] ReOpen case functionality (frontend implementation - backend already complete)
 - [ ] Status History tracking UI
+- [ ] Dashboard "All Cases" view with filters
+- [ ] Case search by Case ID across all sheets
 
-### 📝 Next Development Priorities
-1. ~~**Email Notification System** (Section 7) - IRT alert emails via GmailApp~~ ✅ **COMPLETED**
-2. **ReOpen Case UI** - Frontend for reopening closed cases
-3. **Analytics Dashboard** - IRT metrics, trends, team performance
-4. **Advanced Filters** - Filter My Cases by segment, product, urgency
-5. **Automated Testing** - Integration tests for critical workflows
+### 📝 Next Development Priorities (2025-11-14)
+
+#### **Priority 1: ReOpen Case UI** (High Impact - User Workflow)
+**Why**: ReOpen機能のバックエンドは完成しているが、フロントエンドUIがない。現在、ユーザーは手動でステータスを変更している。
+- Frontend: ReOpen modal with date/time picker
+- Integration with reopenCase() backend function
+- Display ReOpen history in Case Details modal
+- Keyboard shortcuts for ReOpen date/time (Ctrl+; and Ctrl+Shift+;)
+- **Estimated Time**: 4-6 hours
+- **Files to modify**:
+  - `src/frontend/index.html` (add ReOpen modal)
+  - `src/frontend/js/reopenCaseModal.js.html` (new file)
+  - `src/frontend/js/api.js.html` (add reopenCase API call)
+
+#### **Priority 2: Dashboard "All Cases" View** (High Impact - Visibility)
+**Why**: 現在My Casesは自分のケースのみ表示。チーム全体の状況を把握できない。
+- Display all team cases with filters (Assignee, Segment, Status)
+- Real-time IRT timer for all cases
+- Sort by IRT Remaining (Critical cases first)
+- Sheet filter (OT Email, 3PO Email, etc.)
+- **Estimated Time**: 6-8 hours
+- **Files to modify**:
+  - `src/backend/Code.gs` (add frontendGetAllCases function)
+  - `src/frontend/js/dashboard.js.html` (add All Cases view)
+  - `src/frontend/index.html` (add All Cases section)
+
+#### **Priority 3: Analytics Dashboard** (Medium Impact - Insights)
+**Why**: チームパフォーマンスとIRTトレンドの可視化が必要。
+- IRT metrics visualization (Chart.js via CDN)
+- Team performance comparison
+- SLA achievement rate by segment
+- Trend analysis (daily/weekly IRT average)
+- **Estimated Time**: 8-12 hours
+- **Files to create**:
+  - `src/frontend/js/analytics.js.html` (new file)
+  - `src/backend/services/AnalyticsService.gs` (new file)
+
+#### **Priority 4: Advanced Filters in My Cases** (Medium Impact - UX)
+**Why**: 大量のケースから特定のケースを見つけるのが困難。
+- Filter by Segment, Product Category, Urgency Level
+- Search by Case ID (across current view)
+- Sort by column headers
+- **Estimated Time**: 3-4 hours
+- **Files to modify**:
+  - `src/frontend/js/myCases.js.html` (add filter logic)
+
+#### **Priority 5: Automated Testing Suite** (Medium Impact - Quality)
+**Why**: 手動テストに時間がかかり、リグレッションバグのリスクがある。
+- Integration tests for critical workflows
+- Backend unit tests for IRT calculation
+- Frontend E2E tests (if possible with GAS limitations)
+- **Estimated Time**: 8-10 hours
+- **Files to create**:
+  - `tests/integration/irt-calculation.test.gs`
+  - `tests/integration/reopen-workflow.test.gs`
 
 ---
 
