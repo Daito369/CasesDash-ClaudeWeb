@@ -341,6 +341,7 @@ function startDashboardTimerUpdates() {
 
 /**
  * Update dashboard IRT timers
+ * IMPORTANT: Solution Offered cases should NOT countdown (timer is paused)
  */
 function updateDashboardTimers() {
   filteredCasesData.forEach(caseItem => {
@@ -349,7 +350,15 @@ function updateDashboardTimers() {
     );
 
     if (timerElement && caseItem.irtData) {
-      // Recalculate IRT remaining hours
+      // Skip timer update for Solution Offered and Finished cases (timer is paused)
+      if (caseItem.case.caseStatus === 'Solution Offered' || caseItem.case.caseStatus === 'Finished') {
+        // Timer is paused, just update display without changing the value
+        const urgency = getUrgencyLevel(caseItem.irtData);
+        timerElement.textContent = `${urgency.icon} ${formatIRTTimer(caseItem.irtData)}`;
+        return;
+      }
+
+      // Only update timer for active cases (Assigned status)
       if (caseItem.irtData.irtRemainingHours !== null && caseItem.irtData.irtRemainingHours !== undefined) {
         // Decrease by 1 second (1/3600 hours)
         caseItem.irtData.irtRemainingHours -= (1 / 3600);

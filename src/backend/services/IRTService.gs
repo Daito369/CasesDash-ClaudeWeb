@@ -114,6 +114,9 @@ class IRTData {
   /**
    * Calculate IRT based on status history
    * IRT = Total time from case open to now - Total SO period hours
+   *
+   * IMPORTANT: When status is Solution Offered, the timer is PAUSED.
+   * We need to calculate total SO period including current SO period.
    */
   calculateIRT() {
     if (!this.caseOpenDateTime) {
@@ -124,11 +127,33 @@ class IRTData {
 
     const now = new Date();
     const caseOpenDate = new Date(this.caseOpenDateTime);
+    let totalSOPeriodHours = this.totalSOPeriodHours;
+
+    // If currently in Solution Offered status, add current SO period
+    if (this.currentStatus === CaseStatus.SOLUTION_OFFERED && this.firstSODateTime) {
+      const statusHistory = this.getStatusHistory();
+
+      // Find the most recent SO datetime
+      let lastSODateTime = null;
+      for (let i = statusHistory.length - 1; i >= 0; i--) {
+        if (statusHistory[i].status === CaseStatus.SOLUTION_OFFERED) {
+          lastSODateTime = new Date(statusHistory[i].datetime);
+          break;
+        }
+      }
+
+      if (lastSODateTime) {
+        const currentSOPeriodMs = now.getTime() - lastSODateTime.getTime();
+        const currentSOPeriodHours = currentSOPeriodMs / (1000 * 60 * 60);
+        totalSOPeriodHours += currentSOPeriodHours;
+      }
+    }
+
     const totalMs = now.getTime() - caseOpenDate.getTime();
     const totalHours = totalMs / (1000 * 60 * 60);
 
     // IRT = Total hours - SO period hours
-    const irtHours = totalHours - this.totalSOPeriodHours;
+    const irtHours = totalHours - totalSOPeriodHours;
 
     this.irtHours = parseFloat(irtHours.toFixed(2));
     this.irtRemainingHours = parseFloat((72 - irtHours).toFixed(2));
@@ -216,24 +241,39 @@ function getOrCreateIRTData(caseId) {
  */
 function createIRTDataEntry(caseObj, createdBy) {
   try {
+    Logger.log(`[createIRTDataEntry] Starting for case ${caseObj.caseId}`);
+    Logger.log(`[createIRTDataEntry] Source sheet: ${caseObj.sourceSheet}`);
+    Logger.log(`[createIRTDataEntry] Created by: ${createdBy}`);
+
     const sheet = getSheet(SheetNames.IRT_RAW_DATA);
+    Logger.log(`[createIRTDataEntry] IRT RAW data sheet retrieved successfully`);
+
+    const caseOpenDateTime = caseObj.getCaseOpenDateTime();
+    Logger.log(`[createIRTDataEntry] Case open datetime: ${caseOpenDateTime}`);
 
     const irtData = new IRTData({
       caseId: caseObj.caseId,
       sourceSheet: caseObj.sourceSheet,
-      caseOpenDateTime: caseObj.getCaseOpenDateTime(),
+      caseOpenDateTime: caseOpenDateTime,
       currentStatus: CaseStatus.ASSIGNED,
       updatedBy: createdBy
     });
+    Logger.log(`[createIRTDataEntry] IRTData object created`);
 
     // Add initial status to history
     irtData.addStatusChange(CaseStatus.ASSIGNED, createdBy);
+    Logger.log(`[createIRTDataEntry] Initial status added to history`);
 
     // Calculate initial IRT
     irtData.calculateIRT();
+    Logger.log(`[createIRTDataEntry] IRT calculated: ${irtData.irtHours} hours, remaining: ${irtData.irtRemainingHours} hours`);
 
     // Append to sheet
-    sheet.appendRow(irtData.toSheetRow());
+    const rowData = irtData.toSheetRow();
+    Logger.log(`[createIRTDataEntry] Row data prepared, length: ${rowData.length}`);
+
+    sheet.appendRow(rowData);
+    Logger.log(`[createIRTDataEntry] Row appended to sheet successfully`);
 
     Logger.log(`Created IRT data entry for case ${caseObj.caseId}`);
 
@@ -243,10 +283,12 @@ function createIRTDataEntry(caseObj, createdBy) {
     };
 
   } catch (error) {
-    Logger.log(`Error creating IRT data entry: ${error.message}`);
+    Logger.log(`[createIRTDataEntry] ERROR: ${error.message}`);
+    Logger.log(`[createIRTDataEntry] Stack: ${error.stack}`);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     };
   }
 }
@@ -386,56 +428,117 @@ function getCasesWithLowIRT(thresholdHours = 2) {
 }
 
 /**
- * Sync all cases from 6 sheets to IRT RAW data
+ * Sync all cases from 6 sheets to IRT RAW data (OPTIMIZED)
  * Creates missing entries and updates existing ones
+ * Uses batch operations to minimize SpreadsheetApp calls
  * @return {Object} Sync result { success: boolean, created: number, updated: number }
  */
 function syncAllCasesToIRTData() {
   try {
+    Logger.log('[syncAllCasesToIRTData] Starting sync...');
+
+    // OPTIMIZATION 1: Load all IRT data into Map for O(1) lookup
+    const irtSheet = getSheet(SheetNames.IRT_RAW_DATA);
+    const irtLastRow = irtSheet.getLastRow();
+    const irtDataMap = new Map();
+
+    if (irtLastRow >= 2) {
+      const irtData = irtSheet.getRange(2, 1, irtLastRow - 1, 13).getValues();
+      for (let i = 0; i < irtData.length; i++) {
+        const caseId = irtData[i][0];
+        if (caseId && caseId.toString().trim() !== '') {
+          irtDataMap.set(caseId.toString(), IRTData.fromSheetRow(irtData[i]));
+        }
+      }
+    }
+    Logger.log(`[syncAllCasesToIRTData] Loaded ${irtDataMap.size} existing IRT entries`);
+
     const sheets = SheetNames.getAllCaseSheets();
     let created = 0;
     let updated = 0;
+    const newIRTEntries = []; // Batch array for new entries
+    const updatedIRTEntries = []; // Batch array for updates
 
+    // OPTIMIZATION 2: Process all sheets with batch reads
     for (const sheetName of sheets) {
       try {
-        const cases = getCasesFromSheet(sheetName);
+        Logger.log(`[syncAllCasesToIRTData] Processing sheet: ${sheetName}`);
+        const sheet = getSheet(sheetName);
+        const lastRow = sheet.getLastRow();
 
-        for (let i = 0; i < cases.length; i++) {
-          const row = cases[i];
-          const columnMap = getColumnMapping(sheetName);
+        if (lastRow < 2) {
+          Logger.log(`[syncAllCasesToIRTData] Sheet ${sheetName} is empty, skipping`);
+          continue;
+        }
+
+        const columnMap = getColumnMapping(sheetName);
+        const numCols = sheet.getLastColumn();
+
+        // Batch read all data at once
+        const data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+
+        // OPTIMIZATION 3: Process in memory (JavaScript is fast)
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
           const caseId = row[columnMap.CASE_ID];
 
           if (!caseId || caseId.toString().trim() === '') {
             continue;
           }
 
-          // Check if IRT data exists
-          const existingIRTData = getOrCreateIRTData(caseId);
+          const existingIRTData = irtDataMap.get(caseId.toString());
 
           if (!existingIRTData) {
             // Create new IRT data entry
             const caseObj = Case.fromSheetRow(row, sheetName, i + 2);
-            const result = createIRTDataEntry(caseObj, 'system@sync');
+            const irtData = new IRTData({
+              caseId: caseObj.caseId,
+              sourceSheet: caseObj.sourceSheet,
+              caseOpenDateTime: caseObj.getCaseOpenDateTime(),
+              currentStatus: CaseStatus.ASSIGNED,
+              updatedBy: 'system@sync'
+            });
 
-            if (result.success) {
-              created++;
-            }
+            irtData.addStatusChange(CaseStatus.ASSIGNED, 'system@sync');
+            irtData.calculateIRT();
+
+            newIRTEntries.push(irtData.toSheetRow());
+            created++;
           } else {
             // Update existing entry if status changed
             const currentStatusInSheet = row[columnMap.CASE_STATUS];
 
             if (currentStatusInSheet && currentStatusInSheet !== existingIRTData.currentStatus) {
-              updateCaseStatus(caseId, currentStatusInSheet, 'system@sync');
+              existingIRTData.addStatusChange(currentStatusInSheet, 'system@sync');
+              existingIRTData.calculateIRT();
+              existingIRTData.lastUpdated = new Date();
+              existingIRTData.updatedBy = 'system@sync';
+
+              updatedIRTEntries.push(existingIRTData);
               updated++;
             }
           }
         }
       } catch (error) {
-        Logger.log(`Error syncing sheet ${sheetName}: ${error.message}`);
+        Logger.log(`[syncAllCasesToIRTData] Error syncing sheet ${sheetName}: ${error.message}`);
       }
     }
 
-    Logger.log(`Sync completed: ${created} created, ${updated} updated`);
+    // OPTIMIZATION 4: Batch write new entries
+    if (newIRTEntries.length > 0) {
+      Logger.log(`[syncAllCasesToIRTData] Writing ${newIRTEntries.length} new IRT entries in batch...`);
+      irtSheet.getRange(irtLastRow + 1, 1, newIRTEntries.length, 13).setValues(newIRTEntries);
+    }
+
+    // OPTIMIZATION 5: Batch update existing entries
+    if (updatedIRTEntries.length > 0) {
+      Logger.log(`[syncAllCasesToIRTData] Updating ${updatedIRTEntries.length} IRT entries...`);
+      for (const irtData of updatedIRTEntries) {
+        updateIRTDataInSheet(irtData);
+      }
+    }
+
+    Logger.log(`[syncAllCasesToIRTData] Sync completed: ${created} created, ${updated} updated`);
 
     return {
       success: true,
@@ -444,7 +547,8 @@ function syncAllCasesToIRTData() {
     };
 
   } catch (error) {
-    Logger.log(`Error syncing cases to IRT data: ${error.message}`);
+    Logger.log(`[syncAllCasesToIRTData] Error syncing cases to IRT data: ${error.message}`);
+    Logger.log(`[syncAllCasesToIRTData] Stack: ${error.stack}`);
     return {
       success: false,
       error: error.message
