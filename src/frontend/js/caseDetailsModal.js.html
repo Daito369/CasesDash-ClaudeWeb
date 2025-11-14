@@ -180,11 +180,17 @@ function populateCaseDetails(caseData, irtData, sheetName) {
 
     document.getElementById('detailSOPeriod').textContent =
       irtData.totalSOPeriodHours ? `${irtData.totalSOPeriodHours}h` : '0h';
+
+    // ReOpen History
+    displayReopenHistory(irtData);
   } else {
     document.getElementById('detailIRTHours').textContent = 'N/A';
     document.getElementById('detailIRTRemaining').textContent = 'N/A';
     document.getElementById('detailReopenCount').textContent = 'N/A';
     document.getElementById('detailSOPeriod').textContent = 'N/A';
+
+    // Hide ReOpen History section if no IRT data
+    document.getElementById('detailReopenHistorySection').style.display = 'none';
   }
 
   // Flags
@@ -294,6 +300,81 @@ function editCaseFromModal() {
 
   // Open edit modal with correct sheet name and row index (implemented in editCaseModal.js.html)
   editCase(currentCaseId, currentSheetName, currentRowIndex);
+}
+
+/**
+ * Display ReOpen History
+ * @param {Object} irtData - IRT data containing reopenHistoryJSON
+ */
+function displayReopenHistory(irtData) {
+  const section = document.getElementById('detailReopenHistorySection');
+  const container = document.getElementById('detailReopenHistoryContainer');
+
+  if (!irtData || !irtData.reopenHistoryJSON) {
+    section.style.display = 'none';
+    return;
+  }
+
+  try {
+    // Parse ReOpen History JSON
+    const reopenHistory = JSON.parse(irtData.reopenHistoryJSON);
+
+    if (!reopenHistory.reopens || reopenHistory.reopens.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    // Show section
+    section.style.display = 'block';
+
+    // Clear container
+    container.innerHTML = '';
+
+    // Display each ReOpen entry
+    reopenHistory.reopens.forEach((reopen) => {
+      const reopenCard = document.createElement('div');
+      reopenCard.className = 'reopen-history-card';
+      reopenCard.style.cssText = `
+        background: #f8f9fa;
+        border-left: 4px solid #1a73e8;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        border-radius: 4px;
+      `;
+
+      reopenCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-weight: 500; color: #1a73e8;">
+            <span class="material-icons" style="font-size: 18px; vertical-align: middle;">refresh</span>
+            ReOpen #${reopen.reopenNumber}
+          </div>
+          <div style="color: #5f6368; font-size: 13px;">
+            by ${reopen.reopenedBy || 'Unknown'}
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 14px;">
+          <div>
+            <span style="color: #5f6368;">SO DateTime:</span>
+            <span style="font-weight: 500;">${reopen.soDateTime || 'N/A'}</span>
+          </div>
+          <div>
+            <span style="color: #5f6368;">ReOpen DateTime:</span>
+            <span style="font-weight: 500;">${reopen.reopenDateTime || 'N/A'}</span>
+          </div>
+          <div>
+            <span style="color: #5f6368;">SO Period:</span>
+            <span style="font-weight: 500; color: #ea4335;">${reopen.soPeriodHours ? reopen.soPeriodHours.toFixed(2) : '0'}h</span>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(reopenCard);
+    });
+
+  } catch (error) {
+    console.error('Error parsing ReOpen History JSON:', error);
+    section.style.display = 'none';
+  }
 }
 
 /**
