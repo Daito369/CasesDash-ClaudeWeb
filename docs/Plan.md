@@ -30,11 +30,11 @@ CasesDashは、Google Apps Script (GAS) ベースのケース管理システム�
 
 ### 1.2 主要改善領域
 
-1. **パフォーマンス**: バッチ読み込み、キャッシング、O(1) ルックアップによる応答速度改善
-2. **IRT統合**: IRT RAW dataシートによる複数ReOpen対応とリアルタイム計算
-3. **UX向上**: Dashboard強化、ReOpen機能、キーボードショートカット追加
-4. **認証・セキュリティ**: Google OAuth、ドメイン制限、セッション管理
-5. **Gmail通知**: IRT 2時間切れアラート、チームリーダー通知
+1. **パフォーマンス**: ✅ バッチ読み込み、O(1) ルックアップによる応答速度改善（実装済み）/ ⚠️ キャッシング（計画中）
+2. **IRT統合**: ✅ IRT RAW dataシートによる複数ReOpen対応と計算（実装済み）
+3. **UX向上**: ✅ Dashboard強化、ReOpen機能（実装済み）/ ⚠️ キーボードショートカット（計画中）
+4. **認証・セキュリティ**: ✅ Google OAuth、柔軟なドメイン制限、セッション管理（実装済み）
+5. **Gmail通知**: ✅ IRT 2時間切れアラート、チームリーダー通知（定期トリガー方式で実装済み）
 
 ### 1.3 重要な成果物
 
@@ -42,7 +42,8 @@ CasesDashは、Google Apps Script (GAS) ベースのケース管理システム�
 - ✅ IRT RAW dataシートによる正確なIRT計算（複数ReOpen対応）
 - ✅ `frontendGetMyCases()`の最適化（O(n²) → O(n)）
 - ✅ Dashboard検索・フィルター・ReOpen機能
-- ✅ Create Case、Edit Case、My Cases、Analytics統合
+- ✅ Create Case、Edit Case、My Cases 実装
+- ⚠️ Analytics機能は未実装（今後の実装計画あり）
 
 ---
 
@@ -93,8 +94,8 @@ CasesDash-ClaudeWeb/
 **フロントエンド:**
 - HTML5, CSS3 (Grid, Flexbox, CSS Variables)
 - JavaScript ES6+ (Async/Await, Modules)
-- Material Design Components for Web
-- ApexCharts, Google Charts, ECharts (統計可視化)
+- Material Design Components for Web (Icons, Fonts)
+- ⚠️ **統計可視化ライブラリ (未統合)**: ApexCharts、Google Charts、ECharts は現在未実装
 
 **デプロイ:**
 - Google Apps Script Web App
@@ -122,17 +123,18 @@ CasesDash-ClaudeWeb/
 
 #### 2.4.2 機能実装
 
-1. **Live Mode未実装**
-   - ポップアップウィンドウ機能が未完成
-   - 解決策: セクション3.5で詳細設計
+1. **Live Mode 未実装** ⚠️
+   - ポップアップウィンドウ機能が未実装
+   - doGet() は 'login' と 'app' モードのみサポート
+   - 今後の実装: セクション3.5で詳細設計
 
-2. **Analytics未完成**
-   - チャート描画、リアルタイム更新が未実装
-   - 解決策: ApexCharts/ECharts統合
+2. **Analytics 未実装** ⚠️
+   - チャート描画機能が未実装
+   - ApexCharts、Google Charts、ECharts のいずれも未統合
+   - 今後の実装: Phase 2 で ApexCharts/ECharts統合を計画
 
-3. **Settings画面の統合**
-   - 初期設定画面が分離している
-   - 解決策: Settings画面に統合
+3. **Settings画面の統合** ✅ 実装済み
+   - Settings 画面は index.html に統合済み (index.html:202-257)
 
 #### 2.4.3 UX/UI
 
@@ -211,8 +213,22 @@ Get IRT RAW data → Parse Status History → Find Last SO Time
     ↓
 Calculate IRT = (EndTime - CaseOpenTime) - TotalSOPeriodHours
     ↓
-Update IRT RAW data → Trigger Gmail Notification (if < 2h)
+Update IRT RAW data
 ```
+
+**IRT 通知フロー（定期トリガー方式）**:
+
+```
+Time-based Trigger (Hourly) → checkAndSendIRTAlerts()
+    ↓
+Read IRT RAW data sheet (batch)
+    ↓
+For each case: Check (Status=Assigned && IRT Remaining ≤ 2h && Not Recently Notified)
+    ↓
+Get Team Leader Email → Send Gmail Notification → Update Last Notified Timestamp
+```
+
+**重要**: IRT 通知は**リアルタイムではなく**、1時間ごとの定期トリガーで実行されます (NotificationService.gs:384-474)。これにより API 呼び出し回数を削減し、スパム通知を防止します。
 
 ### 3.3 認証フロー
 
@@ -241,13 +257,13 @@ doGet() → checkAuthStatus()
 | 設定 | PropertiesService | 永続 | アプリ設定 |
 | キャッシュ | CacheService | 5-10分 | 高速読み込み |
 
-### 3.5 Live Mode設計
+### 3.5 Live Mode設計 ⚠️ **未実装 - 今後の計画**
 
-Live Modeは、メインアプリとは独立したポップアップウィンドウで動作します。
+Live Modeは、メインアプリとは独立したポップアップウィンドウで動作する軽量版アプリケーションとして計画されています。
 
-**実装方針:**
+**計画中の実装方針:**
 ```javascript
-// Main App
+// Main App (今後実装予定)
 function openLiveMode() {
   const liveWindow = window.open(
     getAppUrl() + '?mode=live',
@@ -256,7 +272,7 @@ function openLiveMode() {
   );
 }
 
-// Live Mode HTML (lightweight)
+// Live Mode HTML (lightweight) (今後実装予定)
 function serveLiveMode() {
   const template = HtmlService.createTemplateFromFile('frontend/live-mode');
   template.user = getCurrentUser();
@@ -266,11 +282,13 @@ function serveLiveMode() {
 }
 ```
 
-**機能:**
+**計画中の機能:**
 - Dashboard (簡易版)
 - Create Case (フルフォーム)
 - リアルタイム更新 (30秒間隔)
 - ウィンドウサイズ記憶 (localStorage)
+
+**現状**: Code.gs の doGet() は現在 'login' と 'app' モードのみをサポートしており、'live' モードは未実装です (Code.gs:82-183)。Live Mode の実装は Phase 2 で計画されています (セクション 8 参照)。
 
 ---
 
@@ -317,11 +335,11 @@ function loadAllIRTDataIntoMap() {
 
 **効果**: ケース取得時間 O(n²) → O(n)
 
-#### 4.1.3 キャッシング戦略
+#### 4.1.3 キャッシング戦略 ⚠️ **未実装 - 今後の計画**
 
-**実装計画:**
+**計画中の実装案:**
 ```javascript
-// CacheService活用
+// CacheService活用 (今後実装予定)
 const CACHE_TTL = 300; // 5分
 
 function getCachedSheetData(sheetName) {
@@ -342,17 +360,22 @@ function getCachedSheetData(sheetName) {
 }
 ```
 
-**キャッシュ無効化タイミング:**
+**計画中のキャッシュ無効化タイミング:**
 - ケース作成・更新時
 - ReOpen実行時
 - ステータス変更時
 
-### 4.2 エラーハンドリング強化
+**現状**: CacheService は現在プロジェクトで使用されていません。すべてのデータ読み込みはバッチ読み込み + Map 活用による O(1) ルックアップで最適化されています (Code.gs:1108-1146)。CacheService の導入は Phase 1 で計画されています (セクション 8 参照)。
 
-#### 4.2.1 統一エラーレスポンス
+### 4.2 エラーハンドリング強化 ⚠️ **未実装 - 今後の計画**
 
+#### 4.2.1 統一エラーレスポンス（計画中）
+
+**現状**: 現在のエラーハンドリングは各関数内で個別に try-catch を使用しています。統一的な ErrorHandler クラスは実装されていません。
+
+**計画中の実装案:**
 ```javascript
-// utils/ErrorHandler.gs
+// utils/ErrorHandler.gs (今後実装予定)
 class ErrorHandler {
   static createErrorResponse(error, context = '') {
     const errorInfo = {
@@ -398,10 +421,13 @@ class ErrorHandler {
 }
 ```
 
-#### 4.2.2 リトライロジック
+#### 4.2.2 リトライロジック（計画中）
 
+**現状**: リトライロジックは実装されていません。
+
+**計画中の実装案:**
 ```javascript
-// utils/RetryHelper.gs
+// utils/RetryHelper.gs (今後実装予定)
 function retryWithBackoff(fn, maxRetries = 3) {
   let retries = 0;
 
@@ -423,7 +449,7 @@ function retryWithBackoff(fn, maxRetries = 3) {
   }
 }
 
-// 使用例
+// 使用例 (今後実装予定)
 function frontendGetMyCases() {
   return retryWithBackoff(() => {
     // 実際の処理
@@ -569,14 +595,17 @@ function checkAndSendIRTAlerts() {
 
 ---
 
-## 5. フロントエンド最適化
+## 5. フロントエンド最適化 ⚠️ **大部分が未実装 - 今後の計画**
 
-### 5.1 仮想スクロール実装
+### 5.1 仮想スクロール実装（計画中）
 
-大量ケース（1000件以上）のレンダリングを最適化します。
+**現状**: 仮想スクロールは実装されていません。現在、すべてのケースカードが DOM に直接レンダリングされます。
 
+**計画**: 大量ケース（1000件以上）のレンダリングを最適化するため、仮想スクロールの実装を計画しています。
+
+**計画中の実装案:**
 ```javascript
-// js/VirtualScroll.js
+// js/VirtualScroll.js (今後実装予定)
 class VirtualScroll {
   constructor(container, items, rowHeight, bufferSize = 5) {
     this.container = container;
@@ -653,10 +682,13 @@ const virtualScroll = new VirtualScroll(
 );
 ```
 
-### 5.2 リアルタイムタイマー最適化
+### 5.2 リアルタイムタイマー最適化（計画中）
 
+**現状**: リアルタイムタイマー更新機能は基本的なレベルで実装されていますが、最適化されたクラスベースの実装はありません。
+
+**計画中の実装案:**
 ```javascript
-// js/RealtimeUpdater.js (改善版)
+// js/RealtimeUpdater.js (今後実装予定)
 class RealtimeUpdater {
   constructor() {
     this.timers = new Map(); // caseId -> timerData
@@ -743,10 +775,13 @@ class RealtimeUpdater {
 }
 ```
 
-### 5.3 キーボードショートカット
+### 5.3 キーボードショートカット（計画中）
 
+**現状**: キーボードショートカットは実装されていません。
+
+**計画中の実装案:**
 ```javascript
-// js/KeyboardShortcuts.js
+// js/KeyboardShortcuts.js (今後実装予定)
 class KeyboardShortcuts {
   constructor() {
     this.shortcuts = new Map();
@@ -803,10 +838,13 @@ shortcuts.register('Ctrl+Shift+;', () => {
 });
 ```
 
-### 5.4 ダークモード実装
+### 5.4 ダークモード実装（計画中）
 
+**現状**: ダークモード機能は実装されていません。
+
+**計画中の実装案:**
 ```css
-/* css/themes.css */
+/* css/themes.css (今後実装予定) */
 :root {
   /* Light Theme */
   --bg-primary: #ffffff;
@@ -839,7 +877,7 @@ body {
 ```
 
 ```javascript
-// js/ThemeManager.js
+// js/ThemeManager.js (今後実装予定)
 class ThemeManager {
   constructor() {
     this.theme = localStorage.getItem('theme') || 'light';
@@ -877,19 +915,22 @@ const themeManager = new ThemeManager();
 
 #### 6.2.1 バックエンド
 
-- [x] バッチ読み込み実装
-- [x] Map活用によるO(1)ルックアップ
-- [ ] CacheService統合
-- [ ] 非同期処理最適化
-- [ ] データベースインデックス (該当なし)
+- [x] ✅ バッチ読み込み実装（実装済み - Code.gs:1108-1146）
+- [x] ✅ Map活用によるO(1)ルックアップ（実装済み - Code.gs:1112-1146）
+- [ ] ⚠️ CacheService統合（未実装 - Phase 1 で計画）
+- [ ] ⚠️ 非同期処理最適化（未実装）
+- [ ] ⚠️ エラーハンドリング統一（未実装 - ErrorHandler クラス未実装）
+- [ ] ⚠️ リトライロジック（未実装 - RetryHelper 未実装）
 
 #### 6.2.2 フロントエンド
 
-- [ ] 仮想スクロール実装
-- [ ] 遅延ロード (Lazy Loading)
-- [ ] コード分割 (Code Splitting)
-- [ ] 画像最適化
-- [ ] CSS/JS minification
+- [ ] ⚠️ 仮想スクロール実装（未実装 - VirtualScroll クラス未実装）
+- [ ] ⚠️ 遅延ロード (Lazy Loading)（未実装）
+- [ ] ⚠️ コード分割 (Code Splitting)（GAS の制約により困難）
+- [ ] ⚠️ 画像最適化（該当画像なし）
+- [ ] ⚠️ CSS/JS minification（未実装）
+- [ ] ⚠️ キーボードショートカット（未実装）
+- [ ] ⚠️ ダークモード（未実装）
 
 #### 6.2.3 ネットワーク
 
@@ -898,10 +939,13 @@ const themeManager = new ThemeManager();
 - [ ] リソースキャッシング
 - [ ] CDN活用 (Material Design, Charts)
 
-### 6.3 パフォーマンス計測
+### 6.3 パフォーマンス計測（計画中）
 
+**現状**: 体系的なパフォーマンス計測機能は実装されていません。
+
+**計画中の実装案:**
 ```javascript
-// js/PerformanceMonitor.js
+// js/PerformanceMonitor.js (今後実装予定)
 class PerformanceMonitor {
   constructor() {
     this.metrics = new Map();
@@ -957,7 +1001,8 @@ google.script.run
 // Authentication.gs:79
 function validateUserDomain(email) {
   const domain = email.split('@')[1];
-  const allowedDomain = 'google.com';
+  // Script Properties から読み込み可能な柔軟な設計
+  const allowedDomain = getConfig(ConfigKeys.ALLOWED_DOMAIN, 'google.com');
 
   if (domain === allowedDomain) {
     return { success: true };
@@ -977,6 +1022,8 @@ function validateUserDomain(email) {
   };
 }
 ```
+
+**重要**: 許可ドメインは `getConfig(ConfigKeys.ALLOWED_DOMAIN, 'google.com')` で Script Properties から読み込まれるため、デプロイ後に変更可能です。ハードコードされた固定値ではありません。
 
 #### 7.1.2 セッション管理
 
@@ -1010,10 +1057,13 @@ function getActiveSession() {
 }
 ```
 
-### 7.2 入力検証
+### 7.2 入力検証 ⚠️ **未実装 - 今後の計画**
 
+**現状**: 統一的な ValidationService は実装されていません。入力検証は各関数内で個別に実施されています。
+
+**計画中の実装案:**
 ```javascript
-// services/ValidationService.gs
+// services/ValidationService.gs (今後実装予定)
 class ValidationService {
   static validateCaseData(caseData, sheetName) {
     const errors = [];
@@ -1062,10 +1112,13 @@ class ValidationService {
 }
 ```
 
-### 7.3 監査ログ
+### 7.3 監査ログ ⚠️ **未実装 - 今後の計画**
 
+**現状**: 統一的な AuditLogger クラスは実装されていません。
+
+**計画中の実装案:**
 ```javascript
-// utils/AuditLogger.gs
+// utils/AuditLogger.gs (今後実装予定)
 class AuditLogger {
   static log(action, details) {
     try {
@@ -1279,20 +1332,39 @@ Analytics.trackPerformance('loadMyCases', 1250); // 1250ms
 
 ## 11. まとめ
 
-### 11.1 主要な改善点
+### 11.1 実装済みの主要な改善点
 
-1. **パフォーマンス**: バッチ読み込み、Map活用、仮想スクロールにより、レスポンス時間を **70%削減**
-2. **IRT対応**: IRT RAW dataシートにより、複数ReOpenを正確に追跡し、**SLA計算の精度向上**
-3. **UX向上**: Dashboard強化、キーボードショートカット、ダークモードにより、**ユーザー満足度向上**
-4. **セキュリティ**: 認証強化、入力検証、監査ログにより、**セキュリティ基準達成**
+1. **✅ パフォーマンス**: バッチ読み込み、Map活用による O(1) ルックアップにより、**データ取得時間を大幅削減** (Code.gs:1108-1146)
+2. **✅ IRT対応**: IRT RAW dataシートにより、複数ReOpenを正確に追跡し、**SLA計算の精度向上** (IRTService.gs:1-603)
+3. **✅ UX向上**: Dashboard強化（検索・フィルター）、ReOpen機能により、**ユーザビリティ向上** (index.html:89-200)
+4. **✅ セキュリティ**: Google OAuth、柔軟なドメイン制限、セッション管理により、**基本的なセキュリティ確保** (Authentication.gs:1-259)
+5. **✅ Gmail通知**: 定期トリガー方式（1時間ごと）によるIRTアラート送信 (NotificationService.gs:384-480)
 
-### 11.2 次のステップ
+### 11.2 今後の実装計画
 
-1. **Phase 1実装開始** (Week 1-2): エラーハンドリング、キャッシング、仮想スクロール
-2. **ユーザーフィードバック収集**: ベータ版リリース後、フィードバックを反映
+**Phase 1 (Week 1-2) - 基盤強化:**
+- ⚠️ エラーハンドリング統一 (ErrorHandler.gs)
+- ⚠️ CacheService統合
+- ⚠️ ValidationService実装
+- ⚠️ 監査ログ実装 (AuditLogger.gs)
+
+**Phase 2 (Week 3-4) - 機能拡張:**
+- ⚠️ Live Mode実装
+- ⚠️ Analytics チャート実装 (ApexCharts/ECharts統合)
+- ⚠️ 仮想スクロール実装 (VirtualScroll.js)
+
+**Phase 3 (Week 5-6) - UX改善:**
+- ⚠️ キーボードショートカット (KeyboardShortcuts.js)
+- ⚠️ ダークモード実装 (ThemeManager.js)
+- ⚠️ パフォーマンス計測 (PerformanceMonitor.js)
+
+### 11.3 次のステップ
+
+1. **Phase 1実装開始**: 基盤強化タスクから着手
+2. **ユーザーフィードバック収集**: 現行システムのフィードバックを収集
 3. **継続的改善**: パフォーマンスモニタリング、定期的なリファクタリング
 
-### 11.3 連絡先
+### 11.4 連絡先
 
 - **プロジェクトオーナー**: [Your Name]
 - **技術リード**: [Tech Lead Name]
